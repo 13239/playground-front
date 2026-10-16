@@ -1,0 +1,704 @@
+.screen {
+  /* Grow with available width AND height; rem respects font preferences.
+     At a 16px root: FHD 1.15px, QHD 1.4px, 4K 1.9px. */
+  --u: clamp(
+    0.0546875rem,
+    min(calc(0.025rem + 0.0390625vw), calc(0.025rem + 0.06944444svh)),
+    0.15rem
+  );
+  --ink: #595eaa;
+  --accent: #4900ff;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100svh;
+}
+
+.backdrop {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #a7d6ff;
+}
+
+.worldImage {
+  object-fit: cover;
+  object-position: center;
+}
+
+.header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-block: calc(30 * var(--u));
+  padding-inline: max(1.25rem, min(6vw, calc(100 * var(--u))));
+}
+
+.homeLink {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(17 * var(--u));
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.brandMark {
+  flex: none;
+  width: calc(61 * var(--u));
+  height: calc(50 * var(--u));
+  filter: drop-shadow(0 2px 3px #2399eb80);
+}
+
+.wordmark {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: calc(205 * var(--u));
+  height: calc(50 * var(--u));
+  color: #110679;
+  font-family: var(--font-noto-sans-kr), Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: -1.65px;
+}
+
+.headerNav {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: calc(18 * var(--u));
+  color: var(--ink);
+  font-size: calc(19 * var(--u));
+  font-weight: 500;
+}
+
+.headerSignup,
+.signupLink,
+.recoveryLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(8 * var(--u));
+  min-height: max(2.75rem, calc(44 * var(--u)));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+  text-underline-offset: 3px;
+}
+
+.headerSignup svg {
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+}
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: calc(36 * var(--u)) 24px calc(112 * var(--u));
+}
+
+.card {
+  /* Keep form content compact independently of the page/header scale. */
+  --u: clamp(0.0546875rem, calc(0.05rem + 0.005vw), 0.0625rem);
+  min-width: 0;
+  width: min(100%, 32.5rem);
+  max-width: 100%;
+  min-height: 0;
+  padding: calc(32 * var(--u)) calc(32 * var(--u)) calc(24 * var(--u));
+  border: 1px solid #ffffffed;
+  border-radius: calc(25 * var(--u));
+  background: linear-gradient(
+    145deg,
+    #fbfdfff0 0%,
+    #f6f8fff0 43%,
+    #f0eaffed 100%
+  );
+  box-shadow:
+    0 14px 55px #5a65d52b,
+    0 0 0 1px #c4d6ff6b,
+    inset 0 1px 5px #fff;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.cardBrand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 calc(40 * var(--u));
+  outline: none;
+}
+
+.cardBrand .brand {
+  gap: calc(16 * var(--u));
+}
+
+.cardBrand .brandMark {
+  width: calc(60 * var(--u));
+  height: calc(50 * var(--u));
+}
+
+.form {
+  position: relative;
+}
+
+.fields {
+  display: grid;
+  gap: calc(15 * var(--u));
+}
+
+.field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: max(3rem, calc(56 * var(--u)));
+  border: 1px solid #b9c8ff;
+  border-radius: calc(15 * var(--u));
+  background: #ffffffa3;
+  box-shadow: inset 0 1px 3px #fff9;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.field:focus-within {
+  border-color: #7351ff;
+  box-shadow: 0 0 0 3px #8054ff1f;
+}
+
+.fieldIcon {
+  position: absolute;
+  left: calc(19 * var(--u));
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+  color: #6969b7;
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 calc(19 * var(--u)) 0 calc(59 * var(--u));
+  border: 0;
+  border-radius: inherit;
+  outline: none;
+  background: transparent;
+  color: #353371;
+  font-size: calc(20 * var(--u));
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  caret-color: var(--accent);
+}
+
+.input::placeholder {
+  opacity: 1;
+  color: #696da5;
+}
+
+.input:autofill {
+  -webkit-text-fill-color: #353371;
+}
+
+.passwordInput {
+  padding-right: max(3.625rem, calc(58 * var(--u)));
+}
+
+.visibilityToggle {
+  position: absolute;
+  right: calc(10 * var(--u));
+  display: grid;
+  place-items: center;
+  width: max(2.75rem, calc(44 * var(--u)));
+  height: max(2.75rem, calc(44 * var(--u)));
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #6563ae;
+}
+
+.visibilityToggle svg {
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+}
+
+.options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: max(2.75rem, calc(44 * var(--u)));
+  margin-top: calc(10 * var(--u));
+  color: var(--ink);
+  font-size: calc(19 * var(--u));
+  letter-spacing: -0.045em;
+}
+
+.remember {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  min-width: 0;
+  max-width: 100%;
+  min-height: max(2.75rem, calc(44 * var(--u)));
+  font-weight: 500;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.checkboxInput {
+  position: absolute;
+  inset-inline-start: 0;
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkboxMark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+  border: 1px solid #b0b0e2;
+  border-radius: calc(5 * var(--u));
+  background: white;
+  color: white;
+  pointer-events: none;
+}
+
+.checkboxMark svg {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+  visibility: hidden;
+}
+
+.checkboxInput:checked + .checkboxMark {
+  border-color: #6400ff;
+  background: linear-gradient(135deg, #8500ff, #3e00ff);
+  box-shadow: 0 1px 4px #7e46ff26;
+}
+
+.checkboxInput:checked + .checkboxMark svg {
+  visibility: visible;
+}
+
+.checkboxInput:focus-visible + .checkboxMark {
+  outline: 3px solid #7142f2;
+  outline-offset: 4px;
+}
+
+.recoveryLink {
+  max-width: 100%;
+  white-space: normal;
+  text-decoration: underline;
+}
+
+.submitButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(12 * var(--u));
+  width: 100%;
+  min-height: max(3.5rem, calc(58 * var(--u)));
+  margin-top: calc(20 * var(--u));
+  padding: 12px 20px;
+  border: 1px solid #ffffff4d;
+  border-radius: calc(28 * var(--u));
+  background: linear-gradient(
+    108deg,
+    #b23dff 0%,
+    #8a2cff 24%,
+    #5734ff 58%,
+    #12aaff 100%
+  );
+  box-shadow:
+    0 4px 10px #6250eb45,
+    inset 0 1px 3px #fff5;
+  color: white;
+  font-size: calc(25 * var(--u));
+  font-weight: 700;
+  line-height: 1.3;
+  text-shadow: 0 1px 2px #4b2bae33;
+  transition:
+    filter 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.submitButton svg {
+  width: calc(29 * var(--u));
+  height: calc(29 * var(--u));
+}
+
+.formStatus {
+  margin: 0;
+  color: #51428c;
+  font-size: max(0.875rem, calc(14 * var(--u)));
+  line-height: 1.7;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.formStatus:not(:empty) {
+  padding-top: max(1rem, calc(16 * var(--u)));
+}
+
+.noScript {
+  margin: 12px 0 0;
+  font-size: max(0.875rem, calc(14 * var(--u)));
+  line-height: 1.6;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: calc(15 * var(--u));
+  margin-top: calc(27 * var(--u));
+  padding-top: calc(19 * var(--u));
+  border-top: 1px solid #d6d9f5;
+  color: #6368b1;
+  font-size: calc(19 * var(--u));
+  font-weight: 500;
+  letter-spacing: -0.05em;
+}
+
+.signupLink svg {
+  width: calc(25 * var(--u));
+  height: calc(25 * var(--u));
+}
+
+.homeLink:focus-visible,
+.headerSignup:focus-visible,
+.signupLink:focus-visible,
+.recoveryLink:focus-visible,
+.visibilityToggle:focus-visible,
+.submitButton:focus-visible,
+.dialogClose:focus-visible {
+  outline: 3px solid #7142f2;
+  outline-offset: 5px;
+}
+
+.dialog {
+  position: fixed;
+  inset: 0;
+  width: min(max(26.25rem, calc(420 * var(--u))), calc(100vw - 2.5rem));
+  max-height: calc(100svh - 2.5rem);
+  margin: auto;
+  padding: max(2rem, calc(32 * var(--u)));
+  overflow-y: auto;
+  border: 1px solid #fff;
+  border-radius: 24px;
+  background: #f8f7ff;
+  box-shadow: 0 24px 90px #29216a38;
+  color: #3e3670;
+  text-align: center;
+}
+
+.dialog::backdrop {
+  background: #29255459;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.dialog h2 {
+  margin: 0 0 12px;
+  font-size: max(1.3125rem, calc(21 * var(--u)));
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.dialog p {
+  margin: 0;
+  font-size: max(0.9375rem, calc(15 * var(--u)));
+  line-height: 1.8;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.dialogClose {
+  width: 100%;
+  min-height: max(3rem, calc(48 * var(--u)));
+  margin-top: max(1.5rem, calc(24 * var(--u)));
+  border: 0;
+  border-radius: 14px;
+  background: #6031ed;
+  color: white;
+  font-size: max(1rem, calc(16 * var(--u)));
+  font-weight: 700;
+}
+
+.srOnly,
+.skipLink:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skipLink:focus {
+  position: fixed;
+  z-index: 10;
+  top: 12px;
+  left: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: white;
+  color: var(--accent);
+}
+
+@media (hover: hover) {
+  .headerSignup:hover,
+  .signupLink:hover,
+  .recoveryLink:hover {
+    color: #792aff;
+    text-decoration: underline;
+  }
+
+  .visibilityToggle:hover {
+    background: #e4defb;
+  }
+
+  .submitButton:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 6px 18px #6250eb60;
+  }
+}
+
+@media (width < 48rem), (height < 35rem) and (pointer: coarse) {
+  .screen {
+    --u: 0.0546875rem;
+  }
+
+  .header {
+    gap: 12px;
+    padding: max(20px, env(safe-area-inset-top))
+      max(20px, env(safe-area-inset-right)) 20px
+      max(20px, env(safe-area-inset-left));
+  }
+
+  .header .brand {
+    gap: 9px;
+  }
+
+  .header .brandMark {
+    width: 40px;
+    height: 36px;
+  }
+
+  .header .wordmark {
+    width: min(8.75rem, 34vw);
+    height: 36px;
+  }
+
+  .headerNav {
+    gap: 0;
+    font-size: 0.9375rem;
+  }
+
+  .headerHint {
+    display: none;
+  }
+
+  .main {
+    padding: 1.75rem max(20px, env(safe-area-inset-right))
+      max(3.5rem, env(safe-area-inset-bottom))
+      max(20px, env(safe-area-inset-left));
+  }
+
+  .card {
+    width: 29.375rem;
+    min-height: auto;
+    padding: 42px 28px 28px;
+    background: linear-gradient(145deg, #fbfdfff5, #f0eafff5);
+  }
+
+  .cardBrand {
+    margin-bottom: 48px;
+  }
+
+  .cardBrand .brand {
+    width: min(100%, 14.375rem);
+    gap: 0.6875rem;
+  }
+
+  .cardBrand .brandMark {
+    width: 3.0625rem;
+    max-width: 22%;
+    height: auto;
+    aspect-ratio: 64 / 52;
+  }
+
+  .cardBrand .wordmark {
+    flex: 1;
+    width: 0;
+    min-width: 0;
+    height: auto;
+    aspect-ratio: 210 / 52;
+  }
+
+  .input {
+    /* Keep >=16px to avoid iOS input-focus zoom. */
+    font-size: 1rem;
+    padding-left: 46px;
+  }
+
+  .fieldIcon {
+    left: 15px;
+    width: 23px;
+    height: 23px;
+  }
+
+  .passwordInput {
+    padding-right: 58px;
+  }
+
+  .visibilityToggle {
+    right: 10px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .visibilityToggle svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .options,
+  .cardFooter {
+    font-size: 0.9375rem;
+  }
+
+  .options {
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .remember {
+    gap: 8px;
+  }
+
+  .submitButton {
+    flex-wrap: wrap;
+    margin-top: 15px;
+    font-size: 1.375rem;
+  }
+
+  .submitButton svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .cardFooter {
+    flex-wrap: wrap;
+    gap: 0 10px;
+  }
+}
+
+@media (width < 23.4375rem) {
+  .header {
+    padding-inline: 16px;
+  }
+
+  .header .wordmark {
+    width: min(7.625rem, 34vw);
+  }
+
+  .header .brandMark {
+    width: 35px;
+  }
+
+  .main {
+    padding-inline: 14px;
+  }
+
+  .card {
+    padding-inline: 20px;
+  }
+
+  .options {
+    font-size: 0.875rem;
+  }
+}
+
+/* Short windows, landscape phones and a reduced viewport can scroll naturally.
+   Keep the header in document flow so wrapped controls never cover the form. */
+@media (height <= 48rem) {
+  .main {
+    padding-block: 1rem max(2rem, env(safe-area-inset-bottom));
+  }
+
+  .card {
+    padding-block: calc(32 * var(--u));
+  }
+
+  .cardBrand {
+    margin-bottom: calc(32 * var(--u));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field,
+  .submitButton {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .card,
+  .field,
+  .dialog {
+    border: 1px solid CanvasText;
+    background: Canvas;
+  }
+
+  .checkboxMark {
+    border-color: ButtonText;
+  }
+
+  .checkboxInput:checked + .checkboxMark {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .submitButton,
+  .dialogClose {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+}
