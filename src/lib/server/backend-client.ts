@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isIP } from "node:net";
 import { ApiError, parseBackendError } from "./api-error";
 import { getBackendOrigin, getBackendTimeout } from "./env";
 
@@ -7,6 +8,7 @@ type BackendRequest = Readonly<{
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: object;
   accessToken?: string;
+  clientIp?: string;
 }>;
 
 /** BFF와 Server Component가 공유하는 서버 전용 Spring API 통신 경계다. */
@@ -23,6 +25,11 @@ export async function backendRequest(
   const headers = new Headers({ Accept: "application/json" });
   if (options.body !== undefined) headers.set("Content-Type", "application/json");
   if (options.accessToken) headers.set("Authorization", `Bearer ${options.accessToken}`);
+  // 브라우저 헤더는 복사하지 않고 신뢰 프록시에서 검증한 IP 하나만 Spring에 전달한다.
+  if (options.clientIp !== undefined) {
+    if (options.clientIp.includes("%") || !isIP(options.clientIp)) throw new ApiError("INVALID_REQUEST_BODY");
+    headers.set("X-Real-IP", options.clientIp);
+  }
   const body = options.body === undefined ? undefined : JSON.stringify(options.body);
   const deadline = AbortSignal.timeout(getBackendTimeout());
 

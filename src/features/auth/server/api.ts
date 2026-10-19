@@ -4,9 +4,9 @@ import type { LoginInput, CurrentSession, SessionActivity } from "../types";
 import { parseAuthTokens, parseCurrentSession, parseSessionActivity, type AuthTokens } from "./contracts";
 import { backendRequest } from "@/lib/server/backend-client";
 
-/** 이후 BFF Route Handler에서 호출하며 토큰 원문을 브라우저 응답으로 반환하지 않는다. */
-export async function loginWithBackend(input: LoginInput): Promise<AuthTokens> {
-  return parseAuthTokens(await backendRequest("/api/auth/login", { method: "POST", body: input }));
+/** 검증한 IP만 Spring에 전달하며 반환된 토큰 원문은 BFF 서버 내부에서만 사용한다. */
+export async function loginWithBackend(input: LoginInput, clientIp?: string): Promise<AuthTokens> {
+  return parseAuthTokens(await backendRequest("/api/auth/login", { method: "POST", body: input, clientIp }));
 }
 
 export async function refreshWithBackend(refreshToken: string): Promise<AuthTokens> {

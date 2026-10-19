@@ -1,0 +1,56 @@
+/* 로그인 이후의 최소 확인 화면은 기존 로그인 화면과 같은 색상·접근성 기준을 사용한다. */
+.screen {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: 24px;
+}
+
+.card {
+  width: min(100%, 32.5rem);
+  padding: 32px;
+  border: 1px solid white;
+  border-radius: 24px;
+  background: #fbfdfff0;
+  box-shadow: 0 14px 55px #5a65d52b;
+  overflow-wrap: anywhere;
+}
+
+.card h1 {
+  color: #353371;
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+}
+
+.brand {
+  color: #4900ff;
+  font-weight: 800;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 16px;
+  padding: 12px 24px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: #6031ed;
+  color: white;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.button:focus-visible {
+  outline: 3px solid #7142f2;
+  outline-offset: 4px;
+}
+
+.button:disabled {
+  opacity: 0.65;
+}
+
+.status {
+  margin-bottom: 0;
+  line-height: 1.7;
+}

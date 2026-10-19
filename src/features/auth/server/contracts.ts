@@ -54,7 +54,8 @@ export function parseAuthTokens(value: unknown): AuthTokens {
 /** 현재 사용자 판별은 Spring의 JWT·Redis 검증 결과만 사용한다. */
 export function parseCurrentSession(value: unknown): CurrentSession {
   if (!isObject(value) || typeof value.id !== "number" || !Number.isSafeInteger(value.id) || value.id <= 0
-    || typeof value.username !== "string" || !value.username || value.username.length > 50
+    // Spring의 StringValid는 Unicode 코드 포인트로 길이를 계산한다.
+    || typeof value.username !== "string" || !value.username || [...value.username].length > 50
     || typeof value.keepLoggedIn !== "boolean" || !isSessionExpiry(value.sessionExpiresAt)) {
     throw new ApiError("INVALID_BACKEND_RESPONSE");
   }

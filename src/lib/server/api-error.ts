@@ -1,9 +1,13 @@
 import "server-only";
 
+import { unstable_rethrow } from "next/navigation";
+
 // 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
 const errors = {
   VALIDATION_FAILED: [400, "입력값이 올바르지 않습니다."],
   INVALID_REQUEST_BODY: [400, "요청 본문의 형식 또는 값이 올바르지 않습니다."],
+  PAYLOAD_TOO_LARGE: [413, "요청 본문이 너무 큽니다."],
+  UNSUPPORTED_MEDIA_TYPE: [415, "JSON 형식으로 요청해 주세요."],
   DUPLICATE_USERNAME: [409, "이미 사용 중인 아이디입니다."],
   USER_NOT_FOUND: [404, "사용자를 찾을 수 없습니다."],
   INVALID_CREDENTIALS: [401, "아이디 또는 비밀번호가 올바르지 않습니다."],
@@ -84,6 +88,8 @@ export function parseBackendError(
 
 /** Route Handler에서만 사용하며 알 수 없는 예외의 메시지·스택은 응답에 포함하지 않는다. */
 export function apiErrorResponse(error: unknown): Response {
+  // cookies·no-store 접근으로 생긴 Next.js의 렌더링 제어 예외는 일반 500 응답으로 삼키지 않는다.
+  unstable_rethrow(error);
   const failure = error instanceof ApiError ? error : new ApiError("INTERNAL_ERROR");
   const headers = new Headers({
     "Content-Type": "application/problem+json",
