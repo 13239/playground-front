@@ -1,0 +1,107 @@
+import "server-only";
+
+// 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
+const errors = {
+  VALIDATION_FAILED: [400, "입력값이 올바르지 않습니다."],
+  INVALID_REQUEST_BODY: [400, "요청 본문의 형식 또는 값이 올바르지 않습니다."],
+  DUPLICATE_USERNAME: [409, "이미 사용 중인 아이디입니다."],
+  USER_NOT_FOUND: [404, "사용자를 찾을 수 없습니다."],
+  INVALID_CREDENTIALS: [401, "아이디 또는 비밀번호가 올바르지 않습니다."],
+  INVALID_REFRESH_TOKEN: [401, "로그인이 만료되었습니다. 다시 로그인해 주세요."],
+  INVALID_SESSION: [401, "로그인이 만료되었습니다. 다시 로그인해 주세요."],
+  LOGIN_RATE_LIMIT_EXCEEDED: [429, "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."],
+  AUTH_SERVICE_UNAVAILABLE: [503, "로그인 서비스를 일시적으로 이용할 수 없습니다."],
+  INVALID_AUTHENTICATION_REQUEST: [400, "인증 요청 형식이 올바르지 않습니다."],
+  AUTHENTICATION_REQUIRED: [401, "로그인이 필요합니다."],
+  INVALID_ACCESS_TOKEN: [401, "인증 정보를 갱신해야 합니다."],
+  ACCESS_DENIED: [403, "접근 권한이 없습니다."],
+  INVALID_ORIGIN: [403, "허용되지 않은 요청입니다."],
+  BACKEND_UNAVAILABLE: [503, "서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요."],
+  BACKEND_TIMEOUT: [504, "응답이 지연되고 있습니다. 잠시 후 다시 시도해 주세요."],
+  INVALID_BACKEND_RESPONSE: [502, "서비스 응답을 처리할 수 없습니다."],
+  SERVER_CONFIGURATION_ERROR: [500, "서버 설정을 확인할 수 없습니다."],
+  INTERNAL_ERROR: [500, "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요."],
+} as const;
+
+type ErrorDetails = Readonly<{
+  fieldErrors?: Readonly<Record<string, string>>;
+  retryAfterSeconds?: number;
+}>;
+
+/** 요청 실패와 인증 만료를 구분하며 토큰·내부 주소·예외 원문을 보관하지 않는다. */
+export class ApiError extends Error {
+  readonly code: keyof typeof errors;
+  readonly status: number;
+  readonly fieldErrors?: Readonly<Record<string, string>>;
+  readonly retryAfterSeconds?: number;
+
+  constructor(code: keyof typeof errors, details: ErrorDetails = {}) {
+    const [status, message] = errors[code];
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.status = status;
+    this.fieldErrors = details.fieldErrors;
+    this.retryAfterSeconds = details.retryAfterSeconds;
+  }
+}
+
+// 필드 오류는 평범한 객체의 짧은 문자열만 허용하여 응답 크기와 형태를 제한한다.
+function parseFieldErrors(value: unknown): ErrorDetails["fieldErrors"] {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+  const fields: Record<string, string> = {};
+  for (const [key, message] of Object.entries(value).slice(0, 20)) {
+    if (/^[a-zA-Z][a-zA-Z0-9]{0,49}$/.test(key) && typeof message === "string" && message.length <= 300) {
+      fields[key] = message;
+    }
+  }
+  return fields;
+}
+
+/** Spring의 ProblemDetail을 제한된 공개 오류 정보로 변환한다. */
+export function parseBackendError(
+  status: number,
+  body: unknown,
+  retryAfter: string | null,
+): ApiError {
+  if (
+    typeof body === "object" && body !== null && "code" in body
+    && typeof body.code === "string" && Object.hasOwn(errors, body.code)
+  ) {
+    const code = body.code as keyof typeof errors;
+    if (errors[code][0] === status) {
+      const fields = "errors" in body ? body.errors : undefined;
+      const fieldErrors = code === "VALIDATION_FAILED" ? parseFieldErrors(fields) : undefined;
+      const seconds = retryAfter && /^\d{1,5}$/.test(retryAfter) ? Number(retryAfter) : undefined;
+      return new ApiError(code, {
+        fieldErrors,
+        retryAfterSeconds: status === 429 && seconds && seconds <= 86_400 ? seconds : undefined,
+      });
+    }
+  }
+  return new ApiError(status >= 500 ? "BACKEND_UNAVAILABLE" : "INVALID_BACKEND_RESPONSE");
+}
+
+/** Route Handler에서만 사용하며 알 수 없는 예외의 메시지·스택은 응답에 포함하지 않는다. */
+export function apiErrorResponse(error: unknown): Response {
+  const failure = error instanceof ApiError ? error : new ApiError("INTERNAL_ERROR");
+  const headers = new Headers({
+    "Content-Type": "application/problem+json",
+    "Cache-Control": "no-store",
+  });
+  if (failure.retryAfterSeconds) {
+    headers.set("Retry-After", String(failure.retryAfterSeconds));
+  }
+  return Response.json(
+    {
+      type: "about:blank",
+      title: failure.code,
+      status: failure.status,
+      detail: failure.message,
+      code: failure.code,
+      ...(failure.fieldErrors && { errors: failure.fieldErrors }),
+      ...(failure.retryAfterSeconds && { retryAfterSeconds: failure.retryAfterSeconds }),
+    },
+    { status: failure.status, headers },
+  );
+}

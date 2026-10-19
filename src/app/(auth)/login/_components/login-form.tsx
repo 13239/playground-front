@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, type FormEvent } from "react";
+import { useState, useSyncExternalStore, type SubmitEvent } from "react";
 import { Icon } from "./icon";
 import { NoticeButton } from "./notice-button";
 import styles from "../login.module.css";
@@ -20,7 +20,8 @@ export function LoginForm() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [status, setStatus] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  // 현재 React의 제출 이벤트 타입을 사용한다.
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     // Publishing stage: no API contract exists yet. Do not transmit, persist,
@@ -40,13 +41,13 @@ export function LoginForm() {
         <div className={styles.field}>
           <Icon name="mail" className={styles.fieldIcon} />
           <label className={styles.srOnly} htmlFor="login-identifier">
-            이메일 또는 아이디
+            아이디
           </label>
           <input
             id="login-identifier"
             name="identifier"
             type="text"
-            placeholder="이메일 또는 아이디를 입력하세요"
+            placeholder="아이디를 입력하세요"
             autoComplete="username"
             autoCapitalize="none"
             spellCheck={false}
