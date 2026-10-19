@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# 서버 설정 예제만 버전 관리하고 실제 키가 있는 .env.local은 제외한다.
+!.env.example
 
 # vercel
 .vercel

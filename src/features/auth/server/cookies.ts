@@ -61,7 +61,8 @@ export async function writeAuthCookie(input: AuthTokens): Promise<void> {
   await saveSession({
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
-    accessTokenExpiresAt: Date.now() + tokens.expiresIn * 1000,
+    // 같은 갱신 결과를 늦게 수신해도 실제 Access Token의 만료 시각을 그대로 유지한다.
+    accessTokenExpiresAt: Date.parse(tokens.accessTokenExpiresAt),
     keepLoggedIn: tokens.keepLoggedIn,
     sessionExpiresAt: tokens.sessionExpiresAt,
   });

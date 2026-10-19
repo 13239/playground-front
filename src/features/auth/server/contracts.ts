@@ -9,6 +9,7 @@ export type AuthTokens = Readonly<{
   refreshToken: string;
   tokenType: "Bearer";
   expiresIn: number;
+  accessTokenExpiresAt: string;
   keepLoggedIn: boolean;
   sessionExpiresAt: string;
 }>;
@@ -38,6 +39,7 @@ export function parseAuthTokens(value: unknown): AuthTokens {
   if (!isObject(value) || !isAccessToken(value.accessToken) || !isRefreshToken(value.refreshToken)
     || value.tokenType !== "Bearer" || typeof value.expiresIn !== "number"
     || !Number.isSafeInteger(value.expiresIn) || value.expiresIn <= 0 || value.expiresIn > 31_536_000
+    || !isSessionExpiry(value.accessTokenExpiresAt)
     || typeof value.keepLoggedIn !== "boolean" || !isSessionExpiry(value.sessionExpiresAt)) {
     throw new ApiError("INVALID_BACKEND_RESPONSE");
   }
@@ -46,6 +48,8 @@ export function parseAuthTokens(value: unknown): AuthTokens {
     refreshToken: value.refreshToken,
     tokenType: value.tokenType,
     expiresIn: value.expiresIn,
+    // 공유 응답 수신 시점부터 expiresIn을 다시 더하지 않도록 실제 JWT 만료를 사용한다.
+    accessTokenExpiresAt: value.accessTokenExpiresAt,
     keepLoggedIn: value.keepLoggedIn,
     sessionExpiresAt: value.sessionExpiresAt,
   };

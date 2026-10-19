@@ -3,6 +3,7 @@ import { getCurrentSession } from "@/features/auth/server/session";
 import { ApiError } from "@/lib/server/api-error";
 import type { CurrentSession } from "@/features/auth/types";
 import { LogoutButton } from "./logout-button";
+import { SessionRecovery } from "./session-recovery";
 import styles from "../home.module.css";
 
 /** 화면을 표시할 때마다 최신 Redis 세션을 확인하며 사용자 테이블은 조회하지 않는다. */
@@ -11,6 +12,9 @@ export async function SessionContent() {
   try {
     session = await getCurrentSession();
   } catch (error) {
+    if (error instanceof ApiError && error.code === "SESSION_REFRESH_REQUIRED") {
+      return <SessionRecovery />;
+    }
     // 인증 서비스 장애를 로그인 만료로 처리하지 않고 쿠키를 보존한 채 재시도를 안내한다.
     if (!(error instanceof ApiError)) throw error;
     return (

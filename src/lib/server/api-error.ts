@@ -18,6 +18,7 @@ const errors = {
   INVALID_AUTHENTICATION_REQUEST: [400, "인증 요청 형식이 올바르지 않습니다."],
   AUTHENTICATION_REQUIRED: [401, "로그인이 필요합니다."],
   INVALID_ACCESS_TOKEN: [401, "인증 정보를 갱신해야 합니다."],
+  SESSION_REFRESH_REQUIRED: [401, "로그인 상태를 갱신해야 합니다."],
   ACCESS_DENIED: [403, "접근 권한이 없습니다."],
   INVALID_ORIGIN: [403, "허용되지 않은 요청입니다."],
   BACKEND_UNAVAILABLE: [503, "서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요."],

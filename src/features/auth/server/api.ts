@@ -1,8 +1,10 @@
 import "server-only";
 
+import { createHmac } from "node:crypto";
 import type { LoginInput, CurrentSession, SessionActivity } from "../types";
 import { parseAuthTokens, parseCurrentSession, parseSessionActivity, type AuthTokens } from "./contracts";
 import { backendRequest } from "@/lib/server/backend-client";
+import { getAuthCookieKey } from "@/lib/server/env";
 
 /** 검증한 IP만 Spring에 전달하며 반환된 토큰 원문은 BFF 서버 내부에서만 사용한다. */
 export async function loginWithBackend(input: LoginInput, clientIp?: string): Promise<AuthTokens> {
@@ -10,8 +12,11 @@ export async function loginWithBackend(input: LoginInput, clientIp?: string): Pr
 }
 
 export async function refreshWithBackend(refreshToken: string): Promise<AuthTokens> {
+  // 같은 쿠키를 가진 여러 탭·BFF 인스턴스는 같은 식별자를 만든다. 브라우저에는 노출하지 않는다.
+  const requestId = createHmac("sha256", getAuthCookieKey())
+    .update("playground:refresh:v1:").update(refreshToken).digest("hex");
   return parseAuthTokens(await backendRequest("/api/auth/refresh", {
-    method: "POST", body: { refreshToken },
+    method: "POST", body: { refreshToken, requestId },
   }));
 }
 
