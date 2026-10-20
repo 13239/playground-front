@@ -10,7 +10,9 @@ export { AuthRequestError } from "./error";
 /** BFF가 공개한 오류만 화면에 표시하고 네트워크 장애에는 고정 안내를 제공한다. */
 // 오류 계약은 키 저장소·증명 모듈도 공유하며 순환 참조를 피하기 위해 error.ts에서 관리한다.
 // 프로필은 인증과 같은 브라우저 증명·탭 잠금·한 번의 토큰 갱신 절차를 공유한다.
-type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | "/api/auth/profile";
+// 방 검색·생성·닫기도 기능별로 인증을 복제하지 않고 이 잠금과 갱신을 재사용한다.
+type FeaturePath = "/api/auth/profile" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close";
+type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | FeaturePath;
 
 async function authRequest(path: AuthPath, input?: LoginInput | SessionMutationInput): Promise<Response> {
   return signedAuthRequest(path, input);
@@ -99,7 +101,7 @@ export async function getSession(retry = true): Promise<CurrentSession> {
 
 /** 기능 API도 인증 잠금 안에서 호출하며 변경 요청은 화면에서 확인한 세션 ID를 반드시 포함한다. */
 export async function requestAuthenticatedApi(
-  path: "/api/auth/profile",
+  path: FeaturePath,
   input?: SessionMutationInput & Readonly<Record<string, unknown>>,
 ): Promise<Response> {
   return withAuthLock(() => authenticatedRequest(path, true, input));

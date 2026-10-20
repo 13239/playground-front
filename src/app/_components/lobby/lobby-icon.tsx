@@ -2,6 +2,19 @@ import type { ReactNode } from "react";
 
 /** 로비 아이콘은 벡터로 표시하여 고해상도 화면에서도 선명하게 유지하고 외부 폰트 요청을 줄인다. */
 const paths = {
+  // 오목 방 화면도 같은 벡터 아이콘 체계를 공유한다.
+  plus: <path d="M12 4v16M4 12h16" />,
+  lock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></>,
+  globe: <><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><path d="M3 12h18M5 7h14M5 17h14" /></>,
+  undo: <><path d="m8 4-5 5 5 5M3 9h10a6 6 0 1 1 0 12h-3" /></>,
+  scale: <><path d="M12 3v18M7 21h10M4 6h16M6 6l-4 9h8L6 6Zm12 0-4 9h8l-4-9Z" /></>,
+  gear: <><path d="m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 2 3h3l1-3 3-1 2-3-2-2 1-3-2-3-3 1-2-3Z" /><circle cx="11.5" cy="11.5" r="3" /></>,
+  link: <><path d="m10 14 4-4M8 16l-1 1a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m0 12a4 4 0 0 0 6 0l5-5a4 4 0 0 0-6-6l-1 1" /></>,
+  lightning: <path d="m13 2-9 12h7l-1 8 10-13h-7l1-7Z" />,
+  book: <><path d="M12 5C9 2 4 3 2 4v16c3-2 7-2 10 0 3-2 7-2 10 0V4c-2-1-7-2-10 1Zm0 0v15" /></>,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 6v6l4 2" /></>,
+  copy: <><rect x="8" y="8" width="13" height="13" rx="2" /><path d="M16 8V3H3v13h5" /></>,
+  eye: <><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
   grid: (
     <>
       <rect x="3" y="3" width="7" height="7" rx="1.5" />

@@ -9,7 +9,7 @@ import {
   type LobbyGame,
 } from "@/features/lobby/catalog";
 import { ChatPanel } from "./chat-panel";
-import { DismissibleDetails } from "./dismissible-details";
+import { SiteHeader } from "./site-header";
 import { GomokuCover } from "./gomoku-cover";
 import { HeroBanner } from "./hero-banner";
 import { LobbyIcon } from "./lobby-icon";
@@ -115,82 +115,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
       <a className={styles.skipLink} href="#game-catalog">
         게임 목록으로 건너뛰기
       </a>
-      <header className={styles.header}>
-        <Link href="/" className={styles.brand} aria-label="Playground 홈">
-          <span className={styles.brandMark}>
-            <LobbyIcon name="gamepad" />
-          </span>
-          <span>Playground</span>
-        </Link>
-        <nav className={styles.navigation} aria-label="주 메뉴">
-          <Link
-            className={styles.activeNavigation}
-            href="/"
-            aria-current="page"
-          >
-            홈
-          </Link>
-          <button type="button" onClick={browseGames}>
-            게임
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              setNotice({
-                title: "상점을 준비하고 있어요",
-                description:
-                  "플레이를 더 특별하게 만들어 줄 아이템들을 준비 중이에요. 조금만 기다려 주세요!",
-              })
-            }
-          >
-            상점
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              setNotice({
-                title: "즐거운 이벤트가 찾아올 거예요",
-                description:
-                  "함께 참여할 수 있는 새로운 이벤트를 준비하고 있어요. 곧 이곳에서 만나요!",
-              })
-            }
-          >
-            이벤트
-          </button>
-        </nav>
-        <form
-          className={styles.search}
-          role="search"
-          onSubmit={(event) => {
-            event.preventDefault();
-            browseGames();
-          }}
-        >
-          <LobbyIcon name="search" />
-          <input
-            type="search"
-            name="game"
-            aria-label="게임 검색"
-            placeholder="게임을 검색해보세요... (예: 오목, 보드)"
-            value={query}
-            maxLength={100}
-            onChange={(event) => setQuery(event.target.value)}
-            autoComplete="off"
-          />
-        </form>
-        <DismissibleDetails className={styles.notifications}>
-          <summary className={styles.iconButton} aria-label="알림">
-            <LobbyIcon name="bell" />
-          </summary>
-          <div className={styles.notificationPopover}>
-            <strong>알림</strong>
-            <LobbyIcon name="bell" />
-            <p>아직 새로운 알림이 없어요.</p>
-            <span>새로운 소식이 생기면 알려드릴게요.</span>
-          </div>
-        </DismissibleDetails>
-        <div className={styles.accountSlot}>{account}</div>
-      </header>
+      <SiteHeader account={account} query={query} onQueryChange={setQuery} onSearch={browseGames} onBrowse={browseGames} onNotice={setNotice} />
       <div className={styles.layout}>
         <main className={styles.main}>
           <HeroBanner onBrowse={browseGames} />
@@ -255,22 +180,10 @@ export function LobbyShell({ account }: { account: ReactNode }) {
               <div className={styles.gameGrid}>
                 {games.map((game) => (
                   <article className={styles.gameCard} key={game.id}>
-                    <button
-                      className={styles.gameCardButton}
-                      type="button"
-                      aria-label={`${game.title} 게임 안내 보기`}
-                      onClick={() =>
-                        setNotice({
-                          title: "오목을 준비하고 있어요",
-                          description:
-                            "흑돌과 백돌로 펼치는 다섯 수의 승부. 친구와 함께 즐길 수 있는 오목이 곧 찾아올 거예요!",
-                          game,
-                        })
-                      }
-                    >
+                    <Link className={styles.gameCardButton} href="/games/gomoku" aria-label={`${game.title} 방 목록 보기`}>
                       <div className={styles.gameCover}>
                         <GomokuCover />
-                        <span className={styles.comingSoon}>준비 중</span>
+                        <span className={styles.comingSoon}>방 둘러보기</span>
                         <span className={styles.gameHover}>
                           <LobbyIcon name="arrow" />
                         </span>
@@ -287,7 +200,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                           ))}
                         </div>
                       </div>
-                    </button>
+                    </Link>
                   </article>
                 ))}
               </div>

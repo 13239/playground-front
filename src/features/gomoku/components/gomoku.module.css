@@ -1,0 +1,1296 @@
+/* 오목 전용 배치를 격리하고 공통 헤더·계정의 기존 스타일은 그대로 공유한다. */
+.screen {
+  width: min(100%, 2880px);
+  font-size: clamp(15px, 0.88vw, 21px);
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  padding-block: 0.25em 2em;
+}
+.screen svg,
+.dialog svg {
+  flex: 0 0 auto;
+  width: 1.3em;
+  height: 1.3em;
+}
+.screen button,
+.dialog button,
+.screen input,
+.screen select {
+  font: inherit;
+}
+.screen button,
+.screen a,
+.dialog button {
+  touch-action: manipulation;
+}
+.screen :is(button, a, input, select):focus-visible,
+.dialog :is(button, input):focus-visible {
+  outline: 3px solid #8553fa;
+  outline-offset: 3px;
+}
+.screen :is(input, select),
+.dialog input {
+  min-width: 0;
+  min-height: 3.1em;
+  padding: 0.7em 1em;
+  border: 1px solid #dbdef7;
+  border-radius: 0.9em;
+  background: #ffffffa8;
+  color: #27245e;
+  font: inherit;
+}
+.screen input::placeholder {
+  color: #9399be;
+}
+/* 게임 폼의 입력 스타일이 공통 헤더 검색창에 중복 테두리를 만들지 않게 한다. */
+.screen header input {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.screen header input:focus-visible,
+.screen .roomSearch input:focus-visible {
+  outline: none;
+}
+.roomSearch:focus-within {
+  outline: 3px solid #8553fa;
+  outline-offset: 3px;
+}
+.screen :is(input, select):disabled {
+  background: #eceff58c;
+  color: #a2a4bd;
+  cursor: not-allowed;
+}
+.screen button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.primaryButton,
+.secondaryButton,
+.dangerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: 3.3em;
+  padding: 0.75em 1.3em;
+  border: 1px solid transparent;
+  border-radius: 0.9em;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 750;
+}
+.screen .primaryButton,
+.dialog .primaryButton {
+  background: linear-gradient(115deg, #a12bff, #5a1bfb 85%);
+  color: white;
+  box-shadow: 0 4px 12px #814ae929;
+}
+.secondaryButton {
+  border-color: #baa9ed;
+  background: #ffffffa1;
+  color: #513393;
+}
+.dangerButton {
+  background: #fff3f5;
+  border-color: #edb3c3;
+  color: #c23f64;
+}
+.primaryButton:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+.secondaryButton:not(:disabled):hover {
+  background: #f1eaff;
+}
+.muted {
+  color: #8185ab;
+  font-size: 0.88em;
+  line-height: 1.8;
+}
+.error {
+  color: #a83658;
+  font-size: 0.88em;
+  line-height: 1.7;
+}
+.error,
+.formFailure p {
+  margin: 0.4em 0;
+}
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.5em 0.3em;
+  border: 0;
+  background: transparent;
+  color: #7047c7;
+  font-size: 0.85em !important;
+  font-weight: 650;
+}
+.iconButton {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.5em;
+  height: 2.5em;
+  border: 0;
+  border-radius: 50%;
+  color: #776ca7;
+  background: #f1edff;
+}
+
+/* 제목·배경 이미지를 분리하고 이미지의 왼쪽은 읽기 쉬운 밝은 그라데이션으로 덮는다. */
+.hero {
+  position: relative;
+  min-height: clamp(165px, 11vw, 250px);
+  overflow: hidden;
+  border: 1px solid #ffffffd6;
+  border-radius: 1.3em;
+  background: #f4f0ff;
+}
+.heroBackground {
+  object-fit: cover;
+  object-position: right center;
+}
+.hero::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    #f4f0fff2 9%,
+    #f1f3ffed 38%,
+    #eef3ff20 78%
+  );
+  content: "";
+}
+.heroContent {
+  position: relative;
+  z-index: 1;
+  padding: 1.1em 1.4em;
+}
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0 0 0.7em;
+  color: #8d6fce;
+  font-size: 0.78em;
+}
+.breadcrumb svg {
+  width: 1em;
+  height: 1em;
+}
+.heroHeading {
+  display: flex;
+  align-items: center;
+  gap: 1.2em;
+}
+.cover {
+  position: relative;
+  flex: 0 0 auto;
+  width: 5.8em;
+  height: 4em;
+  overflow: hidden;
+  border-radius: 0.75em;
+  background: #efd1a2;
+}
+.cover img {
+  object-fit: cover;
+  object-position: right center;
+}
+.heroHeading > .cover {
+  width: 6.7em;
+  height: 6.1em;
+  box-shadow: 0 3px 12px #ad94cf21;
+}
+.hero h1 {
+  margin: 0 0 0.18em;
+  color: #130b4d;
+  font-size: clamp(1.85em, 2.6vw, 3em);
+  font-weight: 900;
+  letter-spacing: -0.055em;
+  line-height: 1.2;
+}
+.hero p {
+  margin: 0.45em 0 0.25em;
+  font-size: 0.93em;
+  font-weight: 650;
+  word-break: keep-all;
+}
+.heroHeading > div > span {
+  font-size: 0.82em;
+  color: #74749f;
+  line-height: 1.65;
+}
+.heroCat {
+  position: absolute;
+  z-index: 1;
+  right: 3%;
+  bottom: -12%;
+  width: 16%;
+  height: 115%;
+  object-fit: contain;
+}
+.createHero {
+  border-color: transparent;
+  background: transparent;
+}
+.createHero .heroBackground {
+  opacity: 0.5;
+}
+.createHero .heroHeading {
+  max-width: 78%;
+}
+.createHero .heroContent {
+  padding-inline: 0;
+}
+
+.listLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 22vw, 430px);
+  align-items: start;
+  gap: 1.35em;
+}
+.listMain,
+.roomSection {
+  min-width: 0;
+}
+.mobileActions {
+  display: none;
+}
+.panel {
+  padding: 1.5em;
+  border: 1px solid #fffffff2;
+  border-radius: 1.35em;
+  background: #ffffffa6;
+  box-shadow: 0 4px 20px #b9b1df0a;
+}
+.panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  margin: 0 0 0.6em;
+  color: #191350;
+  font-size: 1.18em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.panel h2 svg,
+.summary h3 svg {
+  color: #7837fc;
+}
+.sidebar {
+  display: grid;
+  gap: 1.25em;
+}
+.startCard {
+  position: relative;
+  overflow: hidden;
+  padding-top: 1.7em;
+}
+.startCard h2 {
+  position: relative;
+  z-index: 1;
+  max-width: 65%;
+  font-size: 1.85em;
+  font-weight: 900;
+}
+.startCard > p {
+  position: relative;
+  z-index: 1;
+  max-width: 64%;
+  margin: 0 0 2em;
+  line-height: 1.9;
+  font-size: 0.86em;
+  color: #676498;
+}
+.startCat {
+  position: absolute;
+  right: -0.3em;
+  top: 0.25em;
+  width: 47%;
+  height: 10.3em;
+  object-fit: contain;
+}
+.startCard > :is(button, a) {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin-top: 0.55em;
+}
+.startCard small {
+  font-size: 0.66em;
+}
+.startCard button svg {
+  color: #ff930a;
+}
+.inviteRow {
+  display: flex;
+  gap: 0.7em;
+  margin: 0.8em 0 0.55em;
+}
+.inviteRow input {
+  width: 100%;
+}
+.inviteRow button {
+  flex: 0 0 auto;
+  min-width: 4.4em;
+  padding-inline: 1.1em;
+  white-space: nowrap;
+}
+.rules dl,
+.summary dl {
+  display: grid;
+  gap: 1em;
+  margin: 1.5em 0;
+  font-size: 0.86em;
+}
+.rules dl > div,
+.summary dl > div {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.9em;
+}
+.rules dt,
+.summary dt {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.65em;
+  color: #797da8;
+}
+.rules dd,
+.summary dd {
+  margin: 0;
+  min-width: 0;
+  color: #55588e;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.rules > p {
+  padding-top: 1.2em;
+  border-top: 1px solid #e4e3f6;
+  color: #7a7d9f;
+  font-size: 0.8em;
+  line-height: 1.7;
+}
+
+/* 데스크톱은 검색 → 전체 → 공개 방 → 대기 중인 방만 보기의 단일 행과 독립 버튼을 유지한다. */
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 0.75em;
+  margin-block: 1.2em 0.5em;
+}
+.roomSearch {
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  min-width: 0;
+  padding-left: 1em;
+  border: 1px solid #d8d6f6;
+  border-radius: 1em;
+  background: #ffffffb0;
+  color: #8b78bf;
+}
+.screen .roomSearch input {
+  width: 100%;
+  padding-left: 0;
+  border: 0;
+  background: transparent;
+  font-size: 0.86em;
+}
+.filterButton,
+.activeFilter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45em;
+  min-height: 3.25em;
+  padding: 0.6em 1em;
+  border: 1px solid #a77bec;
+  border-radius: 0.8em;
+  font-weight: 700;
+  color: #422183;
+  background: #ffffff9c;
+  font-size: 0.87em !important;
+  white-space: nowrap;
+}
+.activeFilter {
+  background: linear-gradient(120deg, #a333fc, #5d22fc);
+  border-color: transparent;
+  color: white;
+}
+.hostedNotice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-top: 0.8em;
+  padding: 0.6em 1em;
+  border: 1px solid #d4c6fb;
+  border-radius: 0.9em;
+  background: #f3eaffb0;
+}
+.hostedNotice p {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.85em;
+}
+.hostedNotice p > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hostedNotice button {
+  flex: 0 0 auto;
+}
+.listStatus {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 2em;
+  padding-inline: 0.3em;
+  color: #9796b7;
+  font-size: 0.78em;
+}
+.tableHeader,
+.roomRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 2.5fr) minmax(100px, 1.15fr) minmax(
+      70px,
+      0.7fr
+    ) minmax(186px, 1.7fr) minmax(70px, 0.65fr) minmax(65px, 0.65fr);
+  align-items: center;
+  gap: 0.7em;
+}
+.tableHeader {
+  min-height: 2.9em;
+  padding: 0.6em 1em;
+  border-radius: 0.8em;
+  background: #ffffff66;
+  color: #8181a7;
+  font-size: 0.8em;
+}
+.roomList {
+  display: grid;
+  gap: 0.65em;
+  margin: 0.65em 0 0;
+  padding: 0;
+  list-style: none;
+}
+.roomRow {
+  min-height: 5em;
+  padding: 0.65em 0.8em;
+  border: 1px solid #ffffffeb;
+  border-radius: 1em;
+  background: #ffffffba;
+  transition: border-color 150ms;
+  font-size: 0.94em;
+}
+.ownedRoom,
+.roomRow:hover {
+  border-color: #b18bf8;
+}
+.roomIdentity {
+  display: flex;
+  align-items: center;
+  gap: 0.85em;
+  min-width: 0;
+}
+.roomIdentity > div:last-child {
+  min-width: 0;
+}
+.roomIdentity h2 {
+  overflow: hidden;
+  margin: 0;
+  color: #211855;
+  font-size: 1.05em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.host {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  min-width: 0;
+}
+.host img {
+  flex: 0 0 auto;
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 50%;
+}
+.host > span {
+  overflow: hidden;
+  color: #302964;
+  font-size: 0.85em;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.players {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  color: #7452d3;
+  white-space: nowrap;
+  font-size: 0.87em;
+  font-weight: 650;
+}
+.players[data-full="true"] {
+  color: #e4516c;
+}
+.ruleBadges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+}
+.ruleBadges > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.4em 0.65em;
+  border-radius: 2em;
+  background: #f1ebff;
+  color: #59408d;
+  white-space: nowrap;
+  font-size: 0.82em;
+  font-weight: 650;
+}
+.ruleBadges svg {
+  color: #8136ff;
+}
+.roomState {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  padding: 0.5em 0.7em;
+  border-radius: 2em;
+  background: #e1fbf1;
+  color: #199c7c;
+  white-space: nowrap;
+  font-size: 0.77em;
+  font-weight: 650;
+}
+.roomState i {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+}
+.roomState[data-playing="true"] {
+  background: #e2efff;
+  color: #3d6aeb;
+}
+.entryButton {
+  min-height: 2.9em;
+  border: 0;
+  border-radius: 0.8em;
+  background: linear-gradient(120deg, #a52ffe, #6221f9);
+  color: white;
+  font-weight: 750;
+  font-size: 0.86em !important;
+}
+.entryButton:disabled {
+  background: #e5e7f1;
+  color: #969bb6;
+  opacity: 1 !important;
+}
+.privateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  margin-top: 0.4em;
+  padding: 0.2em 0.5em;
+  border-radius: 0.6em;
+  background: #fff2db;
+  color: #be7611;
+  font-size: 0.68em;
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7em;
+  min-height: 20em;
+  padding: 2.5em 1em;
+  border: 1px solid #ffffffba;
+  border-radius: 1.3em;
+  background: #ffffff70;
+  text-align: center;
+}
+.empty > svg {
+  width: 3.4em;
+  height: 3.4em;
+  margin-bottom: 0.5em;
+  color: #bda6ef;
+}
+.empty h2 {
+  margin: 0;
+  color: #4b3d7a;
+  font-size: 1.25em;
+}
+.empty p {
+  max-width: 38em;
+  margin: 0 0 0.8em;
+  color: #8785a5;
+  font-size: 0.9em;
+  line-height: 1.8;
+}
+.loadingRows {
+  opacity: 0.65;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  padding-block: 1.4em;
+}
+.pagination button {
+  min-width: 2.6em;
+  min-height: 2.6em;
+  padding: 0.5em;
+  border: 1px solid #ded9f6;
+  border-radius: 0.75em;
+  background: #ffffffb0;
+  color: #8b78c3;
+}
+.pagination .currentPage {
+  background: #7a2efa;
+  color: white;
+  border-color: transparent;
+}
+
+/* 생성 폼은 고정 규칙·고급 설정 없이 사용자가 고를 수 있는 다섯 행만 표시한다. */
+.createPage {
+  max-width: 2400px;
+  margin-inline: auto;
+}
+.createGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 2.1fr) minmax(300px, 1fr);
+  align-items: stretch;
+  gap: 1.2em;
+}
+.roomForm {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(22px, 2vw, 46px);
+}
+.sectionHeading {
+  display: flex;
+  align-items: start;
+  gap: 0.9em;
+  margin-bottom: 1.6em;
+}
+.sectionHeading > svg {
+  width: 1.8em;
+  height: 1.8em;
+  margin-top: 0.15em;
+  color: #7933f7;
+}
+.sectionHeading h2 {
+  margin-bottom: 0.25em;
+  font-size: 1.3em;
+}
+.sectionHeading p {
+  margin: 0;
+  color: #9694b3;
+  font-size: 0.85em;
+  line-height: 1.7;
+}
+.formFields {
+  display: grid;
+  gap: 1.4em;
+  margin: 0.2em 0 2em;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.formRow {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 3.1fr);
+  align-items: start;
+  gap: 1em;
+}
+.formRow > label,
+.fieldLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: 3em;
+  color: #34235f;
+  font-weight: 750;
+}
+.formRow > label > svg,
+.fieldLabel > svg {
+  color: #7c2ff6;
+}
+.required {
+  color: #e34e75;
+  font-size: 0.85em;
+}
+.field {
+  display: grid;
+  gap: 0.35em;
+  min-width: 0;
+}
+.field > :is(input, select) {
+  width: 100%;
+  min-height: 3.3em;
+}
+.field select {
+  appearance: auto;
+}
+.field > small {
+  color: #9997b2;
+  font-size: 0.75em;
+  line-height: 1.7;
+}
+.titleInput {
+  display: flex;
+  align-items: center;
+  border: 1px solid #dbdef7;
+  border-radius: 0.9em;
+  background: #ffffffa8;
+}
+.screen .titleInput input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  min-height: 3.3em;
+}
+.titleInput > span {
+  flex: 0 0 auto;
+  padding-right: 1em;
+  color: #a29db7;
+  font-size: 0.75em;
+}
+.visibilityOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8em;
+}
+.visibilityOptions button {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding: 1em;
+  border: 1px solid #e3e0f3;
+  border-radius: 1em;
+  background: #ffffff70;
+  text-align: left;
+  color: #8e89af;
+}
+.visibilityOptions button[aria-pressed="true"] {
+  border-color: #a36dff;
+  background: linear-gradient(115deg, #f2eaff, #faf5ff);
+  color: #7a3be5;
+  box-shadow: inset 0 0 0 1px #e2cfff;
+}
+.visibilityOptions strong {
+  display: block;
+  margin-bottom: 0.3em;
+  color: #32215d;
+  font-size: 0.9em;
+}
+.visibilityOptions small {
+  display: block;
+  font-size: 0.7em;
+  line-height: 1.7;
+}
+.screen .disabledLabel,
+.screen .disabledLabel svg {
+  color: #a19cba;
+}
+.undoField {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1em;
+}
+.undoField > small {
+  flex: 1 1 10em;
+  color: #9690ae;
+  font-size: 0.75em;
+  line-height: 1.7;
+}
+.segmentButtons {
+  display: flex;
+  gap: 0.65em;
+}
+.segmentButtons button {
+  min-width: 4.4em;
+  min-height: 3.3em;
+  border: 1px solid #ded9f0;
+  border-radius: 0.85em;
+  background: #ffffff9c;
+  color: #69608d;
+  font-size: 0.9em;
+  font-weight: 700;
+}
+.segmentButtons button[aria-pressed="true"] {
+  border-color: #a06afb;
+  background: #f3eaff;
+  color: #8437f4;
+}
+.actions {
+  display: flex;
+  justify-content: end;
+  flex-wrap: wrap;
+  gap: 1em;
+  margin-top: 1.4em;
+}
+.roomForm > .actions {
+  margin-top: auto;
+  padding-top: 1.8em;
+}
+.roomForm > .actions > * {
+  flex: 1 1 8em;
+  min-height: 3.7em;
+  font-weight: 800;
+}
+.formFailure {
+  margin: 0 0 1.2em;
+  padding: 0.8em 1em;
+  border-radius: 0.8em;
+  background: #fff1f4;
+  color: #ad3b60;
+  font-size: 0.88em;
+}
+.preview {
+  padding: 1.4em;
+}
+.previewCard {
+  padding: 0.7em;
+  border: 1px solid #eee8fa;
+  border-radius: 1.2em;
+  background: #ffffffc7;
+  box-shadow: 0 5px 20px #a995dd14;
+}
+.previewCover {
+  position: relative;
+  min-height: 11em;
+  overflow: hidden;
+  border-radius: 0.85em;
+}
+.previewCover > img {
+  object-fit: cover;
+  object-position: right center;
+}
+.previewVisibility {
+  position: absolute;
+  left: 0.6em;
+  top: 0.6em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.4em 0.7em;
+  border-radius: 2em;
+  background: #9545f5;
+  color: white;
+  font-size: 0.8em;
+}
+.previewCard h3 {
+  margin: 0.8em 0.2em;
+  color: #1e164d;
+  font-size: 1.1em;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.previewCard > .ruleBadges {
+  margin: 0 0.2em 0.4em;
+  font-size: 1.2em;
+}
+.summary {
+  margin-top: 1em;
+  padding: 1em 1.2em;
+  border: 1px solid #ece8fa;
+  border-radius: 1.2em;
+  background: #ffffffa8;
+}
+.summary h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  margin: 0.25em 0;
+  color: #312356;
+  font-size: 1em;
+  font-weight: 800;
+}
+.summary dl {
+  font-size: 0.82em;
+}
+.summary dt {
+  max-width: 45%;
+}
+.summary dd {
+  max-width: 60%;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  padding-block: 1.2em;
+  border-top: 1px solid #dddef0;
+  color: #9792b5;
+  font-size: 0.78em;
+}
+.footer strong {
+  color: #826cac;
+  font-weight: 850;
+}
+.footer small {
+  margin-left: auto;
+  font-size: inherit;
+}
+.dialog {
+  width: min(92vw, 530px);
+  max-height: min(90svh, 850px);
+  padding: 1.7em;
+  overflow: auto;
+  border: 1px solid #e8dfff;
+  border-radius: 1.5em;
+  color: #57517c;
+  background: #fdfbff;
+  box-shadow: 0 20px 100px #38225138;
+  font-family: var(--font-noto-sans-kr), sans-serif;
+}
+.dialog::backdrop {
+  background: #34325470;
+  backdrop-filter: blur(4px);
+}
+.dialogHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+}
+.dialogHeading h2 {
+  margin: 0;
+  font-size: 1.4em;
+  font-weight: 850;
+  color: #30205f;
+}
+.dialog p {
+  line-height: 1.8;
+}
+.dialogRoomTitle {
+  margin: 1.2em 0;
+  color: #73658f;
+  overflow-wrap: anywhere;
+}
+.codeLabel {
+  display: block;
+  margin-bottom: 0.5em;
+  font-size: 0.85em;
+}
+.copyRow {
+  display: flex;
+  gap: 0.6em;
+}
+.copyRow input {
+  width: 100%;
+  letter-spacing: 0.2em;
+  font-size: 1.35em;
+  font-weight: 800;
+}
+.copyRow button {
+  flex: 0 0 auto;
+}
+.closeConfirmation {
+  margin-top: 1em;
+  padding-top: 1em;
+  border-top: 1px solid #e8def7;
+}
+
+/* 화면 폭이 줄면 표를 카드로 전환한다. 큰 화면은 최대 폭과 유동 글자 크기로 과도한 확장을 막는다. */
+@media (max-width: 1400px) {
+  .listLayout {
+    grid-template-columns: minmax(0, 1fr) 285px;
+    gap: 1em;
+  }
+  .tableHeader,
+  .roomRow {
+    grid-template-columns: minmax(160px, 2fr) minmax(90px, 1fr) 65px minmax(
+        155px,
+        1.55fr
+      ) 66px 60px;
+    gap: 0.5em;
+  }
+  .roomIdentity > .cover {
+    width: 4.3em;
+  }
+  .ruleBadges {
+    gap: 0.3em;
+  }
+  .ruleBadges > span {
+    padding-inline: 0.5em;
+  }
+  .panel {
+    padding: 1.15em;
+  }
+  .formRow {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+}
+@media (max-width: 1200px) {
+  .listLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sidebar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .sidebar > .startCard {
+    display: none;
+  }
+  .mobileActions {
+    display: flex;
+    justify-content: end;
+    gap: 0.7em;
+    margin-top: 0.8em;
+  }
+  .mobileActions :is(a, button) {
+    min-height: 2.9em;
+    font-size: 0.9em;
+  }
+  .createGrid {
+    grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+  }
+  .roomForm {
+    padding: 1.5em;
+  }
+  .formRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3em;
+  }
+  .formFields {
+    gap: 1em;
+  }
+  .formRow > label,
+  .fieldLabel {
+    min-height: 2em;
+  }
+}
+@media (max-width: 900px) {
+  .heroHeading > .cover {
+    width: 5em;
+    height: 5em;
+  }
+  .tableHeader {
+    display: none;
+  }
+  .roomRow {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto;
+    gap: 0.9em;
+    padding: 1em;
+  }
+  .roomIdentity {
+    grid-column: 1 / 3;
+  }
+  .host {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .players {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+  .ruleBadges {
+    grid-column: 1 / 3;
+    grid-row: 3;
+  }
+  .roomState {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .entryButton {
+    grid-column: 3;
+    grid-row: 3;
+    min-width: 5em;
+  }
+  .createGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .preview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1em;
+  }
+  .preview > .sectionHeading {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+  .summary {
+    margin-top: 0;
+  }
+}
+@media (max-width: 640px) {
+  .hero {
+    min-height: 170px;
+  }
+  .heroContent {
+    padding: 1em;
+  }
+  .heroHeading {
+    gap: 0.8em;
+  }
+  .heroHeading > .cover {
+    width: 4em;
+    height: 4em;
+  }
+  .hero h1 {
+    font-size: 1.8em;
+  }
+  .hero p {
+    font-size: 0.82em;
+    line-height: 1.8;
+  }
+  .heroHeading > div > span {
+    display: none;
+  }
+  .heroCat {
+    right: 0;
+    width: 25%;
+    opacity: 0.85;
+  }
+  .createHero .heroHeading {
+    max-width: 85%;
+  }
+  .toolbar {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 0.55em;
+  }
+  .roomSearch {
+    grid-column: 1 / -1;
+  }
+  .filterButton,
+  .activeFilter {
+    min-height: 44px;
+    padding-inline: 0.65em;
+    font-size: 0.82em !important;
+  }
+  .filterButton svg,
+  .activeFilter svg {
+    width: 1.1em;
+    height: 1.1em;
+  }
+  .hostedNotice {
+    align-items: start;
+    flex-direction: column;
+  }
+  .roomRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.8em;
+    font-size: 0.96em;
+  }
+  .roomIdentity {
+    grid-column: 1 / -1;
+  }
+  .roomIdentity > .cover {
+    width: 5em;
+  }
+  .roomIdentity h2 {
+    font-size: 1em;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .host {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .players {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .ruleBadges {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .roomState {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .entryButton {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    min-height: 44px;
+  }
+  .sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .roomForm {
+    padding: 1.3em;
+  }
+  .visibilityOptions {
+    gap: 0.5em;
+  }
+  .visibilityOptions button {
+    align-items: start;
+    padding: 0.75em;
+    gap: 0.5em;
+  }
+  .visibilityOptions button > svg {
+    width: 1.2em;
+    height: 1.2em;
+  }
+  .visibilityOptions small {
+    font-size: 0.7em;
+  }
+  .preview {
+    display: block;
+  }
+  .preview > .sectionHeading {
+    margin-bottom: 1em;
+  }
+  .summary {
+    margin-top: 1em;
+  }
+  .footer {
+    flex-wrap: wrap;
+    line-height: 1.8;
+  }
+  .footer small {
+    width: 100%;
+    margin-left: 0;
+  }
+  .copyRow {
+    flex-wrap: wrap;
+  }
+  .copyRow button {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen *,
+  .dialog * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

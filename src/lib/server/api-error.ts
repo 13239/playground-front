@@ -9,6 +9,14 @@ const errors = {
   PAYLOAD_TOO_LARGE: [413, "요청 본문이 너무 큽니다."],
   UNSUPPORTED_MEDIA_TYPE: [415, "JSON 형식으로 요청해 주세요."],
   DUPLICATE_USERNAME: [409, "이미 사용 중인 아이디입니다."],
+  // 오목 방의 충돌과 일시적인 생성 실패를 내부 DB 오류 없이 구분한다.
+  ROOM_ALREADY_HOSTING: [409, "이미 만든 방이 있습니다. 목록에서 내 방을 확인해 주세요."],
+  ROOM_REQUEST_EXPIRED: [409, "이미 닫힌 방의 요청입니다. 새로 방을 만들어 주세요."],
+  ROOM_NOT_FOUND: [404, "방을 찾을 수 없습니다."],
+  ROOM_CANNOT_CLOSE: [409, "다른 참가자가 있거나 대국 중인 방은 닫을 수 없습니다."],
+  ROOM_CODE_UNAVAILABLE: [503, "방을 만들지 못했습니다. 잠시 후 다시 시도해 주세요."],
+  ROOM_RATE_LIMIT_EXCEEDED: [429, "방 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
+  ROOM_SERVICE_UNAVAILABLE: [503, "오목 서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해 주세요."],
   // 가입 전용 제한·장애는 로그인 실패나 계정 잠금으로 표시하지 않는다.
   SIGN_UP_RATE_LIMIT_EXCEEDED: [429, "회원가입 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   SIGN_UP_SERVICE_UNAVAILABLE: [503, "회원가입 서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해 주세요."],
