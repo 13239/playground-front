@@ -2,16 +2,20 @@ import "server-only";
 
 import { isIP } from "node:net";
 import { ApiError, parseBackendError } from "./api-error";
-import { getBackendOrigin, getBackendTimeout } from "./env";
+import { getAppEnvironment, getBackendOrigin, getBackendTimeout, getDevBffSecret } from "./env";
+import { backendFetch } from "./backend-transport";
+import type { BrowserRequestProof } from "@/features/auth/server/browser-proof";
 
 type BackendRequest = Readonly<{
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: object;
   accessToken?: string;
   clientIp?: string;
+  // BFF가 실제 요청에서 추출한 증명·본문 해시만 전달하며 브라우저 헤더 전체를 복사하지 않는다.
+  proof?: BrowserRequestProof;
 }>;
 
-/** BFF와 Server Component가 공유하는 서버 전용 Spring API 통신 경계다. */
+/** BFF의 서버 전용 Spring API 통신 경계다. 보호 데이터는 브라우저의 요청 증명과 함께 호출한다. */
 export async function backendRequest(
   path: `/api/${string}`,
   options: BackendRequest = {},
@@ -23,8 +27,14 @@ export async function backendRequest(
     throw new ApiError("INVALID_REQUEST_BODY");
   }
   const headers = new Headers({ Accept: "application/json" });
+  // Docker 내부 HTTP의 dev에서만 BFF 키를 전달한다. prod나 브라우저 응답에는 이 값을 전달하지 않는다.
+  if (getAppEnvironment() === "dev" && url.protocol === "http:") headers.set("X-BFF-Dev-Secret", getDevBffSecret());
   if (options.body !== undefined) headers.set("Content-Type", "application/json");
   if (options.accessToken) headers.set("Authorization", `Bearer ${options.accessToken}`);
+  if (options.proof) {
+    headers.set("X-Browser-Proof", options.proof.value);
+    headers.set("X-Browser-Body-SHA256", options.proof.bodyHash);
+  }
   // 브라우저 헤더는 복사하지 않고 신뢰 프록시에서 검증한 IP 하나만 Spring에 전달한다.
   if (options.clientIp !== undefined) {
     if (options.clientIp.includes("%") || !isIP(options.clientIp)) throw new ApiError("INVALID_REQUEST_BODY");
@@ -35,14 +45,11 @@ export async function backendRequest(
 
   // 토큰 회전·상태 변경 중복을 방지하기 위해 자동 재시도하지 않는다.
   try {
-    const response = await fetch(url, {
+    const response = await backendFetch(url, {
       method: options.method ?? "GET",
       headers,
       body,
       signal: deadline,
-      cache: "no-store",
-      credentials: "omit",
-      redirect: "error",
     });
     if (response.status === 204) return undefined;
 

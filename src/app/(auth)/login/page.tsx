@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Brand } from "./_components/brand";
 import { Icon } from "./_components/icon";
-import { LoginForm } from "./_components/login-form";
+import { LoginGate } from "./_components/login-gate";
 import { NoticeButton } from "./_components/notice-button";
 import styles from "./login.module.css";
 
@@ -44,7 +44,8 @@ export default function LoginPage() {
             <span className={styles.srOnly}>로그인</span>
           </h1>
 
-          <LoginForm />
+          {/* 이미 로그인한 사용자는 브라우저 증명을 확인한 뒤 홈으로 이동한다. */}
+          <LoginGate />
 
           <footer className={styles.cardFooter}>
             <span>아직 계정이 없으신가요?</span>

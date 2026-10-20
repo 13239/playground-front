@@ -12,7 +12,17 @@ const errors = {
   USER_NOT_FOUND: [404, "사용자를 찾을 수 없습니다."],
   INVALID_CREDENTIALS: [401, "아이디 또는 비밀번호가 올바르지 않습니다."],
   INVALID_REFRESH_TOKEN: [401, "로그인이 만료되었습니다. 다시 로그인해 주세요."],
+  // 서버에서 해당 세션을 폐기했음을 전달하며 지연 응답으로 다른 요청의 새 쿠키를 삭제하지 않는다.
+  REFRESH_TOKEN_REUSED: [401, "인증 정보 재사용이 감지되어 로그인 세션을 종료했습니다. 다시 로그인해 주세요."],
   INVALID_SESSION: [401, "로그인이 만료되었습니다. 다시 로그인해 주세요."],
+  BROWSER_KEY_REQUIRED: [401, "이 브라우저의 로그인 키를 확인할 수 없습니다. 다시 로그인해 주세요."],
+  BROWSER_PROOF_INVALID: [403, "요청의 브라우저 인증 정보를 확인할 수 없습니다."],
+  BROWSER_PROOF_EXPIRED: [403, "요청 인증 정보가 만료되었습니다. 다시 시도해 주세요."],
+  BROWSER_PROOF_REPLAYED: [403, "이미 처리한 요청 인증 정보입니다. 다시 시도해 주세요."],
+  BROWSER_PROOF_RATE_LIMIT_EXCEEDED: [429, "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
+  BFF_AUTHENTICATION_REQUIRED: [403, "허용되지 않은 서버 연결입니다."],
+  // 충돌 응답은 먼저 성공한 요청이 설정한 인증 쿠키를 유지하며 재시도를 안내한다.
+  LOGIN_SESSION_CHANGED: [409, "로그인 상태가 변경되었습니다. 현재 상태를 다시 확인해 주세요."],
   LOGIN_RATE_LIMIT_EXCEEDED: [429, "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   AUTH_SERVICE_UNAVAILABLE: [503, "로그인 서비스를 일시적으로 이용할 수 없습니다."],
   INVALID_AUTHENTICATION_REQUEST: [400, "인증 요청 형식이 올바르지 않습니다."],

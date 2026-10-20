@@ -10,7 +10,7 @@ const subscribe = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 
-export function LoginForm() {
+export function LoginForm({ ready }: { ready: boolean }) {
   // 수화 전에는 제출을 막아 JSON BFF 대신 기본 HTML 폼 요청이 전송되지 않도록 한다.
   const hydrated = useSyncExternalStore(
     subscribe,
@@ -38,7 +38,8 @@ export function LoginForm() {
   // 현재 React의 제출 이벤트 타입을 사용하고 중복 제출은 렌더링 전에도 즉시 차단한다.
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting.current || Date.now() < retryUntil) return;
+    // 탭 복귀 중에는 입력값을 유지하면서 제출만 막고 최신 인증 판별을 기다린다.
+    if (!ready || submitting.current || Date.now() < retryUntil) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     submitting.current = true;
@@ -76,7 +77,7 @@ export function LoginForm() {
       onSubmit={handleSubmit}
       onInput={() => { if (!retryRemaining) setStatus(""); }}
       aria-label="로그인"
-      aria-busy={pending}
+      aria-busy={pending || !ready}
       aria-describedby="login-status"
     >
       <div className={styles.fields}>
@@ -94,7 +95,7 @@ export function LoginForm() {
             autoCapitalize="none"
             spellCheck={false}
             required
-            readOnly={pending}
+            readOnly={pending || !ready}
             className={styles.input}
           />
         </div>
@@ -113,7 +114,7 @@ export function LoginForm() {
             autoCapitalize="none"
             spellCheck={false}
             required
-            readOnly={pending}
+            readOnly={pending || !ready}
             className={`${styles.input} ${styles.passwordInput}`}
           />
           <button
@@ -136,7 +137,7 @@ export function LoginForm() {
             type="checkbox"
             value="true"
             defaultChecked
-            disabled={pending}
+            disabled={pending || !ready}
             className={styles.checkboxInput}
           />
           <span className={styles.checkboxMark} aria-hidden="true">
@@ -149,7 +150,7 @@ export function LoginForm() {
         </NoticeButton>
       </div>
 
-      <button type="submit" className={styles.submitButton} disabled={!hydrated || pending || retryRemaining > 0}>
+      <button type="submit" className={styles.submitButton} disabled={!hydrated || !ready || pending || retryRemaining > 0}>
         {pending ? "로그인 중…" : "로그인"}
         <Icon name="arrow" />
       </button>

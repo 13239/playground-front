@@ -5,7 +5,7 @@ import { AuthRequestError, logout } from "@/features/auth/client/api";
 import styles from "../home.module.css";
 
 /** 서버 세션과 쿠키 정리가 완료된 뒤 로그인 화면을 새 문서로 연다. */
-export function LogoutButton() {
+export function LogoutButton({ sessionId }: { sessionId: string }) {
   const submitting = useRef(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
@@ -16,7 +16,8 @@ export function LogoutButton() {
     setPending(true);
     setMessage("");
     try {
-      await logout();
+      // 실제로 표시한 세션만 종료한다. 다른 탭이 계정을 바꿨다면 서버가 변경 요청을 거절한다.
+      await logout(sessionId);
       window.location.replace("/login");
     } catch (error) {
       // 서버 장애로 세션 정리가 실패했다면 화면에서 재시도할 수 있게 한다.

@@ -8,9 +8,14 @@ export type LoginInput = Readonly<{
 export type CurrentSession = Readonly<{
   id: number;
   username: string;
+  // 화면과 변경 요청의 세션 일치 여부만 확인하는 공개 식별자이며 인증 토큰으로 사용하지 않는다.
+  sessionId: string;
   keepLoggedIn: boolean;
   sessionExpiresAt: string;
 }>;
+
+/** 이전 탭의 작업이 새 계정에 적용되지 않도록 실제로 화면에 표시한 세션을 요청에 결합한다. */
+export type SessionMutationInput = Readonly<{ sessionId: string }>;
 
 export type SessionActivity = Readonly<{
   keepLoggedIn: boolean;

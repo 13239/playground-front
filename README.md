@@ -1,6 +1,6 @@
 # Playground Frontend
 
-Next.js 16.4 App Router와 React 19를 사용한다. 로그인은 브라우저 → Next.js BFF → Spring API 흐름으로 연결한다.
+Next.js 16.4 App Router와 React 19를 사용한다. 로그인은 브라우저 → Next.js BFF → Spring API 흐름으로 연결하며, HttpOnly 쿠키에 더해 브라우저 키 소유를 검증한다.
 
 ## 실행
 
@@ -13,13 +13,25 @@ npm run dev
 
 | 환경 변수 | 용도 |
 | --- | --- |
-| `BACKEND_ORIGIN` | Spring 내부 주소. 경로·쿼리·사용자 정보가 없는 HTTP(S) Origin |
+| `BACKEND_ORIGIN` | Spring 내부 주소. 로컬 기본값은 `http://localhost:9080`. 경로·쿼리·사용자 정보가 없는 HTTP(S) Origin |
 | `APP_ORIGIN` | 브라우저가 접속하는 공개 Origin. 운영에서는 HTTPS 사용 |
 | `BACKEND_TIMEOUT_MS` | Spring 요청 전체 제한 시간. 기본 10,000ms, 범위 100~30,000ms |
 | `AUTH_COOKIE_SECRET` | Spring JWT 서명 키와 분리한 BFF 쿠키 암호화 키 |
-| `TRUSTED_CLIENT_IP_HEADER` | 신뢰 프록시가 덮어쓰는 단일 접속 IP 헤더. 로컬 직접 접속 시 비움 |
+| `TRUSTED_CLIENT_IP_HEADER` | 신뢰 프록시가 덮어쓰는 단일 접속 IP 헤더. prod는 필수이며 시작 시 검증. local/dev 직접 접속 시 비움 |
+| `BACKEND_CA_CERT_PATH` | 운영 Spring 서버 인증서를 검증할 전용 CA PEM 파일의 절대 경로 |
+| `BFF_CLIENT_CERT_PATH`, `BFF_CLIENT_KEY_PATH` | 운영 BFF 클라이언트 인증서·개인키 PEM 파일의 절대 경로 |
 
 운영 BFF 인스턴스는 동일한 암호화 키와 공개 Origin을 사용한다. 쿠키 암호화 키를 바꾸면 기존 인증 쿠키는 무효화된다. 위 변수들은 서버 전용이므로 `NEXT_PUBLIC_` 접두사를 붙이지 않는다.
+
+운영 `APP_ENV=prod`는 `BACKEND_ORIGIN=https://내부서버:9080`과 mTLS 파일 세 개가 필수이며, 인증서 오류를 무시하거나 HTTP로 우회하지 않는다. Node 표준 HTTPS의 연결 풀을 사용하며 인증서 교체 후 BFF를 재시작한다. `APP_ENV=local`의 HTTP 연결은 실제 루프백 주소에만 허용한다. Spring도 같은 환경의 프로필로 실행하며 인증서·방화벽·개발 배포 설정은 [백엔드 안내](../playground-back/README.md)를 따른다.
+
+## 개발 서버의 원격 HTTP
+
+개발 배포는 `APP_ENV=dev`, `APP_ORIGIN=http://서버IP:9080`, `BACKEND_ORIGIN=http://backend:9080`으로 설정하고 Spring에도 `SPRING_PROFILES_ACTIVE=dev`와 같은 공개 Origin을 지정한다. Docker에서 호스트 9080은 프론트/BFF의 3000으로 연결한다. Spring의 9080은 내부 전용이며 사용자에게 직접 노출하지 않는다. Next는 `next build` + `next start`를 사용하고 `NODE_ENV`를 임의 값 `dev`로 바꾸지 않는다.
+
+원격 HTTP 브라우저에서는 개인키 API를 사용할 수 없어 dev만 일반 BFF+JWT로 동작한다. 서버 설정이 dev일 때만 키 검증을 생략하고 HTTP 쿠키를 발급하며 CSP의 HTTPS 강제와 HSTS만 끈다. 스크립트 nonce·안전한 출력·Origin·JWT·Redis 세션 검증은 유지한다. 탭 사이 변경은 HTTP에서도 쓸 수 있는 IndexedDB 임대로 직렬화한다. dev HTTP는 전송 암호화와 쿠키 탈취에 대한 개인키 방어를 제공하지 않는다.
+
+Spring과 BFF에 동일한 별도 무작위 `BFF_DEV_SHARED_SECRET`을 공급한다. 공유 키는 내부 HTTP의 BFF 인증에만 사용하고 브라우저에는 내보내지 않는다. JWT·쿠키 키와 각각 다르게 생성하고 운영과도 공유하지 않는다. 공개 모드 표시를 브라우저에서 바꿔도 prod의 서버 검증을 생략할 수 없다.
 
 ## 폴더 구성
 
@@ -31,6 +43,8 @@ src/
       session/route.ts      # JWT·최신 Redis 기반 세션 확인
       logout/route.ts       # 서버 세션 해제 및 쿠키 삭제
       refresh/route.ts      # 동일 Origin POST에서만 토큰 갱신
+      proof-challenge/route.ts # 토큰을 노출하지 않는 공개 nonce 발급
+      activity/route.ts     # 브라우저 키로 증명한 실제 활동의 만료 연장
     (auth)/login/
       _components/          # 로그인 화면 전용 UI
       login.module.css
@@ -43,64 +57,108 @@ src/
     page.tsx
   features/auth/
     types.ts                # 브라우저에 제공할 수 있는 인증 계약
-    client/api.ts           # 동일 Origin BFF 로그인·로그아웃 호출
+    client/api.ts           # 탭 사이 잠금·키 증명·필요 시 한 번만 갱신
+    client/session-events.ts # 인증 정보 없는 탭 변경 알림과 저장소 대체 경로
+    client/session-store.ts  # 탭 복귀·인증 변경·bfcache 복원 시 세션 재확인
+    client/browser-key.ts   # 추출 불가 개인키의 IndexedDB 보관
+    client/browser-proof.ts # 짧은 nonce와 ES256 요청 증명
+    client/error.ts         # 브라우저에서 공유하는 공개 오류
+    request-binding.ts      # 비밀번호를 제외한 로그인 요청 결합 규칙
     server/
       api.ts                # Spring 인증 API 호출
       contracts.ts          # 서버 전용 토큰 계약과 응답 검증
       cookies.ts            # 암호화 인증 쿠키 처리
       login-input.ts        # Spring 로그인 DTO에 맞춘 입력 검증
+      mutation-input.ts     # 활동·로그아웃 화면의 세션 결합 검증
       session.ts            # 요청별 최신 인증 상태 조회
-      refresh.ts            # 쿠키 갱신 및 인증 필터 실패의 단 한 번 재실행
+      refresh.ts            # 명시적 쿠키 갱신과 증명이 필요한 인증 호출 분리
+      browser-proof.ts      # 실제 요청의 증명과 본문 결합 해시 준비
   lib/server/
     api-error.ts            # 공개 오류 변환
     backend-client.ts       # 캐시·재시도 없는 Spring 통신
+    backend-transport.ts    # Node HTTPS 연결 풀·mTLS·응답 크기 제한
     client-ip.ts            # 명시적으로 신뢰한 프록시의 단일 IP 검증
     env.ts                  # 서버 환경 변수 검증
     request-security.ts     # 쿠키 변경 요청의 Origin 검증
     request-body.ts         # JSON 형식·실제 본문 크기 제한
+  proxy.ts                  # HTML/RSC마다 새로운 CSP nonce
+  instrumentation.ts        # 운영의 필수 IP 전달 설정을 서버 시작 시 확인
 ```
 
 `src/app`, route group, `_components`는 Next.js 공식 규칙에 맞춰 유지한다. 여러 경로에서 공유할 인증 로직은 `features/auth`, 여러 기능이 공유할 서버 기반은 `lib/server`에 둔다. 서버 모듈은 각각 `server-only`로 보호하고 클라이언트용 모듈과 섞는 통합 재내보내기 파일을 만들지 않는다.
 
 ## BFF 인증 규칙
 
-- 브라우저용 Route Handler는 요청을 검증한 뒤 서버 전용 인증 API를 호출한다. Server Component는 자신의 Route Handler로 우회하지 않고 같은 서버 모듈을 직접 호출한다.
+아래의 브라우저 개인키·nonce·Web Locks 절차는 local/prod에 적용한다. dev의 서명 생략·HTTP 쿠키·IndexedDB 잠금 예외는 위 개발 서버 절을 따른다.
+
+- 브라우저용 Route Handler는 요청을 검증한 뒤 서버 전용 인증 API를 호출한다. 서버 HTML/RSC는 공통 화면 틀만 제공하고 사용자 데이터는 키 증명이 있는 브라우저 요청으로 가져온다. Server Component에서 쿠키만으로 사용자 데이터를 가져오는 우회 경로를 두지 않는다.
 - 로그인·갱신 응답의 토큰은 서버 내부에서만 다루고 브라우저 JSON·Client Component props·브라우저 저장소·로그로 전달하지 않는다.
 - 인증 쿠키는 `jose`의 JWE 인증 암호화를 사용한다. `HttpOnly`, `SameSite=Lax`, `Path=/`를 적용하고 운영에서는 `Secure`와 `__Host-` 접두사를 사용한다.
 - 유지 ON의 로그인 복원용 쿠키는 Spring이 반환한 Redis 세션 만료 시각까지 영속 저장한다. OFF에는 `Expires`·`Max-Age`를 설정하지 않는다. 브라우저의 세션 복원 기능은 세션 쿠키를 복원할 수 있다.
 - Access Token 만료와 Redis 세션 만료는 구분한다. 토큰 갱신 시 세션 만료에 시간을 더하지 않고, 실제 활동이 Spring에서 승인된 경우에만 쿠키 만료도 맞춘다.
-- 쿠키 복호화는 사용자 인증 판별이 아니다. 사용자 판별은 `/api/auth/session`의 JWT·최신 Redis 검증 결과를 사용하며 인증 정보를 공용 캐시에 저장하지 않는다.
-- 쿠키 변경은 Route Handler 또는 Server Action에서 수행한다. Route Handler의 변경 요청은 `assertSameOrigin`으로 보호하고, 사용자 정보 읽기는 Cache Components의 요청 시점 `Suspense` 경계를 고려한다.
-- Spring으로 브라우저의 Cookie·Authorization·전달 헤더를 일괄 전달하지 않는다. 자동 리다이렉트와 자동 재시도도 하지 않는다. 로그인 IP는 `TRUSTED_CLIENT_IP_HEADER`가 지정된 경우 해당 단일 IP만 검증하여 `X-Real-IP`로 전달한다.
+- 쿠키 복호화는 사용자 인증 판별이 아니다. 사용자 판별은 `/api/auth/session`의 JWT·최신 Redis·브라우저 키 검증 결과를 사용하며 인증 정보를 공용 캐시에 저장하지 않는다. 키 지문이 포함된 쿠키 v2만 허용한다.
+- 쿠키 변경은 Route Handler에서 수행한다. 변경 요청은 `assertSameOrigin`으로 보호하고 조회를 포함한 보호 API에는 `X-Browser-Proof`를 요구한다. 프록시/프리패치 검사를 인증으로 대체하지 않는다.
+- Spring으로 브라우저의 Cookie·Authorization·전달 헤더를 일괄 전달하지 않는다. 자동 리다이렉트와 자동 재시도도 하지 않는다. 로그인 IP는 `TRUSTED_CLIENT_IP_HEADER`가 지정된 경우 해당 단일 IP만 검증하여 `X-Real-IP`로 전달한다. prod는 이 설정이 없으면 시작을 거절하고, 요청의 지정 헤더가 없거나 잘못되면 요청을 거절한다.
 - 네트워크 장애·시간 초과·인증 만료를 구분하고, 내부 오류 원문은 브라우저에 노출하지 않는다.
+- Spring의 DB·Redis 인증 서비스 장애는 필터·MVC 경로 모두 `503 AUTH_SERVICE_UNAVAILABLE`로 전달한다. BFF는 이를 토큰 갱신·쿠키 삭제·로그인 화면 이동의 근거로 사용하지 않으며 재시도를 안내한다.
 
 ## 로그인 흐름
 
-- 로그인 폼은 `/api/auth/login`에 JSON을 전송한다. BFF는 Origin, 4KiB 본문 제한, 필수값·길이를 검사한 뒤 Spring을 호출한다. 성공 시 암호화 쿠키만 발급하고 본문 없는 `204`를 반환한다.
+- 로그인 폼은 Web Crypto로 P-256 키를 준비하고 로그인 nonce를 받아 `/api/auth/login`에 JSON과 ES256 증명을 전송한다. BFF는 Origin, 4KiB 본문 제한, 필수값·길이와 증명 형식을 검사한 뒤 Spring에 전달한다. Spring은 nonce·요청 서명과 비밀번호를 검증하고 공개키 지문을 세션에 등록한다. 성공 시 BFF는 암호화 쿠키만 발급하고 본문 없는 `204`를 반환한다.
+- 로그인 페이지는 쿠키의 존재가 아닌 키·최신 Redis 검증으로 기존 로그인을 확인하고 홈으로 보낸다. 폼을 오래 열어 두어도 제출 잠금 안에서 한 번 더 확인해 다른 탭의 로그인을 덮어쓰지 않는다. 확인 중에는 폼 DOM과 입력값을 유지하되 제출을 막는다.
+- JWT 서명 키 교체로 이전 Refresh Token을 검증할 수 없으면 기존 세션 교체만 생략하고, 정상 비밀번호 인증은 신규 로그인으로 진행한다. 무효 토큰으로 이전 세션을 삭제하거나 기존 쿠키를 새 인증의 근거로 사용하지 않는다.
+- 재로그인은 기존 암호화 쿠키에서만 `previousRefreshToken`과 서버 생성 `previousRefreshRequestId`를 준비한다. 브라우저 JSON의 교체 증명은 전달하지 않는다. Spring은 비밀번호 인증 성공 후 Lua에서 기존 토큰 증명을 검증하고 이전 세션 제거·최대 3개 제한·새 세션 등록을 함께 처리한다. 같은 계정의 비밀번호 재인증 또는 같은 브라우저 키 소유를 증명한 경우에만 이전 세션을 교체한다. 다른 계정의 비밀번호와 훔친 쿠키만으로 피해자 세션을 삭제할 수 없다.
+- 같은 이전 쿠키·로그인 계정·유지 선택·브라우저 키의 동시 요청은 암호화한 로그인 결과를 최대 60초 공유한다. 현재 새 세션의 토큰 해시·소유자·만료·목록을 다시 확인하고, 다른 계정·유지 선택·키 또는 이후 인증 변경과 충돌하면 `409 LOGIN_SESSION_CHANGED`를 반환하며 쿠키를 변경하지 않는다. 로그인 직전에 갱신이 겹친 경우에는 기존 60초 갱신 공유 결과도 교체 증명으로 확인한다.
+- 교체 증명이 없거나 이전 세션이 이미 종료되었다면 신규 로그인으로 처리하며 기존 최대 3개 제한을 적용한다. 비밀번호 인증 실패·계정 차단 시 이전 세션은 변경하지 않는다. 로그인 공유 결과는 `auth:login-result:*`에 인증 암호문과 검증용 해시만 저장하며 세션 수명을 연장하지 않는다. 서명된 갱신 토큰 계약은 아래 배포 조건에 맞춰 Spring과 BFF에 함께 적용한다.
 - 폼은 중복 제출을 막고 로그인 시도 제한의 `Retry-After` 대기 시간을 표시한다. 실패한 비밀번호는 지우고 아이디와 유지 선택은 보존한다.
-- 성공하면 `/`를 새 문서로 열어 이전 Router Cache를 비운다. 홈은 `Suspense` 안에서 서버 인증 모듈을 직접 호출하고 검증된 사용자 이름과 로그아웃 버튼을 표시한다. 인증이 없으면 `/login`으로 보낸다.
+- 성공하면 `/`를 새 문서로 열어 이전 Router Cache를 비운다. 홈은 서버에서 사용자 데이터를 읽지 않고 브라우저가 키를 증명해 세션을 조회한 뒤 사용자 이름과 로그아웃 버튼을 표시한다. 인증 또는 키가 없으면 `/login`으로 보낸다.
 - `/api/auth/session`은 토큰을 제외한 현재 세션만 반환한다. 호출 자체는 활동으로 취급하지 않으며 쿠키와 Redis 만료를 연장하지 않는다.
-- `/api/auth/logout`은 Access Token이 만료됐으면 한 번 갱신한 뒤 Spring 세션을 해제하고 쿠키를 지운다. 이미 세션이 만료·폐기된 경우에도 로컬 쿠키는 지우며, 서비스 장애인 경우에는 실패를 표시하고 쿠키를 보존해 재시도할 수 있게 한다.
+- `/api/auth/logout`은 키를 증명한 요청만 Spring 세션을 해제하고 쿠키를 지운다. Access Token이 만료되면 브라우저가 갱신 경로의 새 증명으로 갱신한 뒤 로그아웃을 한 번 다시 요청한다. 이미 만료·폐기된 인증은 로그인 화면으로 안내하고 오래된 쿠키는 다음 로그인으로 교체한다. 서비스 장애는 실패를 표시하고 쿠키를 보존해 재시도할 수 있게 한다.
 
 ## 자동 갱신과 동시 요청
 
-- 세션 조회가 Access Token 만료·무효를 확인하면 `401 SESSION_REFRESH_REQUIRED`를 반환한다. 브라우저의 `getSession()`은 `POST /api/auth/refresh`를 호출한 뒤 원래 세션 조회를 한 번만 다시 실행한다. 로그인 실패·일반 서비스 장애는 자동 재시도하지 않는다.
-- Server Component는 쿠키를 직접 쓰지 않는다. 홈의 `SessionRecovery`가 브라우저에서 POST 갱신과 최신 세션 확인을 수행한 뒤 `router.refresh()`로 서버 화면을 다시 읽는다. 자동 복구는 마운트당 한 번이며 장애 시 사용자가 재시도할 수 있다.
-- 한 문서의 갱신은 진행 중인 Promise를 공유한다. Web Locks가 있는 브라우저에서는 탭 사이 로그인·갱신·로그아웃도 같은 잠금으로 처리한다. 잠금 미지원 환경과 여러 BFF 서버의 동시 요청은 Spring·Redis의 원자 회전으로 처리한다.
+- 세션 조회/변경이 Access Token 만료·무효를 확인하면 브라우저가 `POST /api/auth/refresh`의 새로운 증명으로 갱신한 뒤 원래 경로의 새로운 증명으로 한 번만 재실행한다. 하나의 증명을 다른 경로/메서드에 재사용하지 않는다. 로그인 실패·일반 서비스 장애는 자동 재시도하지 않는다.
+- Server Component는 쿠키를 직접 쓰지 않는다. 홈의 `SessionContent`와 로그인 페이지는 공유 세션 저장소에서 최신 세션 확인과 필요한 갱신을 수행하고 `SessionRecovery`가 복구 상태·재시도를 표시한다. 마운트·인증 변경·탭 복귀·bfcache 복원 때 재확인하며 장애 시 사용자가 재시도할 수 있다. 이전 조회의 늦은 응답은 상태 변경 이후 화면에 반영하지 않는다.
+- 로그인·로그아웃 변경은 BroadcastChannel과 storage 이벤트로 알리고, 알림에는 토큰·사용자·세션 ID를 넣지 않는다. 탭 알림이 누락되어도 복귀 시 재확인한다. 활동·로그아웃의 JSON에는 화면이 확인한 공개 `sessionId`를 결합하며 BFF가 암호화 쿠키의 실제 세션과 다르면 `409 LOGIN_SESSION_CHANGED`로 거절하고 새 계정의 작업을 실행하지 않는다. 세션 ID는 인증 수단이 아니며 JWT·Redis·Origin·브라우저 증명 검증을 그대로 수행한다. 기존 v2 쿠키는 토큰의 sid를 읽어 같은 계약에 연결한다.
+- 한 문서의 명시적 갱신은 진행 중인 Promise를 공유한다. Web Locks로 탭 사이 로그인·갱신·활동 연장·로그아웃의 쿠키 변경 순서를 보장한다. 갱신 잠금을 얻은 뒤 먼저 최신 세션을 확인하여 다른 탭이 이미 갱신한 경우 다시 회전하지 않는다. 키 저장과 잠금을 지원하지 않는 브라우저에서는 보호 기능을 완화하지 않고 로그인을 안내한다. 여러 BFF 서버의 동시 요청은 Spring·Redis의 원자 회전으로 처리한다.
 - BFF가 기존 Refresh Token과 쿠키 키로 HMAC 갱신 식별자를 생성한다. Spring의 `RefreshRequest`는 `refreshToken`과 64자리 소문자 hex `requestId`를 요구한다. 브라우저가 제공한 토큰·식별자는 전달하지 않는다.
-- 동일한 기존 토큰·갱신 식별자의 요청은 회전 한 번의 같은 결과를 **최대 60초** 공유한다. 이 기간은 BFF의 최대 요청 제한 30초보다 길어 응답 유실 후 재시도를 허용하며, 세션 만료와 실제 Redis 세션 TTL을 넘지 않는다. 다른 식별자·공유 기간이 지난 이전 토큰·더 이전 세대 토큰은 거부한다.
-- 공유 결과는 Redis `auth:refresh-result:*`에 AES-256-GCM 암호문으로만 저장한다. 서명 키를 직접 재사용하지 않고 Java 25 HKDF로 용도를 분리한 암호화 키를 파생한다. 같은 Redis를 쓰는 Spring 인스턴스는 같은 JWT 키를, 같은 공개 Origin을 서비스하는 BFF 인스턴스는 같은 쿠키 키를 사용해야 한다.
-- 결과를 공유할 때도 Lua가 계정 차단·세션 소유자·만료·동시 로그인 목록·현재 Refresh Token 해시를 다시 검증한다. 공유 결과는 사용자 판별용 캐시가 아니며 JWT·최신 Redis 검증을 생략하지 않는다. 사용자 테이블 조회는 추가하지 않는다.
+- Refresh Token은 `sid`·`gen`·무작위 `jti`를 담은 HS256 서명 JWT이며 최대 1,024자로 제한한다. Java 25 HKDF로 Access Token과 다른 서명 키를 파생하고, 갱신 전용 `typ=rt+jwt`·발급자·별도 audience·사용 시작 시각·정수 세대를 검증한 뒤에만 Redis에 접근한다. 로그인은 0세대부터 시작하며 성공한 회전마다 1씩 증가한다.
+- 동일한 **직전 세대 토큰·갱신 식별자**의 요청만 회전 한 번의 같은 결과를 **최대 60초** 공유한다. 이 기간은 BFF의 최대 요청 제한 30초보다 길어 응답 유실 후 재시도를 허용하며, 세션 만료와 실제 Redis 세션 TTL을 넘지 않는다. 공유 결과를 읽어도 TTL을 연장하지 않는다.
+- 서명 검증을 통과한 이전 세대 토큰이 다른 식별자로 제출되거나, 공유 결과가 만료되거나, 두 세대 이상 지난 토큰이 제출되면 Lua가 해당 세션 Hash·사용자별 목록 항목·공유 결과를 원자적으로 폐기하고 `401 REFRESH_TOKEN_REUSED`를 반환한다. 그 세션의 기존 Access Token도 이후 인증에서 거절한다. 위조 토큰·미래 세대·같은 세대의 해시 불일치는 요청만 거절하며 다른 기기의 세션을 종료하지 않는다.
+- Redis에는 현재 토큰 해시·현재 세대와 `auth:refresh-result:<sessionId>`의 최신 결과 **한 건만** 유지한다. 같은 Key를 덮어쓰므로 갱신 횟수에 따른 소비 이력이 쌓이지 않는다. 공유 결과의 토큰은 AES-256-GCM 암호문으로만 저장한다. 서명 키를 직접 재사용하지 않고 Java 25 HKDF로 용도를 분리한 암호화 키를 파생한다. 같은 Redis를 쓰는 Spring 인스턴스는 같은 JWT 키를, 같은 공개 Origin을 서비스하는 BFF 인스턴스는 같은 쿠키 키를 사용해야 한다.
+- 결과를 공유할 때도 Lua가 계정 차단·세션 소유자·만료·동시 로그인 목록·현재 Refresh Token 해시·세대를 다시 검증한다. 공유 결과는 사용자 판별용 캐시가 아니며 JWT·최신 Redis 검증을 생략하지 않는다. 사용자 테이블 조회는 추가하지 않는다.
 - Spring 응답의 `accessTokenExpiresAt`을 그대로 쿠키에 넣는다. 수신 시점에 `expiresIn`을 다시 더하지 않는다. ON의 세션 만료와 OFF의 세션 쿠키 속성은 그대로 유지하고, 갱신은 Redis 세션 수명을 늘리지 않는다.
 - 회전 직후 새 쿠키부터 저장하므로 뒤따르는 로그아웃 등이 장애로 실패해도 새 Refresh Token으로 재시도할 수 있다. 갱신 실패 응답은 다른 요청이 설정한 새 쿠키를 지우지 않는다. 확정된 세션 무효는 로그인 화면으로 안내한다.
 
-사용자 활동 감지는 다음 단계다. 백그라운드 갱신 타이머나 활동에 의한 세션 연장은 이번 단계에 추가하지 않았다. 테스트용 Access Token 기간도 변경하지 않는다. Spring과 BFF는 새 응답 필드·갱신 계약이 함께 적용되도록 배포한다.
+활동에 따른 세션 연장은 Spring `/api/auth/activity` 정책을 사용한다. 보이는 탭의 실제 포인터·키·휠·터치 입력에서 최대 분당 한 번 키를 증명해 Redis와 쿠키 만료를 함께 연장한다. 스크립트의 자동 스크롤·폴링·백그라운드 갱신은 활동으로 취급하지 않는다. Refresh Token에는 로그인 시각 기준 고정 `exp`를 넣지 않고 Redis의 최신 활동 기반 만료를 적용하므로 활동 중인 세션에 절대 최대 수명은 없다. 로컬 테스트용 Access Token 기간은 변경하지 않는다.
+
+서명 없는 기존 64자리 Refresh Token·키 미등록 세션·쿠키 v1은 새 계약에서 허용하지 않는다. Spring과 BFF를 함께 배포하고 기존 사용자는 한 번 다시 로그인해야 한다. 기존 쿠키만으로 키를 자동 등록하지 않는다. 이는 계약 전환이며 주기적인 강제 로그아웃 정책은 아니다. 같은 식별자의 60초 재시도는 재사용 폐기의 예외지만, 갱신 요청은 매번 새로운 유효 브라우저 증명도 통과해야 한다.
+
+## 브라우저 키와 XSS 방어
+
+개인키는 `extractable=false`인 `CryptoKey`로만 IndexedDB에 저장하고 공개키만 증명에 포함한다. nonce는 서버가 서명하며 60초 동안 유효하고 브라우저는 목적별로 두 건만 잠시 보관한다. 증명은 요청 메서드·경로·본문 결합 값·서버 nonce·새 증명 ID를 포함한다. 로그인 증명의 본문 결합 값에서는 비밀번호를 제외하여 빠른 비밀번호 해시가 증명에 남지 않게 한다. 비밀번호는 HTTPS/mTLS에서 검증하며 토큰을 JavaScript에 공개하지 않는다. 키 분실은 비밀번호로 다시 로그인하여 복구하고, 기존 쿠키로 서버 키를 변경하는 API는 제공하지 않는다.
+
+Spring은 세션별 증명 ID를 유효 기간에만 저장하며 기본 상한 120건을 넘으면 `429`를 반환한다. 공개 로그인은 IP별 기본 600건(`auth.proof.login-max-pending`)으로 분리한다. nonce 발급은 공개 로그인 IP별 600회/분, 인증된 세션·IP별 120회/분이므로 같은 네트워크의 다른 계정이 세션 nonce 예산을 함께 소모하지 않는다. 소비 이력은 로그인 기간에 비례해 쌓이지 않는다. 전체 메모리는 현재 세션·최근 요청량·설정한 상한에 따라 달라진다.
+
+로그인 IP 제한은 인증 전에 요청별 무작위 ID로 예약하여 동시 요청도 제한한다. 정상 비밀번호 인증에 성공하면 자신의 IP 예약만 반환하므로 공용 IP의 정상 로그인이 실패 횟수에 쌓이지 않는다. 기본 IP 예산은 실패·진행 중 요청 120회/분이며 다른 사람의 실패나 다음 시간 창의 요청을 성공 응답으로 지우지 않는다. 계정별 5회/15분 및 성공 시 계정 카운터 초기화는 유지한다.
+
+HTML/RSC에는 요청마다 새로운 CSP nonce를 적용하고 운영 스크립트에 `unsafe-inline`·`unsafe-eval`을 허용하지 않는다. `script-src-attr 'none'`, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`, 동일 Origin 통신/폼 제한을 적용한다. `next/image`의 위치/크기 스타일 속성은 허용하지만 스크립트 실행 정책과 분리한다. 개발의 React 디버깅/HMR 예외는 운영에 적용하지 않는다.
+
+nonce는 PPR/정적 HTML 캐시에 재사용할 수 없으므로 Cache Components·Partial Prefetching을 끄고 HTML을 요청별로 렌더링한다. JS·CSS·이미지의 정적 캐시는 유지한다. ESLint는 `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, 문자열 코드 실행을 차단한다. 사용자 입력은 React 텍스트로 표시하며 HTML 입력 기능을 추가할 때는 별도의 검증·정화 경계가 필요하다.
+
+이 설계는 HttpOnly BFF 세션용 요청 서명이며 표준 OAuth DPoP 구현으로 부르지 않는다. 추출 불가 키는 다른 브라우저로 복사한 쿠키만 사용하는 공격을 방어하지만 하드웨어 기기 인증은 아니다. 같은 Origin에서 XSS가 이미 실행되면 키로 서명을 대신 요청할 수 있으므로 CSP와 안전한 출력 코드를 함께 유지해야 한다.
 
 ## 배포 시 로그인 IP 전달
 
 운영에서는 BFF 앞의 신뢰 프록시가 외부에서 온 헤더를 제거하고 실제 접속 IP 하나로 지정 헤더를 **덮어써야** 한다. 해당 프록시를 우회하여 BFF에 직접 접속할 수 없게 하고 `TRUSTED_CLIENT_IP_HEADER`를 지정한다. 단순히 클라이언트가 보낸 `X-Forwarded-For`의 첫 값을 신뢰하도록 설정하지 않는다. Spring API도 BFF를 통해서만 접근하도록 제한한다.
 
-변수가 비어 있으면 IP 헤더를 전달하지 않으므로 Spring은 BFF의 연결 IP를 기준으로 제한한다. 이 기본값은 직접 접속하는 로컬 개발용이며, 운영에서 사용자별 IP 제한을 적용하려면 위 프록시 구성을 완료해야 한다.
+Spring에는 `AUTH_TRUSTED_PROXY_IPS`로 **Spring에 직접 연결하는 BFF 또는 프록시의 실제 IP**를 쉼표로 나열한다. 예를 들어 동일 호스트의 BFF만 신뢰한다면 `127.0.0.1,::1`로 지정한다. 호스트명·CIDR은 허용하지 않으며, 기본값은 신뢰 주소 없음이다. 동적으로 주소가 바뀌는 배포에서는 해당 설정도 함께 갱신한다.
+
+Spring은 `server.forward-headers-strategy=none`으로 실제 연결 상대를 보존한다. 목록에 등록된 상대에게서 온 요청에만 `X-Real-IP` 하나를 허용하며, 이때 헤더 누락·중복·쉼표 목록·포트·IPv6 zone ID는 `400 INVALID_AUTHENTICATION_REQUEST`로 거부한다. 다른 상대의 전달 헤더는 무시한다. IP 리터럴은 DNS 조회 없이 해석·정규화하므로 같은 IPv6 주소의 표기 차이는 같은 로그인 제한 키를 사용한다.
+
+신뢰 주소 설정은 방화벽·보안 그룹의 접근 제한과 함께 적용한다. BFF에서 Spring으로 가는 구간의 프록시도 외부 `X-Real-IP`를 그대로 전달하지 않도록 구성한다.
+
+로컬 개발에서는 `TRUSTED_CLIENT_IP_HEADER`와 `AUTH_TRUSTED_PROXY_IPS`를 모두 비워 두므로 Spring은 BFF의 연결 IP를 기준으로 제한한다. 이 기본값은 직접 접속하는 local/dev용이며 운영에서는 양쪽 신뢰 프록시 구성이 필수다. Next는 헤더 이름 누락을, Spring은 신뢰 BFF 목록 누락을 시작 시 거절한다. 운영에서 등록되지 않은 BFF 주소나 필수 IP 헤더 누락은 사용자 IP로 대체하지 않고 요청을 거절한다. 프록시가 외부의 동일 이름 헤더를 제거·덮어쓰고 우회 접근도 차단해야 한다.
 
 ## 확인
 

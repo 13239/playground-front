@@ -3,14 +3,16 @@ import "server-only";
 import { EncryptJWT, errors, jwtDecrypt } from "jose";
 import { cookies } from "next/headers";
 import type { SessionActivity } from "../types";
-import { isAccessToken, isRefreshToken, isSessionExpiry, parseAuthTokens, type AuthTokens } from "./contracts";
+import { isAccessToken, isRefreshToken, isSessionExpiry, isBrowserKeyBinding, readTokenSessionId, parseAuthTokens, type AuthTokens } from "./contracts";
 import { ApiError } from "@/lib/server/api-error";
 import { getAppOrigin, getAuthCookieKey } from "@/lib/server/env";
 
 /** 쿠키는 토큰 운반용이며 사용자 인증 여부는 Spring의 최신 Redis 검증으로 판단한다. */
 export type AuthCookieSession = Readonly<{
+  sessionId: string;
   accessToken: string;
   refreshToken: string;
+  browserKeyThumbprint: string;
   accessTokenExpiresAt: number;
   keepLoggedIn: boolean;
   sessionExpiresAt: string;
@@ -20,7 +22,8 @@ const issuer = "playground-bff";
 const maxCookieBytes = 3800;
 
 function cookieOptions() {
-  const secure = process.env.NODE_ENV === "production";
+  // dev는 원격 HTTP를 지원한다. HTTPS로 접속하는 local/dev도 Secure 쿠키를 사용한다.
+  const secure = getAppOrigin().startsWith("https://");
   return {
     name: secure ? "__Host-playground.session" : "playground.session",
     httpOnly: true,
@@ -39,7 +42,7 @@ async function saveSession(session: AuthCookieSession): Promise<void> {
   }
 
   // 라이브러리의 무작위 IV와 인증 암호화를 사용하여 토큰 원문과 변조를 모두 보호한다.
-  const value = await new EncryptJWT({ version: 1, ...session })
+  const value = await new EncryptJWT({ version: 2, ...session })
     .setProtectedHeader({ alg: "dir", enc: "A256GCM", typ: "JWT" })
     .setIssuer(issuer)
     .setAudience(getAppOrigin())
@@ -58,9 +61,13 @@ async function saveSession(session: AuthCookieSession): Promise<void> {
 /** 로그인·갱신 모두 백엔드의 세션 만료를 그대로 적용하며 임의로 14일·3시간을 더하지 않는다. */
 export async function writeAuthCookie(input: AuthTokens): Promise<void> {
   const tokens = parseAuthTokens(input);
+  const sessionId = readTokenSessionId(tokens.accessToken);
+  if (!sessionId) throw new ApiError("INVALID_BACKEND_RESPONSE");
   await saveSession({
+    sessionId,
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
+    browserKeyThumbprint: tokens.browserKeyThumbprint,
     // 같은 갱신 결과를 늦게 수신해도 실제 Access Token의 만료 시각을 그대로 유지한다.
     accessTokenExpiresAt: Date.parse(tokens.accessTokenExpiresAt),
     keepLoggedIn: tokens.keepLoggedIn,
@@ -83,15 +90,21 @@ export async function readAuthCookie(): Promise<AuthCookieSession | null> {
       contentEncryptionAlgorithms: ["A256GCM"],
       requiredClaims: ["exp", "iat"],
     });
-    if (payload.version !== 1 || !isAccessToken(payload.accessToken) || !isRefreshToken(payload.refreshToken)
+    if (payload.version !== 2 || !isAccessToken(payload.accessToken) || !isRefreshToken(payload.refreshToken)
+      || !isBrowserKeyBinding(payload.browserKeyThumbprint)
       || typeof payload.accessTokenExpiresAt !== "number" || !Number.isSafeInteger(payload.accessTokenExpiresAt)
       || payload.accessTokenExpiresAt <= 0 || typeof payload.keepLoggedIn !== "boolean"
       || !isSessionExpiry(payload.sessionExpiresAt)
       || payload.exp !== Math.floor(Date.parse(payload.sessionExpiresAt) / 1000)) return null;
 
+    // 기존 v2 쿠키도 암호화 검증 뒤 같은 토큰의 sid를 사용해 강제 로그아웃 없이 새 요청 계약에 연결한다.
+    const sessionId = readTokenSessionId(payload.accessToken);
+    if (!sessionId) return null;
     return {
+      sessionId,
       accessToken: payload.accessToken,
       refreshToken: payload.refreshToken,
+      browserKeyThumbprint: payload.browserKeyThumbprint,
       accessTokenExpiresAt: payload.accessTokenExpiresAt,
       keepLoggedIn: payload.keepLoggedIn,
       sessionExpiresAt: payload.sessionExpiresAt,

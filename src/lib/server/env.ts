@@ -3,6 +3,30 @@ import "server-only";
 import { Buffer } from "node:buffer";
 import { ApiError } from "./api-error";
 
+/** next build/start의 NODE_ENV와 배포 환경을 구분한다. dev 배포도 Next의 production 빌드를 사용한다. */
+export function getAppEnvironment(): "local" | "dev" | "prod" {
+  const value = process.env.APP_ENV ?? (process.env.NODE_ENV === "production" ? "prod" : "local");
+  if (value !== "local" && value !== "dev" && value !== "prod") throw new ApiError("SERVER_CONFIGURATION_ERROR");
+  return value;
+}
+
+/** 운영은 신뢰 프록시의 단일 IP 전달이 필수다. 서버 주소로 전체 사용자를 합치는 누락 설정을 거절한다. */
+export function getTrustedClientIpHeaderName(): string | undefined {
+  const environment = getAppEnvironment();
+  const name = process.env.TRUSTED_CLIENT_IP_HEADER;
+  if (!name && environment !== "prod") return undefined;
+  if (!name || !/^[a-z][a-z0-9-]{0,63}$/.test(name)) throw new ApiError("SERVER_CONFIGURATION_ERROR");
+  return name;
+}
+
+/** dev의 Docker 내부 HTTP에만 전용 공유 키를 사용한다. 브라우저에는 노출하지 않는다. */
+export function getDevBffSecret(): string {
+  const value = process.env.BFF_DEV_SHARED_SECRET;
+  const bytes = value ? Buffer.from(value, "base64") : undefined;
+  if (typeof value !== "string" || !bytes || bytes.length !== 32 || bytes.toString("base64") !== value) throw new ApiError("SERVER_CONFIGURATION_ERROR");
+  return value;
+}
+
 /** 서버 설정은 사용할 때 검증하며 NEXT_PUBLIC 환경 변수로 노출하지 않는다. */
 function readOrigin(name: "BACKEND_ORIGIN" | "APP_ORIGIN"): string {
   try {
@@ -23,8 +47,8 @@ export function getBackendOrigin(): string {
 
 export function getAppOrigin(): string {
   const origin = readOrigin("APP_ORIGIN");
-  // 운영 인증 쿠키는 HTTPS와 동일한 공개 Origin을 전제로 한다.
-  if (process.env.NODE_ENV === "production" && !origin.startsWith("https://")) {
+  // prod 인증 쿠키는 HTTPS를 요구한다. 원격 HTTP는 명시적 APP_ENV=dev에서만 사용하는 개발 예외다.
+  if (getAppEnvironment() === "prod" && !origin.startsWith("https://")) {
     throw new ApiError("SERVER_CONFIGURATION_ERROR");
   }
   return origin;

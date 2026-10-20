@@ -5,29 +5,40 @@ import type { LoginInput, CurrentSession, SessionActivity } from "../types";
 import { parseAuthTokens, parseCurrentSession, parseSessionActivity, type AuthTokens } from "./contracts";
 import { backendRequest } from "@/lib/server/backend-client";
 import { getAuthCookieKey } from "@/lib/server/env";
+import type { BrowserRequestProof } from "./browser-proof";
 
-/** 검증한 IP만 Spring에 전달하며 반환된 토큰 원문은 BFF 서버 내부에서만 사용한다. */
-export async function loginWithBackend(input: LoginInput, clientIp?: string): Promise<AuthTokens> {
-  return parseAuthTokens(await backendRequest("/api/auth/login", { method: "POST", body: input, clientIp }));
+/** 같은 쿠키를 가진 여러 탭·BFF 인스턴스는 같은 갱신 식별자를 만든다. 브라우저에는 노출하지 않는다. */
+function refreshRequestId(refreshToken: string): string {
+  return createHmac("sha256", getAuthCookieKey())
+    .update("playground:refresh:v1:").update(refreshToken).digest("hex");
 }
 
-export async function refreshWithBackend(refreshToken: string): Promise<AuthTokens> {
-  // 같은 쿠키를 가진 여러 탭·BFF 인스턴스는 같은 식별자를 만든다. 브라우저에는 노출하지 않는다.
-  const requestId = createHmac("sha256", getAuthCookieKey())
-    .update("playground:refresh:v1:").update(refreshToken).digest("hex");
-  return parseAuthTokens(await backendRequest("/api/auth/refresh", {
-    method: "POST", body: { refreshToken, requestId },
+/** 검증한 IP와 기존 쿠키의 교체 증명만 Spring에 전달하며 토큰 원문은 서버 내부에서만 사용한다. */
+export async function loginWithBackend(input: LoginInput, proof: BrowserRequestProof, clientIp?: string, previousRefreshToken?: string): Promise<AuthTokens> {
+  return parseAuthTokens(await backendRequest("/api/auth/login", {
+    // 로그인 직전에 다른 요청이 갱신했어도 기존의 짧은 중복 갱신 증명으로 교체할 수 있다.
+    method: "POST", body: { ...input, ...(previousRefreshToken && {
+      previousRefreshToken, previousRefreshRequestId: refreshRequestId(previousRefreshToken),
+    }) }, clientIp, proof,
   }));
 }
 
-export async function getSessionFromBackend(accessToken: string): Promise<CurrentSession> {
-  return parseCurrentSession(await backendRequest("/api/auth/session", { accessToken }));
+export async function refreshWithBackend(refreshToken: string, proof: BrowserRequestProof): Promise<AuthTokens> {
+  // 로그인 교체와 갱신 모두 동일한 서버 전용 식별 규칙을 사용한다.
+  const requestId = refreshRequestId(refreshToken);
+  return parseAuthTokens(await backendRequest("/api/auth/refresh", {
+    method: "POST", body: { refreshToken, requestId }, proof,
+  }));
 }
 
-export async function reportActivityToBackend(accessToken: string): Promise<SessionActivity> {
-  return parseSessionActivity(await backendRequest("/api/auth/activity", { method: "POST", accessToken }));
+export async function getSessionFromBackend(accessToken: string, proof: BrowserRequestProof): Promise<CurrentSession> {
+  return parseCurrentSession(await backendRequest("/api/auth/session", { accessToken, proof }));
 }
 
-export async function logoutFromBackend(accessToken: string): Promise<void> {
-  await backendRequest("/api/auth/logout", { method: "POST", accessToken });
+export async function reportActivityToBackend(accessToken: string, proof: BrowserRequestProof): Promise<SessionActivity> {
+  return parseSessionActivity(await backendRequest("/api/auth/activity", { method: "POST", accessToken, proof }));
+}
+
+export async function logoutFromBackend(accessToken: string, proof: BrowserRequestProof): Promise<void> {
+  await backendRequest("/api/auth/logout", { method: "POST", accessToken, proof });
 }
