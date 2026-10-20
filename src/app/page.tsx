@@ -1,14 +1,17 @@
 import { Suspense } from "react";
 import { SessionContent } from "./_components/session-content";
-import styles from "./home.module.css";
+import { LobbyShell } from "./_components/lobby/lobby-shell";
 
 export default function Home() {
   // 서버 화면 틀에는 인증 정보를 넣지 않는다. 경계 안의 브라우저가 키를 증명한 뒤 사용자 정보를 읽는다.
   return (
-    <main className={styles.screen}>
-      <Suspense fallback={<p role="status">로그인 상태를 확인하고 있어요…</p>}>
-        <SessionContent />
-      </Suspense>
-    </main>
+    // 게임 목록·배너는 공개 표시용 데이터이며 실제 계정은 기존 브라우저 세션 검증을 그대로 사용한다.
+    <LobbyShell
+      account={
+        <Suspense fallback={<p role="status">로그인 확인 중…</p>}>
+          <SessionContent />
+        </Suspense>
+      }
+    />
   );
 }

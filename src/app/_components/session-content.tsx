@@ -5,7 +5,7 @@ import { AuthRequestError, reportActivity } from "@/features/auth/client/api";
 import { revalidateAuthSession, useAuthSession } from "@/features/auth/client/session-store";
 import { LogoutButton } from "./logout-button";
 import { SessionRecovery } from "./session-recovery";
-import styles from "../home.module.css";
+import { AccountMenu } from "./lobby/account-menu";
 
 /** 화면을 표시할 때마다 브라우저 키와 최신 Redis 세션을 확인하며 사용자 테이블은 조회하지 않는다. */
 export function SessionContent() {
@@ -46,15 +46,13 @@ export function SessionContent() {
     return () => { active = false; for (const event of events) window.removeEventListener(event, onActivity); };
   }, [session?.sessionId]);
 
-  if (!session) return <SessionRecovery message={state.status === "error" ? state.message : undefined} onRetry={revalidateAuthSession} />;
+  // 로비의 공개 화면 틀은 유지하며 헤더의 계정 영역에서만 확인·복구 상태를 안내한다.
+  if (!session) return <SessionRecovery compact message={state.status === "error" ? state.message : undefined} onRetry={revalidateAuthSession} />;
 
   return (
-    <section className={styles.card} aria-labelledby="session-title">
-      <p className={styles.brand}>Playground</p>
-      <h1 id="session-title">{session.username}님, 반가워요.</h1>
-      <p>로그인되었습니다.</p>
+    <AccountMenu username={session.username}>
       {activityError?.sessionId === session.sessionId && <p role="status">{activityError.message}</p>}
       <LogoutButton sessionId={session.sessionId} />
-    </section>
+    </AccountMenu>
   );
 }

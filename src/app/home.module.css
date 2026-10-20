@@ -1,4 +1,5 @@
 /* 로그인 이후의 최소 확인 화면은 기존 로그인 화면과 같은 색상·접근성 기준을 사용한다. */
+/* 홈은 로비로 확장했으며 기존 카드 스타일은 세션 복구 화면에서 계속 사용한다. */
 .screen {
   display: grid;
   place-items: center;
@@ -53,4 +54,81 @@
 .status {
   margin-bottom: 0;
   line-height: 1.7;
+}
+
+/* 계정 조회 상태는 헤더 안에 표시하고 복구 오류의 상세 안내는 포커스 가능한 팝오버에 둔다. */
+.checkingSession {
+  max-width: 12em;
+  margin: 0;
+  color: #8a80a5;
+  font-size: 0.8em;
+  text-align: center;
+}
+.recoveryDetails {
+  position: relative;
+  font-size: 0.8em;
+}
+.recoveryDetails > summary {
+  padding: 0.7em;
+  border-radius: 0.7em;
+  background: #eee5ff;
+  color: #796098;
+  cursor: pointer;
+  list-style: none;
+}
+.recoveryDetails > summary:focus-visible {
+  outline: 3px solid #8051f6;
+  outline-offset: 4px;
+}
+.recoveryMark {
+  display: none;
+}
+.recoveryPopover {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + 12px);
+  right: 0;
+  width: min(280px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid #e3dcf4;
+  border-radius: 16px;
+  background: #fcfbff;
+  box-shadow: 0 12px 35px #55427b26;
+}
+.recoveryPopover p {
+  margin: 0;
+  color: #827293;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.recoveryPopover .button {
+  width: 100%;
+  margin-top: 14px;
+}
+
+/* 좁은 헤더의 오류 표시는 계정 아이콘 크기로 유지하되 읽기용 이름과 복구 안내는 그대로 제공한다. */
+@media (max-width: 900px) {
+  .recoveryDetails > summary {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid #d9c7f7;
+    border-radius: 50%;
+  }
+
+  .recoveryLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .recoveryMark {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+  }
 }

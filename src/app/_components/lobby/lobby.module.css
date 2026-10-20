@@ -1,0 +1,1635 @@
+/* 로비 전용 스타일을 격리하여 기존 로그인·회원가입 화면의 배치와 입력 스타일을 유지한다. */
+.screen {
+  --ink: #16164b;
+  --muted: #797ca8;
+  --purple: #6a32f5;
+  --gutter: clamp(16px, 1.3vw, 36px);
+  --gap: clamp(14px, 1vw, 28px);
+  width: min(100%, 2560px);
+  min-height: 100svh;
+  margin-inline: auto;
+  padding: 0 var(--gutter);
+  color: var(--ink);
+  font-size: clamp(14px, 0.84vw, 19px);
+  isolation: isolate;
+}
+
+.screen::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 1% 35%, #e5d9ff99, transparent 52%),
+    radial-gradient(ellipse at 96% 65%, #d5ecffb3, transparent 60%),
+    linear-gradient(120deg, #f3f1ff, #eff7ff 70%, #edf1ff);
+  content: "";
+  pointer-events: none;
+}
+
+.screen button,
+.screen a,
+.screen input,
+.screen select,
+.screen summary {
+  -webkit-tap-highlight-color: transparent;
+}
+.screen button {
+  font: inherit;
+}
+.screen button:focus-visible,
+.screen a:focus-visible,
+.screen input:focus-visible,
+.screen select:focus-visible,
+.screen summary:focus-visible {
+  outline: 3px solid #8051f6;
+  outline-offset: 4px;
+}
+.screen button:disabled {
+  cursor: not-allowed;
+}
+.screen a {
+  color: inherit;
+  text-decoration: none;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.skipLink {
+  position: fixed;
+  z-index: 20;
+  top: 10px;
+  left: 20px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: white;
+  transform: translateY(-160%);
+}
+.skipLink:focus {
+  transform: none;
+}
+
+/* 헤더의 검색·계정 영역에는 최소 너비를 두지 않아 긴 이름과 번역 문구가 화면을 밀어내지 않게 한다. */
+.header {
+  display: grid;
+  grid-template-columns: auto auto minmax(150px, 1fr) auto minmax(130px, auto);
+  align-items: center;
+  gap: clamp(16px, 2vw, 48px);
+  min-height: 5.3em;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  color: #18066e !important;
+  font-size: 1.95em;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -0.065em;
+  white-space: nowrap;
+}
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 1.65em;
+  height: 1.5em;
+  border-radius: 0.5em;
+  background: linear-gradient(140deg, #aa34ff, #4c15ff 55%, #06bdf9);
+  box-shadow:
+    inset 0 0 0 2px #ffffffed,
+    0 3px 8px #6a4eff40;
+  color: white;
+  transform: rotate(-7deg);
+}
+.brandMark svg {
+  width: 1.2em;
+  height: 1.2em;
+  stroke-width: 2;
+}
+.navigation {
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, 0.8vw, 20px);
+}
+.navigation > a,
+.navigation > button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 4.3em;
+  min-height: 3.2em;
+  padding: 0.6em 0.85em;
+  border: 0;
+  border-radius: 1.3em;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1.05em;
+  font-weight: 750;
+  white-space: nowrap;
+  transition: background 160ms;
+}
+.navigation > a:hover,
+.navigation > button:hover {
+  background: #e4dfff8c;
+}
+.navigation > .activeNavigation {
+  background: #e8e0ffb3;
+  color: #5019e4;
+}
+.activeNavigation::after {
+  position: absolute;
+  right: 30%;
+  bottom: 0;
+  left: 30%;
+  height: 3px;
+  border-radius: 5px;
+  background: #6523ff;
+  content: "";
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  width: min(100%, 35em);
+  min-height: 2.9em;
+  margin-inline: auto;
+  padding: 0.5em 1em;
+  border: 1px solid #d7e1ff;
+  border-radius: 3em;
+  background: #ffffff70;
+  box-shadow: 0 3px 9px #c3d3f331;
+  color: #8082b4;
+}
+.search > svg {
+  flex: 0 0 auto;
+  width: 1.35em;
+  height: 1.35em;
+}
+.search:focus-within {
+  border-color: #a68af9;
+  background: #ffffffd4;
+}
+.search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.9em;
+}
+.search input::placeholder {
+  color: #939ac6;
+}
+.search input:focus-visible {
+  outline: none;
+}
+.iconButton {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.7em;
+  height: 2.7em;
+  padding: 0.5em;
+  border: 0;
+  border-radius: 0.8em;
+  background: transparent;
+  color: #302577;
+  list-style: none;
+}
+.iconButton:hover {
+  background: #e8e0ff9c;
+}
+.iconButton svg {
+  width: 1.65em;
+  height: 1.65em;
+}
+.notifications {
+  position: relative;
+}
+.notifications > summary::-webkit-details-marker,
+.accountMenu > summary::-webkit-details-marker {
+  display: none;
+}
+.notifications > summary {
+  cursor: pointer;
+}
+.notificationPopover,
+.accountPopover {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 20em;
+  padding: 1.5em;
+  border: 1px solid #e6e1ff;
+  border-radius: 1.2em;
+  background: #fcfcff;
+  box-shadow: 0 12px 45px #5c50a524;
+  overflow-wrap: anywhere;
+}
+.notificationPopover > strong {
+  display: block;
+  font-size: 1.1em;
+}
+.notificationPopover > svg {
+  display: block;
+  width: 2.5em;
+  height: 2.5em;
+  margin: 1.4em auto;
+  color: #a599cf;
+}
+.notificationPopover p {
+  margin: 0 0 0.5em;
+  text-align: center;
+  font-weight: 650;
+}
+.notificationPopover > span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85em;
+  text-align: center;
+}
+.accountSlot {
+  min-width: 0;
+}
+.accountMenu {
+  position: relative;
+}
+.accountMenu > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  min-height: 3.6em;
+  padding: 0.2em;
+  border-radius: 1em;
+  cursor: pointer;
+  list-style: none;
+}
+.profileAvatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 3.15em;
+  height: 3.15em;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, #f2bdff, #8650eb 60%, #4630a8);
+  box-shadow: 0 0 0 2px #c5ceef;
+  color: white;
+}
+.profileAvatar svg {
+  width: 1.9em;
+  height: 1.9em;
+}
+.profileCopy {
+  display: grid;
+  gap: 0.25em;
+  min-width: 0;
+  max-width: 9em;
+}
+.profileCopy strong {
+  overflow: hidden;
+  font-size: 1em;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profileCopy > span {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  color: #7374a0;
+  font-size: 0.75em;
+}
+.profileCopy i {
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: #9761ff;
+}
+.profileChevron {
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  margin-left: 0.6em;
+  color: #514891;
+}
+.accountPopover > strong {
+  font-size: 1.1em;
+}
+.accountPopover > p {
+  color: var(--muted);
+  font-size: 0.9em;
+  line-height: 1.7;
+}
+.accountPopover > .popoverEyebrow {
+  margin-top: 0;
+  color: #8251e8;
+  font-size: 0.7em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(285px, 21vw, 420px);
+  align-items: start;
+  gap: var(--gap);
+}
+.main {
+  min-width: 0;
+}
+
+/* HTML 문구와 배너 삽화를 분리하고 폭에 따라 그라데이션을 조절하여 모바일에서도 제목 대비를 확보한다. */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: clamp(280px, 18.5vw, 450px);
+  overflow: hidden;
+  border: 1.5px solid #ffffffed;
+  border-radius: 1.35em;
+  background: #e7e5ff;
+  box-shadow: 0 8px 26px #7b7ae31a;
+}
+.heroArt {
+  object-fit: cover;
+  object-position: center;
+}
+.heroShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    #eef0fff5,
+    #eef3ffbd 32%,
+    #eaf2ff26 52%,
+    transparent 65%
+  );
+  pointer-events: none;
+}
+.heroCopy {
+  position: relative;
+  z-index: 1;
+  max-width: 65%;
+  padding: 2em 3em;
+}
+.heroEyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  margin: 0 0 0.8em;
+  color: #6c53b9;
+  font-size: 0.62em;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+.heroEyebrow > span {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: #9254ff;
+  box-shadow: 0 0 0 3px #9765ff19;
+}
+.hero h1 {
+  margin: 0;
+  color: #100b4d;
+  font-size: clamp(2.4em, 3.25vw, 4.4em);
+  font-style: italic;
+  font-weight: 950;
+  letter-spacing: -0.07em;
+  line-height: 1.1;
+}
+.hero h1 > span {
+  display: inline-block;
+  padding-right: 0.12em;
+  background: linear-gradient(110deg, #a02bff, #6330ff 45%, #096cea);
+  background-clip: text;
+  color: transparent;
+  -webkit-background-clip: text;
+}
+.heroDescription {
+  margin: 0.75em 0 1.1em;
+  color: #55548e;
+  font-size: 1em;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.65;
+}
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75em;
+  min-height: 3em;
+  padding: 0.7em 1.3em;
+  border: 1px solid #a476ff;
+  border-radius: 1.05em;
+  background: linear-gradient(115deg, #a236ff, #6728f7 65%, #4a26fa);
+  box-shadow:
+    inset 0 1px 2px #ffffff70,
+    0 5px 12px #733bfa33;
+  color: white;
+  font-size: 1em;
+  font-weight: 750;
+  transition:
+    transform 160ms,
+    box-shadow 160ms;
+}
+.primaryButton:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 2px #ffffff70,
+    0 7px 18px #733bfa4a;
+}
+.primaryButton svg {
+  width: 1.35em;
+  height: 1.35em;
+}
+.bannerLabel {
+  position: absolute;
+  right: 1.5em;
+  bottom: 1.1em;
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.5em 0.85em;
+  border: 1px solid #ffffff5c;
+  border-radius: 3em;
+  background: #4740ac30;
+  color: white;
+  font-size: 0.55em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  backdrop-filter: blur(8px);
+}
+.bannerLabel > span {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: #f5e3ff;
+}
+
+.categories {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  margin: 1em 0 1.35em;
+}
+.categoryList {
+  display: flex;
+  flex: 1;
+  gap: 0.65em;
+  min-width: 0;
+  padding: 3px 2px 7px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.categoryList::-webkit-scrollbar {
+  display: none;
+}
+.category {
+  display: flex;
+  flex: 1 0 5.85em;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: 5.5em;
+  padding: 0.7em 0.45em;
+  border: 1px solid #ffffffc9;
+  border-radius: 1.1em;
+  background: #ffffffa8;
+  box-shadow: 0 2px 8px #9d9fdc08;
+  color: var(--ink);
+  font-size: 0.84em !important;
+  font-weight: 750;
+  scroll-snap-align: start;
+  transition:
+    background 150ms,
+    border-color 150ms,
+    transform 150ms;
+  white-space: nowrap;
+}
+.category:hover {
+  border-color: #c8b3ff;
+  background: #ffffffe8;
+  transform: translateY(-2px);
+}
+.category.selectedCategory {
+  border-color: #c4aaff;
+  border-bottom: 2px solid #8a45ff;
+  background: linear-gradient(140deg, white, #f0eaff);
+  box-shadow: 0 4px 12px #9969f126;
+  color: #5418de;
+}
+.categoryIcon {
+  display: grid;
+  place-items: center;
+  height: 2em;
+}
+.categoryIcon svg {
+  width: 2.05em;
+  height: 2.05em;
+  stroke-width: 2.3;
+  filter: drop-shadow(0 2px 2px #7e6aeb16);
+}
+.purple {
+  color: #8a2cfa;
+}
+.orange {
+  color: #ff773b;
+}
+.blue {
+  color: #4d6bff;
+}
+.cyan {
+  color: #00bce9;
+}
+.green {
+  color: #04bca1;
+}
+.red {
+  color: #fb4f65;
+}
+.categoryNext {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.6em;
+  height: 2.6em;
+  padding: 0.5em;
+  border: 1px solid #eef0ff;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 3px 7px #7886e51a;
+  color: #3a26a1;
+}
+.categoryNext svg {
+  width: 1.4em;
+  height: 1.4em;
+}
+
+.catalog {
+  min-height: 22em;
+  scroll-margin-top: 1em;
+  outline: none;
+}
+.catalogHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+.catalogHeading h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.catalogHeading h2 > span {
+  color: #9066e2;
+  font-size: 0.8em;
+}
+.catalogHint {
+  color: #8a87ad;
+  font-size: 0.78em;
+}
+.gameGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: start;
+  gap: 1em;
+}
+.gameCard {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #fff;
+  border-radius: 1em;
+  background: #ffffffdc;
+  box-shadow: 0 3px 12px #7f82ca0a;
+  transition:
+    transform 170ms,
+    box-shadow 170ms;
+}
+.gameCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 9px 22px #8771cf24;
+}
+.gameCardButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.gameCard:focus-within {
+  outline: 3px solid #8051f6;
+  outline-offset: 4px;
+}
+.gameCardButton:focus-visible {
+  outline: none !important;
+}
+.gameCover {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1.85;
+}
+.comingSoon {
+  position: absolute;
+  top: 0.7em;
+  right: 0.7em;
+  padding: 0.25em 0.6em;
+  border: 1px solid #ffffff70;
+  border-radius: 0.5em;
+  background: #ffffffd9;
+  color: #665485;
+  font-size: 0.62em;
+  font-weight: 750;
+  backdrop-filter: blur(5px);
+}
+.gameHover {
+  position: absolute;
+  right: 0.65em;
+  bottom: 0.65em;
+  display: grid;
+  place-items: center;
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  background: #ffffffed;
+  color: #6c33de;
+  opacity: 0;
+  transform: translateX(-5px);
+  transition:
+    opacity 170ms,
+    transform 170ms;
+}
+.gameCardButton:hover .gameHover,
+.gameCardButton:focus-visible .gameHover {
+  opacity: 1;
+  transform: none;
+}
+.gameHover svg {
+  width: 1.15em;
+  height: 1.15em;
+}
+.gameInfo {
+  padding: 0.6em 0.8em 0.75em;
+}
+.gameInfo h3 {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+.gameInfo > p {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  margin: 0.35em 0 0.6em;
+  color: #7675a1;
+  font-size: max(11px, 0.67em);
+  line-height: 1.5;
+}
+.gameInfo > p svg {
+  flex: 0 0 auto;
+  width: 1.2em;
+  height: 1.2em;
+}
+.gameTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+}
+.gameTags > span {
+  padding: 0.15em 0.65em;
+  border-radius: 2em;
+  background: #eee7ff;
+  color: #7043dc;
+  font-size: max(11px, 0.67em);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* 바둑판 좌표는 장식용 CSS 변수로만 사용하며 사용자 입력이나 실행 코드로 해석하지 않는다. */
+.gomokuCover {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 85% 0, #f7d7ef, transparent 60%),
+    linear-gradient(125deg, #f2d9bc, #eac28c 55%, #ead2bd);
+}
+.boardGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 0 80%, #b58eef55, transparent 65%);
+}
+.miniBoard {
+  position: absolute;
+  top: -26%;
+  left: 8%;
+  width: 87%;
+  aspect-ratio: 1;
+  border: 5px solid #b28655;
+  border-radius: 3%;
+  background-color: #dfae72;
+  background-image:
+    repeating-linear-gradient(0deg, #94653380 0 1px, transparent 1px 12.5%),
+    repeating-linear-gradient(90deg, #94653380 0 1px, transparent 1px 12.5%),
+    linear-gradient(125deg, #f2cd98, #d7a66c);
+  box-shadow:
+    5px 12px 12px #6f3c4c30,
+    inset 0 0 15px #85592226;
+  transform: rotate(-19deg) scaleY(0.82);
+}
+.stone {
+  position: absolute;
+  top: calc(var(--stone-y) * 12.5%);
+  left: calc(var(--stone-x) * 12.5%);
+  width: 11%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 2px 4px 3px #55361966;
+  transform: translate(-50%, -50%);
+}
+.blackStone {
+  background: radial-gradient(
+    circle at 35% 22%,
+    #767384,
+    #282334 40%,
+    #0d0b15 75%
+  );
+}
+.whiteStone {
+  background: radial-gradient(
+    circle at 35% 22%,
+    #fff,
+    #f9f4f5 50%,
+    #c9bdd0 88%
+  );
+}
+.blossom,
+.blossomSmall {
+  position: absolute;
+  top: -12%;
+  left: -4%;
+  color: #fff2fc;
+  font-size: 3.7em;
+  line-height: 1;
+  text-shadow:
+    1px 2px 0 #d88db3,
+    -1px -1px 0 #f7a0cc;
+  transform: rotate(18deg);
+}
+.blossomSmall {
+  top: auto;
+  right: -2%;
+  bottom: 2%;
+  left: auto;
+  font-size: 2.8em;
+}
+.coverCaption {
+  position: absolute;
+  right: 10%;
+  bottom: 9%;
+  color: #fff7e4;
+  font-size: 0.7em;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-shadow: 0 1px 5px #634519a1;
+  transform: rotate(-8deg);
+}
+.emptyResults {
+  display: grid;
+  justify-items: center;
+  padding: 4.5em 1em;
+  border: 1px dashed #dcd5f4;
+  border-radius: 1.2em;
+  background: #ffffff42;
+  text-align: center;
+}
+.emptyResults > span {
+  display: grid;
+  place-items: center;
+  width: 3.5em;
+  height: 3.5em;
+  border-radius: 1em;
+  background: #eae3ff;
+  color: #9a7ad7;
+}
+.emptyResults h3 {
+  margin: 1em 0 0.5em;
+  font-size: 1.15em;
+}
+.emptyResults p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9em;
+  line-height: 1.8;
+}
+.emptyResults > button {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 1.4em;
+  padding: 0.6em 0.9em;
+  border: 0;
+  border-radius: 0.7em;
+  background: #eae2ff;
+  color: #7042c9;
+  font-size: 0.85em;
+  font-weight: 700;
+}
+.emptyResults > button svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 1.2em;
+  margin: 2.5em 0 1.5em;
+  padding-top: 1.25em;
+  border-top: 1px solid #c9c5e64d;
+  color: #9592b4;
+  font-size: 0.75em;
+}
+.footer > span {
+  color: #8272ae;
+  font-size: 1.2em;
+  font-style: italic;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+.footer p {
+  margin: 0;
+}
+.footer small {
+  margin-left: auto;
+  font-size: 1em;
+}
+
+/* 데스크톱 채팅은 화면 안에서 자체 스크롤하고 태블릿·모바일에서는 네이티브 대화상자로 열린다. */
+.desktopChat {
+  position: sticky;
+  top: 1em;
+  height: calc(100dvh - 6.5em);
+  min-height: 35em;
+  max-height: 70em;
+}
+.chatPanel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1.5px solid #ffffffed;
+  border-radius: 1.4em;
+  background: linear-gradient(155deg, #fbfcffe6, #edf4ffd6);
+  box-shadow: 0 5px 20px #788ddd0c;
+}
+.chatHeader {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  padding: 1.4em 1.3em 0.8em;
+}
+.chatHeader h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  margin: 0;
+  font-size: 1.18em;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+.chatHeader h2 svg {
+  width: 1.2em;
+  height: 1.2em;
+  color: #6c35f8;
+  stroke-width: 2.5;
+}
+.previewBadge {
+  padding: 0.3em 0.65em;
+  border: 1px solid #ded8f7;
+  border-radius: 2em;
+  background: #f3edff;
+  color: #9474c1;
+  font-size: 0.65em;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.channelRow {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  padding: 0 1.35em 1em;
+}
+.channelSelect {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: #7368a9;
+}
+.channelSelect select {
+  max-width: 100%;
+  min-height: 2.4em;
+  padding: 0.35em 2.3em 0.35em 0.8em;
+  appearance: none;
+  border: 1px solid #e1e4fb;
+  border-radius: 0.8em;
+  background: #f7f9ff;
+  color: inherit;
+  font: inherit;
+  font-size: 0.7em;
+  cursor: pointer;
+}
+.channelSelect > svg {
+  position: absolute;
+  right: 0.5em;
+  width: 0.7em;
+  height: 0.7em;
+  pointer-events: none;
+}
+.connectionStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  color: #9492b0;
+  font-size: 0.67em;
+  white-space: nowrap;
+}
+.connectionStatus > span {
+  width: 0.65em;
+  height: 0.65em;
+  border-radius: 50%;
+  background: #b0a5d2;
+}
+.chatBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 1.25em;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #d3ccef transparent;
+  scrollbar-width: thin;
+}
+.chatDate {
+  margin: 0.2em 0 1.5em;
+  color: #a19bbd;
+  font-size: 0.65em;
+  text-align: center;
+}
+.welcomeMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65em;
+}
+.systemAvatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.7em;
+  height: 2.7em;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #a961ff, #5e42ec);
+  box-shadow: 0 0 0 1px #ded7f4;
+  color: white;
+}
+.systemAvatar svg {
+  width: 1.7em;
+  height: 1.7em;
+}
+.systemName {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  font-size: 0.8em;
+  font-weight: 800;
+}
+.systemName > span {
+  padding: 0.1em 0.5em;
+  border-radius: 0.3em;
+  background: #e8e0ff;
+  color: #8a63ce;
+  font-size: 0.7em;
+  font-weight: 650;
+}
+.welcomeMessage > div {
+  min-width: 0;
+}
+.welcomeMessage p {
+  margin: 0.5em 0 0;
+  padding: 0.8em 1em;
+  border-radius: 0 1em 1em;
+  background: #ffffffb8;
+  color: #74709d;
+  font-size: max(12px, 0.75em);
+  line-height: 1.9;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.chatEmpty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 18em;
+  padding: 2em 0.3em;
+  text-align: center;
+}
+.chatIllustration {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 6.8em;
+  height: 6.8em;
+  margin-bottom: 1.25em;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fbfaff, #e9e3fc 70%);
+  box-shadow: 0 8px 30px #a695dd12;
+  color: #ab91df;
+}
+.chatIllustration > svg {
+  width: 3.4em;
+  height: 3.4em;
+  stroke-width: 1.25;
+  transform: rotate(-8deg);
+}
+.chatIllustration > span {
+  position: absolute;
+  top: 0.4em;
+  right: -0.1em;
+  color: #c2a9ff;
+  font-size: 1.6em;
+}
+.chatIllustration > i {
+  position: absolute;
+  bottom: 0.3em;
+  left: 0.05em;
+  color: #a3c3fa;
+  font-size: 1.3em;
+  font-style: normal;
+}
+.chatEmpty h3 {
+  margin: 0.4em 0 0.7em;
+  color: #7b6ba3;
+  font-size: 0.95em;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+}
+.chatEmpty > p {
+  margin: 0;
+  color: #77738f;
+  font-size: max(12px, 0.78em);
+  line-height: 1.9;
+}
+.chatGuideline {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin: 1.5em 0 1.8em;
+  padding: 0.9em 1.1em;
+  border: 1px solid #d9d8f34d;
+  border-radius: 0.9em;
+  background: #f8f9ff85;
+  color: #a49bbf;
+}
+.chatGuideline > svg {
+  flex: 0 0 auto;
+  width: 1.5em;
+  height: 1.5em;
+}
+.chatGuideline > p {
+  margin: 0;
+  font-size: max(11px, 0.67em);
+  line-height: 1.8;
+}
+.chatFooter {
+  flex: 0 0 auto;
+  padding: 0.7em 0.8em 0.9em;
+  border-top: 1px solid #dde4f54d;
+}
+.chatFooter > p {
+  margin: 0 0 0.75em;
+  color: #a29cb9;
+  font-size: max(11px, 0.63em);
+  text-align: center;
+}
+.chatComposer {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: 3.5em;
+  padding: 0.35em 0.4em 0.35em 0.7em;
+  border: 1px solid #dcdff8;
+  border-radius: 1em;
+  background: #ffffffbd;
+  box-shadow: 0 3px 10px #a4b5ea1a;
+  color: #a0a5cd;
+}
+.chatComposer > svg {
+  flex: 0 0 auto;
+  width: 1.6em;
+  height: 1.6em;
+}
+.chatComposer input {
+  min-width: 0;
+  width: 100%;
+  padding-left: 0.6em;
+  border: 0;
+  border-left: 1px solid #e2e5f4;
+  background: transparent;
+  font-size: 0.85em;
+}
+.chatComposer input::placeholder {
+  color: #a0a6cb;
+}
+.chatComposer > button {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.7em;
+  height: 2.7em;
+  padding: 0.7em;
+  border: 0;
+  border-radius: 0.8em;
+  background: linear-gradient(135deg, #b88af5, #9471e9);
+  box-shadow: inset 0 1px 2px #ffffff80;
+  color: white;
+  opacity: 0.65;
+}
+.chatComposer > button svg {
+  width: 1.5em;
+  height: 1.5em;
+}
+.mobileChatToggle {
+  display: none;
+}
+.mobileChatDialog {
+  width: min(410px, calc(100% - 24px));
+  height: min(760px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 1.4em;
+  background: #f2f5ff;
+  color: var(--ink);
+  font: inherit;
+}
+.mobileChatDialog .chatPanel {
+  border: 0;
+}
+
+.noticeDialog {
+  width: min(420px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow-x: hidden;
+  border: 1px solid white;
+  border-radius: 1.5em;
+  background: #faf9ff;
+  box-shadow: 0 20px 80px #35305a2b;
+  color: var(--ink);
+  font: inherit;
+}
+.noticeDialog::backdrop,
+.mobileChatDialog::backdrop {
+  background: #21154757;
+  backdrop-filter: blur(5px);
+}
+.dialogCover {
+  height: 12em;
+}
+.dialogCover .miniBoard {
+  top: -45%;
+}
+.noticeContent {
+  padding: 1.8em;
+}
+.noticeBadge {
+  color: #a180d1;
+  font-size: 0.65em;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+.noticeContent h2 {
+  margin: 0.5em 0 0.7em;
+  font-size: 1.4em;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+.noticeContent > p {
+  margin: 0;
+  color: #8a80a7;
+  font-size: 0.9em;
+  line-height: 1.9;
+  word-break: keep-all;
+}
+.noticeContent .gameTags {
+  margin-top: 1em;
+}
+.noticeContent form {
+  margin-top: 1.8em;
+}
+.noticeContent .primaryButton {
+  width: 100%;
+}
+.noticeSymbol {
+  display: grid;
+  place-items: center;
+  width: 4.5em;
+  height: 4.5em;
+  margin: 2em 0 0 1.8em;
+  border-radius: 1.3em;
+  background: #ede3ff;
+  color: #a272e3;
+}
+.noticeSymbol svg {
+  width: 2.5em;
+  height: 2.5em;
+}
+
+/* 5K까지 콘텐츠 최대 폭과 유동 크기를 사용하고, 중간 화면에서는 카드 열 수와 헤더 배치를 단계적으로 줄인다. */
+@media (min-width: 2200px) {
+  .heroCopy {
+    padding: 2.5em 3.5em;
+  }
+  .gameGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .gameCover {
+    aspect-ratio: 1.9;
+  }
+}
+
+@media (max-width: 1500px) {
+  .header {
+    gap: 1.3em;
+  }
+  .brand {
+    font-size: 1.7em;
+  }
+  .navigation {
+    gap: 0.25em;
+  }
+  .navigation > a,
+  .navigation > button {
+    min-width: 3.5em;
+  }
+  .gameGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .heroCopy {
+    padding-inline: 2em;
+  }
+  .category {
+    flex-basis: 5.5em;
+  }
+}
+
+@media (max-width: 1250px) {
+  .header {
+    grid-template-columns: auto auto minmax(100px, 1fr) auto auto;
+    gap: 0.8em;
+  }
+  .brand {
+    font-size: 1.55em;
+  }
+  .profileCopy {
+    max-width: 6em;
+  }
+  .navigation > a,
+  .navigation > button {
+    min-width: 3.1em;
+    font-size: 0.95em;
+  }
+  .search input {
+    font-size: 0.8em;
+  }
+  .gameGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .hero h1 {
+    font-size: 2.8em;
+  }
+  .heroDescription {
+    font-size: 0.9em;
+  }
+  .heroCopy {
+    max-width: 80%;
+  }
+}
+
+@media (max-width: 1149px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .desktopChat {
+    display: none;
+  }
+  .hero {
+    min-height: clamp(285px, 30vw, 360px);
+  }
+  .hero h1 {
+    font-size: clamp(2.6em, 4.8vw, 3.6em);
+  }
+  .gameGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .mobileChatToggle {
+    position: fixed;
+    z-index: 3;
+    right: max(20px, env(safe-area-inset-right));
+    bottom: max(22px, env(safe-area-inset-bottom));
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    min-height: 3.5em;
+    padding: 0.8em 1.1em;
+    border: 1px solid #ffffffa6;
+    border-radius: 2em;
+    background: linear-gradient(135deg, #9e50f8, #6839ed);
+    box-shadow: 0 6px 20px #7050c84d;
+    color: white;
+    font-size: 0.95em;
+    font-weight: 750;
+  }
+  .mobileChatToggle svg {
+    width: 1.5em;
+    height: 1.5em;
+  }
+  .footer {
+    margin-bottom: 6em;
+  }
+}
+
+@media (max-width: 900px) {
+  .header {
+    grid-template-columns: auto 1fr auto auto;
+    gap: 0.5em 1em;
+    padding-block: 1em 0.8em;
+  }
+  .brand {
+    justify-self: start;
+    font-size: 1.65em;
+  }
+  .navigation {
+    justify-self: center;
+  }
+  .search {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 3em;
+  }
+  .search input {
+    font-size: 0.9em;
+  }
+  .navigation > a,
+  .navigation > button {
+    min-width: 3.2em;
+    min-height: 2.8em;
+    padding-inline: 0.7em;
+  }
+  .profileCopy {
+    display: none;
+  }
+  .profileChevron {
+    width: 0.8em;
+    margin-left: 0;
+  }
+  .accountSlot {
+    min-width: 3.5em;
+  }
+  .profileAvatar {
+    width: 2.7em;
+    height: 2.7em;
+  }
+  .hero {
+    min-height: 290px;
+  }
+  .heroCopy {
+    padding: 1.7em 2em;
+  }
+  .hero h1 {
+    font-size: clamp(2.65em, 5.4vw, 3.3em);
+  }
+  .gameGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .category {
+    flex-basis: 6.4em;
+  }
+  .catalog {
+    min-height: 25em;
+  }
+}
+
+/* 좁은 모바일·가로 모드·큰 글꼴에서도 문구가 잘리거나 가로 스크롤이 생기지 않도록 한다. */
+@media (max-width: 600px) {
+  .screen {
+    --gutter: 14px;
+  }
+  .header {
+    gap: 0.65em 0.4em;
+    padding-top: 0.9em;
+  }
+  .brand {
+    font-size: 1.5em;
+  }
+  .brandMark {
+    width: 1.45em;
+    height: 1.35em;
+  }
+  .navigation {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: stretch;
+    justify-content: space-between;
+    gap: 0.5em;
+  }
+  .navigation > a,
+  .navigation > button {
+    flex: 1;
+    min-height: 2.9em;
+    border-radius: 0.9em;
+    font-size: 0.95em;
+  }
+  .search {
+    grid-row: 3;
+  }
+  .notifications {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .accountSlot {
+    grid-column: 4;
+    grid-row: 1;
+  }
+  .profileChevron {
+    display: none;
+  }
+  .iconButton {
+    width: 2.5em;
+    height: 2.5em;
+  }
+  .accountMenu > summary {
+    min-height: 2.8em;
+  }
+  .accountPopover {
+    right: 0;
+    width: min(20em, calc(100vw - 28px));
+  }
+  .notificationPopover {
+    right: -3.2em;
+    width: min(20em, calc(100vw - 28px));
+  }
+  .hero {
+    align-items: flex-end;
+    min-height: 355px;
+    border-radius: 1.25em;
+  }
+  .heroArt {
+    object-position: 66% center;
+  }
+  .heroShade {
+    background:
+      linear-gradient(90deg, #eef0ffb3, #eef0ff1a),
+      linear-gradient(0deg, #edf0fff5, #edf1ffc4 50%, #edf1ff00 90%);
+  }
+  .heroCopy {
+    max-width: 100%;
+    padding: 1.5em 1.4em;
+  }
+  .heroEyebrow {
+    margin-bottom: 0.9em;
+    font-size: 0.55em;
+  }
+  .hero h1 {
+    font-size: clamp(2.4em, 8.8vw, 3.3em);
+  }
+  .heroDescription {
+    margin: 0.8em 0 1.25em;
+    font-size: max(12px, 0.78em);
+    line-height: 1.8;
+  }
+  .primaryButton {
+    min-height: 3.1em;
+    font-size: 0.9em;
+  }
+  .bannerLabel {
+    top: 1em;
+    right: 1em;
+    bottom: auto;
+    max-width: calc(100% - 2em);
+    font-size: 0.46em;
+  }
+  .categories {
+    gap: 0.35em;
+    margin-top: 0.8em;
+  }
+  .categoryList {
+    gap: 0.55em;
+  }
+  .category {
+    flex-basis: 6em;
+    min-height: 5.65em;
+    font-size: 0.76em !important;
+  }
+  .categoryNext {
+    width: 2.1em;
+    height: 2.1em;
+  }
+  .gameGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85em;
+  }
+  .catalogHeading {
+    margin-top: 0.3em;
+  }
+  .catalogHeading h2 {
+    font-size: 1.1em;
+  }
+  .catalogHint {
+    font-size: 0.65em;
+  }
+  .gameCover {
+    aspect-ratio: 1.5;
+  }
+  .gameInfo {
+    padding: 0.7em 0.75em 0.8em;
+  }
+  .gameInfo h3 {
+    font-size: 1.02em;
+  }
+  .gameInfo > p {
+    font-size: max(11px, 0.65em);
+  }
+  .gameTags > span {
+    font-size: max(11px, 0.65em);
+  }
+  .catalog {
+    min-height: 23em;
+  }
+  .footer {
+    flex-wrap: wrap;
+    gap: 0.7em 1em;
+    font-size: 0.67em;
+  }
+  .footer p {
+    flex-basis: 70%;
+  }
+  .footer small {
+    margin-left: 0;
+  }
+  .emptyResults {
+    padding-block: 3em;
+  }
+  .emptyResults h3 {
+    font-size: 1em;
+  }
+  .emptyResults p {
+    font-size: 0.8em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen *,
+  .screen *::before,
+  .screen *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
