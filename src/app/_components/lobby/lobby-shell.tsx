@@ -309,16 +309,17 @@ export function LobbyShell({ account }: { account: ReactNode }) {
               </div>
             )}
           </section>
-          <footer className={styles.footer}>
-            <span>Playground</span>
-            <p>함께라서 더 즐거운 우리들의 놀이터.</p>
-            <small>© {new Date().getFullYear()} Playground</small>
-          </footer>
         </main>
         <aside className={styles.desktopChat}>
           <ChatPanel />
         </aside>
       </div>
+      {/* 공통 푸터는 게임·채팅 열 밖에 배치해 전체 폭을 사용하고 채팅 패널과 겹치지 않게 한다. */}
+      <footer className={styles.footer}>
+        <span>Playground</span>
+        <p>함께라서 더 즐거운 우리들의 놀이터.</p>
+        <small>© {new Date().getFullYear()} Playground</small>
+      </footer>
       <button
         className={styles.mobileChatToggle}
         type="button"

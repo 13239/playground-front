@@ -50,7 +50,7 @@ export function SessionContent() {
   if (!session) return <SessionRecovery compact message={state.status === "error" ? state.message : undefined} onRetry={revalidateAuthSession} />;
 
   return (
-    <AccountMenu username={session.username}>
+    <AccountMenu key={session.sessionId} username={session.username} sessionId={session.sessionId}>
       {activityError?.sessionId === session.sessionId && <p role="status">{activityError.message}</p>}
       <LogoutButton sessionId={session.sessionId} />
     </AccountMenu>

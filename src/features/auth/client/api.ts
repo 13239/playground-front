@@ -9,13 +9,14 @@ export { AuthRequestError } from "./error";
 
 /** BFF가 공개한 오류만 화면에 표시하고 네트워크 장애에는 고정 안내를 제공한다. */
 // 오류 계약은 키 저장소·증명 모듈도 공유하며 순환 참조를 피하기 위해 error.ts에서 관리한다.
-type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity";
+// 프로필은 인증과 같은 브라우저 증명·탭 잠금·한 번의 토큰 갱신 절차를 공유한다.
+type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | "/api/auth/profile";
 
 async function authRequest(path: AuthPath, input?: LoginInput | SessionMutationInput): Promise<Response> {
   return signedAuthRequest(path, input);
 }
 
-async function authMutation(path: Exclude<AuthPath, "/api/auth/session">, input?: LoginInput): Promise<void> {
+async function authMutation(path: Exclude<AuthPath, "/api/auth/session" | "/api/auth/profile">, input?: LoginInput): Promise<void> {
   if ((await authRequest(path, input)).status !== 204) {
     throw new AuthRequestError("서비스 응답을 처리할 수 없습니다.", 502);
   }
@@ -94,6 +95,14 @@ export async function reportActivity(sessionId: string): Promise<void> {
 /** 세션 조회가 갱신 필요를 명시했을 때만 복구하고 원래 조회는 한 번 재실행한다. */
 export async function getSession(retry = true): Promise<CurrentSession> {
   return withAuthLock(() => readSession(retry));
+}
+
+/** 기능 API도 인증 잠금 안에서 호출하며 변경 요청은 화면에서 확인한 세션 ID를 반드시 포함한다. */
+export async function requestAuthenticatedApi(
+  path: "/api/auth/profile",
+  input?: SessionMutationInput & Readonly<Record<string, unknown>>,
+): Promise<Response> {
+  return withAuthLock(() => authenticatedRequest(path, true, input));
 }
 
 // 잠금 안에서 응답 검증까지 끝내므로 다른 탭의 쿠키 변경과 사용자 정보 복원이 뒤섞이지 않는다.

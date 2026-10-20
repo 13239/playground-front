@@ -5,6 +5,9 @@
   --purple: #6a32f5;
   --gutter: clamp(16px, 1.3vw, 36px);
   --gap: clamp(14px, 1vw, 28px);
+  /* 짧은 목록에서도 본문이 남는 높이를 채워 전체 폭의 푸터를 화면 아래에 배치한다. */
+  display: flex;
+  flex-direction: column;
   width: min(100%, 2560px);
   min-height: 100svh;
   margin-inline: auto;
@@ -278,6 +281,8 @@
   place-items: center;
   width: 3.15em;
   height: 3.15em;
+  /* 선택한 정적 캐릭터 이미지도 기존 원형 계정 배지 안에 맞춘다. */
+  overflow: hidden;
   border: 2px solid white;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 25%, #f2bdff, #8650eb 60%, #4630a8);
@@ -337,8 +342,30 @@
   letter-spacing: 0.12em;
 }
 
+/* 프로필 조회 실패는 계정 메뉴 안에서 재시도하고 기존 로그아웃·세션 복구 동작을 유지한다. */
+.accountPopover .profileMenuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55em;
+  width: 100%;
+  min-height: 2.9em;
+  margin-top: 1.1em;
+  padding: 0.7em 1em;
+  border: 1px solid #ddccf8;
+  border-radius: 12px;
+  background: #f0e8ff;
+  color: #8150c1;
+  font-weight: 700;
+}
+.profileMenuButton svg { width: 1.2em; height: 1.2em; }
+.profileMenuButton:disabled { opacity: 0.6; }
+.profileLoadError { color: #a56383; font-size: 0.8em; line-height: 1.7; }
+.profileLoadError button { padding: 0; border: 0; background: transparent; color: #8057b3; text-decoration: underline; }
+
 .layout {
   display: grid;
+  flex: 1;
   grid-template-columns: minmax(0, 1fr) clamp(285px, 21vw, 420px);
   align-items: start;
   gap: var(--gap);
@@ -861,6 +888,7 @@
   width: 1.2em;
   height: 1.2em;
 }
+/* 게임 목록과 채팅에 공통인 푸터의 구분선을 콘텐츠 전체 폭으로 연결한다. */
 .footer {
   display: flex;
   align-items: center;
@@ -886,11 +914,11 @@
   font-size: 1em;
 }
 
-/* 데스크톱 채팅은 화면 안에서 자체 스크롤하고 태블릿·모바일에서는 네이티브 대화상자로 열린다. */
+/* 데스크톱 채팅은 헤더·공통 푸터 공간을 남기고 자체 스크롤하며 태블릿·모바일에서는 네이티브 대화상자로 열린다. */
 .desktopChat {
   position: sticky;
   top: 1em;
-  height: calc(100dvh - 6.5em);
+  height: calc(100dvh - 11em);
   min-height: 35em;
   max-height: 70em;
 }

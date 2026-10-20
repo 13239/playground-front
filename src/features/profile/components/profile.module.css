@@ -1,0 +1,428 @@
+/* 캐릭터는 정적 이미지로 제공하며 원형 헤더·큰 미리보기·선택 목록에서 같은 비율을 유지한다. */
+
+.avatarImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+/* 대화상자 내부만 스크롤하고 닫기·저장 영역을 유지해 작은 화면과 큰 글꼴에서도 선택을 완료할 수 있다. */
+
+.dialog {
+  position: fixed;
+  inset: 0;
+  display: none;
+  width: min(780px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #fff;
+  border-radius: 28px;
+  background: #fcfbff;
+  box-shadow: 0 28px 90px #26205e40;
+  color: #21164f;
+  font: inherit;
+}
+
+.dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog::backdrop {
+  background: #191c4f66;
+  backdrop-filter: blur(7px);
+}
+
+.dialog button {
+  font-family: inherit;
+}
+
+.dialog button:disabled {
+  cursor: not-allowed;
+}
+
+.dialog button:focus-visible {
+  outline: 3px solid #7948ed;
+  outline-offset: 4px;
+}
+
+.dialogHeader {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 28px 32px 22px;
+}
+
+.eyebrow {
+  margin: 0 0 7px;
+  color: #8d6ac3;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.dialogHeader h2 {
+  margin: 0;
+  font-size: clamp(23px, 3vw, 30px);
+  font-weight: 850;
+  letter-spacing: -0.045em;
+}
+
+.dialogHeader p:last-child {
+  margin: 8px 0 0;
+  color: #756785;
+  font-size: 13px;
+}
+
+.closeButton {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 9px;
+  border: 0;
+  border-radius: 50%;
+  background: #efebf8;
+  color: #8b7ba9;
+}
+
+.closeButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dialogBody {
+  min-height: 0;
+  padding: 0 32px 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 150px;
+  padding: 20px 26px;
+  border: 1px solid #e8defa;
+  border-radius: 20px;
+  background: radial-gradient(ellipse at 85% 10%, #e7f4ff, transparent 70%), linear-gradient(120deg, #f0e7ff, #f8f4ff);
+}
+
+.previewPortrait {
+  flex: 0 0 auto;
+  width: 108px;
+  height: 108px;
+  padding: 4px;
+  border: 1px solid #d9c5fa;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 5px 15px #9772cb1a;
+}
+
+.previewCopy {
+  min-width: 0;
+}
+
+.previewCopy > span {
+  color: #726080;
+  font-size: 11px;
+}
+
+.previewCopy strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 23px;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.previewCopy p {
+  margin: 7px 0 0;
+  color: #8463af;
+  font-size: 13px;
+}
+
+.previewSparkle {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  color: #b996ef;
+}
+
+.previewSparkle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.choices {
+  min-width: 0;
+  margin: 24px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.choices legend {
+  display: flex;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.choices legend span {
+  margin-left: auto;
+  color: #796887;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.avatarGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.choice {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+}
+
+/* 실제 라디오 입력을 유지해 Tab·방향키·스크린 리더 선택 동작을 제공한다. */
+
+.choiceInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.choiceCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px 4px 10px;
+  border: 2px solid #eee9f5;
+  border-radius: 16px;
+  background: #fff;
+  transition: border-color 120ms, background 120ms;
+}
+
+.choiceInput:checked + .choiceCard {
+  border-color: #9b64f8;
+  background: #f4edff;
+  box-shadow: 0 3px 10px #905dc217;
+}
+
+.choiceInput:focus-visible + .choiceCard {
+  outline: 3px solid #7547d8;
+  outline-offset: 3px;
+}
+
+.choicePortrait {
+  width: min(100%, 80px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.choiceName {
+  margin-top: 9px;
+  color: #746288;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.selectedMark {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  padding: 3px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #9459ed;
+  color: #fff;
+}
+
+.selectedMark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.currentBadge {
+  margin-top: 5px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: #eee5fc;
+  color: #7c599d;
+  font-size: 9px;
+}
+
+.error {
+  min-height: 20px;
+  margin: 12px 0 0;
+  color: #b03b65;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.dialogFooter {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 32px 24px;
+  border-top: 1px solid #eee7f7;
+}
+
+.dialogFooter > span {
+  color: #796887;
+  font-size: 11px;
+}
+
+.dialogFooter > div {
+  display: flex;
+  gap: 10px;
+}
+
+.dialog .cancelButton, .dialog .saveButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 84px;
+  min-height: 43px;
+  padding: 10px 18px;
+  border: 1px solid #e2d9ef;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cancelButton {
+  background: #fff;
+  color: #8b7c9f;
+}
+
+.saveButton {
+  border-color: transparent;
+  background: linear-gradient(120deg, #b44ef8, #7540ef);
+  color: #fff;
+  box-shadow: 0 4px 12px #9c64dd33;
+}
+
+.saveButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .choice:hover .choiceCard {
+    border-color: #c3a4f1;
+  }
+}
+
+@media (max-width: 600px) {
+  .dialog {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+    border-radius: 22px;
+  }
+
+  .dialogHeader {
+    gap: 10px;
+    padding: 22px 20px 18px;
+  }
+
+  .dialogBody {
+    padding-inline: 20px;
+  }
+
+  .preview {
+    gap: 14px;
+    min-height: 120px;
+    padding: 16px;
+  }
+
+  .previewPortrait {
+    width: 82px;
+    height: 82px;
+  }
+
+  .previewCopy strong {
+    font-size: 19px;
+  }
+
+  .previewSparkle {
+    display: none;
+  }
+
+  .avatarGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .choiceCard {
+    padding-top: 10px;
+    border-radius: 14px;
+  }
+
+  .choicePortrait {
+    width: min(100%, 70px);
+  }
+
+  .choiceName {
+    font-size: 10px;
+  }
+
+  .dialogFooter {
+    flex-wrap: wrap;
+    padding: 14px 20px 18px;
+  }
+
+  .dialogFooter > span {
+    width: 100%;
+    text-align: center;
+  }
+
+  .dialogFooter > div {
+    width: 100%;
+  }
+
+  .cancelButton, .saveButton {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choiceCard {
+    transition: none;
+  }
+}

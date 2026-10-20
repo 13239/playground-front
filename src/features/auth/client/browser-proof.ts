@@ -41,10 +41,13 @@ function base64url(value: ArrayBuffer): string {
 /** 요청마다 새로운 증명을 만든다. nonce 갱신은 서버가 실행 전에 거절한 경우에만 한 번 재시도한다. */
 export async function signedAuthRequest(path: `/api/auth/${string}`, input?: object, nonceRetry = true): Promise<Response> {
   try {
+    // 프로필도 동일 경로·메서드·본문에 서명한다. 조회는 GET, 캐릭터 변경은 멱등적인 PUT을 사용한다.
+    const method = path === "/api/auth/session" || path === "/api/auth/profile" && input === undefined
+      ? "GET" : path === "/api/auth/profile" ? "PUT" : "POST";
     // 원격 HTTP의 dev에서는 Web Crypto를 호출하지 않는다. 일반 BFF·JWT 검증은 서버에서 유지한다.
     if (isDevHttpAuth()) {
       return await requireSuccess(await fetch(path, {
-        method: path === "/api/auth/session" ? "GET" : "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
+        method, credentials: "same-origin", cache: "no-store", redirect: "error",
         signal: AbortSignal.timeout(35_000), ...(input !== undefined && { headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
       }));
     }
@@ -52,7 +55,6 @@ export async function signedAuthRequest(path: `/api/auth/${string}`, input?: obj
     const key = await getBrowserKey(purpose === "login");
     const nonce = await nonceFor(purpose, key.thumbprint);
     const body = input === undefined ? undefined : JSON.stringify(input);
-    const method = path === "/api/auth/session" ? "GET" : "POST";
     const proof = await new SignJWT({ nonce: nonce.value, htm: method, htu: window.location.origin + path,
       bht: base64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(proofBody(path, body ?? "")))) })
       .setProtectedHeader({ alg: "ES256", typ: "bff-session-proof+jwt", jwk: key.publicKey })
