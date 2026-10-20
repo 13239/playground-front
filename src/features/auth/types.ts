@@ -5,6 +5,11 @@ export type LoginInput = Readonly<{
   keepLoggedIn: boolean;
 }>;
 
+/** 가입 화면과 BFF는 필수 세 항목만 전달하며 선택 개인정보나 계정 상태는 브라우저에서 받지 않는다. */
+export type SignUpInput = Readonly<{ nickname: string; username: string; password: string }>;
+export type SignUpField = keyof SignUpInput;
+export type SignUpFieldErrors = Readonly<Partial<Record<SignUpField, string>>>;
+
 export type CurrentSession = Readonly<{
   id: number;
   username: string;

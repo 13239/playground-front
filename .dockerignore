@@ -1,0 +1,14 @@
+# 비밀값·로컬 산출물·버전 관리 이력은 빌드 컨텍스트에 넣지 않는다.
+.git
+.next
+node_modules
+out
+build
+coverage
+.env*
+*.log
+*.tsbuildinfo
+*.pem
+*.key
+README.md
+AGENTS.md

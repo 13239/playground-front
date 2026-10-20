@@ -11,6 +11,8 @@ type BackendRequest = Readonly<{
   body?: object;
   accessToken?: string;
   clientIp?: string;
+  // 회원가입처럼 본문 없는 성공 응답을 JSON 오류로 오인하지 않도록 호출자가 명시한다.
+  responseType?: "json" | "empty";
   // BFF가 실제 요청에서 추출한 증명·본문 해시만 전달하며 브라우저 헤더 전체를 복사하지 않는다.
   proof?: BrowserRequestProof;
 }>;
@@ -51,7 +53,7 @@ export async function backendRequest(
       body,
       signal: deadline,
     });
-    if (response.status === 204) return undefined;
+    if (response.status === 204 || response.ok && options.responseType === "empty") return undefined;
 
     let data: unknown;
     try {

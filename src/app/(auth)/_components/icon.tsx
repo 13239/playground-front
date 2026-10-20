@@ -1,6 +1,16 @@
 import type { ReactNode } from "react";
 
 const paths = {
+  // 로그인·가입 아이디 필드는 같은 사용자 SVG 아이콘을 사용한다.
+  user: <><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a8 8 0 0 1 16 0v2" /></>,
+  // 닉네임은 다른 사용자에게 표시되는 이름을 나타내는 이름표로 구분한다.
+  badge: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <rect x="9" y="3" width="6" height="4" rx="1" />
+      <path d="M7 12h10M7 16h6" />
+    </>
+  ),
   mail: (
     <>
       <rect x="2.5" y="4.5" width="19" height="15" rx="2" />

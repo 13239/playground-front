@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type SubmitEvent } from "react";
 import { AuthRequestError, login } from "@/features/auth/client/api";
-import { Icon } from "./icon";
+import { Icon } from "../../_components/icon";
 import { NoticeButton } from "./notice-button";
-import styles from "../login.module.css";
+import styles from "../../auth.module.css";
 
 const subscribe = () => () => {};
 const getClientSnapshot = () => true;
@@ -82,7 +82,8 @@ export function LoginForm({ ready }: { ready: boolean }) {
     >
       <div className={styles.fields}>
         <div className={styles.field}>
-          <Icon name="mail" className={styles.fieldIcon} />
+          {/* 아이디는 가입 화면과 동일한 사용자 아이콘으로 표시한다. */}
+          <Icon name="user" className={styles.fieldIcon} />
           <label className={styles.srOnly} htmlFor="login-identifier">
             아이디
           </label>

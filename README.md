@@ -27,7 +27,7 @@ npm run dev
 
 ## 개발 서버의 원격 HTTP
 
-개발 배포는 `APP_ENV=dev`, `APP_ORIGIN=http://서버IP:9080`, `BACKEND_ORIGIN=http://backend:9080`으로 설정하고 Spring에도 `SPRING_PROFILES_ACTIVE=dev`와 같은 공개 Origin을 지정한다. Docker에서 호스트 9080은 프론트/BFF의 3000으로 연결한다. Spring의 9080은 내부 전용이며 사용자에게 직접 노출하지 않는다. Next는 `next build` + `next start`를 사용하고 `NODE_ENV`를 임의 값 `dev`로 바꾸지 않는다.
+개발 배포는 `APP_ENV=dev`, `APP_ORIGIN=http://123.234.123.222:9081`, `BACKEND_ORIGIN=http://backend:9080`으로 설정하고 Spring에도 `SPRING_PROFILES_ACTIVE=dev`와 같은 공개 Origin을 지정한다. 제공한 Compose는 호스트 9081 → Nginx → 프론트/BFF 3000으로 연결하고 실제 접속 IP를 덮어써 전달한다. Spring의 9080은 내부 전용이며 사용자에게 직접 노출하지 않는다. Next는 `next build`의 standalone 서버를 실행하고 `NODE_ENV`를 임의 값 `dev`로 바꾸지 않는다. 기존 개발 서버 MySQL·Redis를 사용하는 이미지 묶음 생성과 서버 직접 실행 순서는 [Linux 직접 배포 안내](../deploy/README.md)를 따른다.
 
 원격 HTTP 브라우저에서는 개인키 API를 사용할 수 없어 dev만 일반 BFF+JWT로 동작한다. 서버 설정이 dev일 때만 키 검증을 생략하고 HTTP 쿠키를 발급하며 CSP의 HTTPS 강제와 HSTS만 끈다. 스크립트 nonce·안전한 출력·Origin·JWT·Redis 세션 검증은 유지한다. 탭 사이 변경은 HTTP에서도 쓸 수 있는 IndexedDB 임대로 직렬화한다. dev HTTP는 전송 암호화와 쿠키 탈취에 대한 개인키 방어를 제공하지 않는다.
 
@@ -39,16 +39,24 @@ Spring과 BFF에 동일한 별도 무작위 `BFF_DEV_SHARED_SECRET`을 공급한
 src/
   app/
     api/auth/
+      sign-up/route.ts      # 가입 필수 세 항목 검증 및 본문 없는 201 응답
       login/route.ts        # 로그인 검증 및 인증 쿠키 발급
       session/route.ts      # JWT·최신 Redis 기반 세션 확인
       logout/route.ts       # 서버 세션 해제 및 쿠키 삭제
       refresh/route.ts      # 동일 Origin POST에서만 토큰 갱신
       proof-challenge/route.ts # 토큰을 노출하지 않는 공개 nonce 발급
       activity/route.ts     # 브라우저 키로 증명한 실제 활동의 만료 연장
-    (auth)/login/
-      _components/          # 로그인 화면 전용 UI
-      login.module.css
-      page.tsx
+    (auth)/
+      _components/          # 공통 브랜드·아이콘·최신 세션 기반 비회원 판별
+      auth.module.css       # 공통 배경·카드·입력 스타일
+      layout.tsx
+      login/
+        _components/        # 로그인 폼·안내 UI
+        page.tsx
+      sign-up/
+        _components/        # 세 항목 가입 폼·입력 및 서버 오류 안내
+        sign-up.module.css
+        page.tsx
     fonts/                  # next/font/local에서 사용하는 폰트
     _components/            # 홈의 세션 표시·로그아웃 UI
     home.module.css
@@ -57,6 +65,8 @@ src/
     page.tsx
   features/auth/
     types.ts                # 브라우저에 제공할 수 있는 인증 계약
+    sign-up-validation.ts   # 브라우저·BFF 공통 가입 검증, Spring과 같은 코드 포인트 길이
+    client/sign-up.ts       # 가입 요청 한 번 전송, 개인정보 저장·자동 재시도 없음
     client/api.ts           # 탭 사이 잠금·키 증명·필요 시 한 번만 갱신
     client/session-events.ts # 인증 정보 없는 탭 변경 알림과 저장소 대체 경로
     client/session-store.ts  # 탭 복귀·인증 변경·bfcache 복원 시 세션 재확인
@@ -114,6 +124,14 @@ src/
 - 성공하면 `/`를 새 문서로 열어 이전 Router Cache를 비운다. 홈은 서버에서 사용자 데이터를 읽지 않고 브라우저가 키를 증명해 세션을 조회한 뒤 사용자 이름과 로그아웃 버튼을 표시한다. 인증 또는 키가 없으면 `/login`으로 보낸다.
 - `/api/auth/session`은 토큰을 제외한 현재 세션만 반환한다. 호출 자체는 활동으로 취급하지 않으며 쿠키와 Redis 만료를 연장하지 않는다.
 - `/api/auth/logout`은 키를 증명한 요청만 Spring 세션을 해제하고 쿠키를 지운다. Access Token이 만료되면 브라우저가 갱신 경로의 새 증명으로 갱신한 뒤 로그아웃을 한 번 다시 요청한다. 이미 만료·폐기된 인증은 로그인 화면으로 안내하고 오래된 쿠키는 다음 로그인으로 교체한다. 서비스 장애는 실패를 표시하고 쿠키를 보존해 재시도할 수 있게 한다.
+
+## 회원가입
+
+로그인의 회원가입 링크에서 `/sign-up`으로 이동한다. 닉네임(1~50자), 아이디(4~50자), 비밀번호(6~72자)만 입력한다. 길이는 Spring의 기존 정책과 동일하게 유니코드 코드 포인트로 계산하고 공백만 있는 입력을 거절한다. 입력 원문은 임의로 자르거나 정규화하지 않는다.
+
+브라우저와 BFF가 필수값·길이를 검증하고 `POST /api/auth/sign-up`이 Spring의 `POST /api/user/sign-up`으로 세 항목만 전달한다. BFF는 동일 Origin·JSON·최대 4KiB 본문을 요구하며 추가 개인정보·ID·계정 상태 필드는 전달하지 않는다. 중복 아이디는 필드 아래에 표시하고 실패 시 비밀번호만 지운다. 로그인된 사용자는 최신 세션 검증 후 홈으로 이동한다.
+
+가입 성공은 본문 없는 `201 Created`로 처리하고 `/login?registered=1`에서 완료 안내를 표시한다. 이 쿼리는 공개 안내일 뿐 인증 여부를 판별하지 않는다. 가입은 쿠키를 발급하지 않으며 아이디·비밀번호를 URL이나 저장소에 남기지 않는다. 가입 요청 제한은 로그인 제한과 분리된 기본 IP별 120회/분이며 `Retry-After` 대기 시간을 표시한다.
 
 ## 자동 갱신과 동시 요청
 

@@ -1,0 +1,60 @@
+/* 공통 인증 카드 위에 가입 제목·라벨·필드별 안내만 추가한다. */
+.brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.title {
+  margin: 0;
+  color: #353371;
+  font-size: 1.5rem;
+  font-weight: 750;
+  text-align: center;
+  outline: none;
+}
+
+.description {
+  margin: 0.5rem 0 1.75rem;
+  color: #636099;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.fields {
+  display: grid;
+  gap: 1.125rem;
+}
+
+.label {
+  display: block;
+  margin: 0 0 0.5rem 0.125rem;
+  color: #454074;
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.hint,
+.error {
+  margin: 0.5rem 0.125rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.hint { color: #67618d; }
+.error { color: #a22641; }
+.invalid { border-color: #b53b57; }
+
+/* 처리 중인 입력과 제출 상태는 공통 폼에서도 시각적으로 구분한다. */
+.fields input:disabled,
+.fields button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@media (forced-colors: active) {
+  .error { color: CanvasText; }
+  .invalid { border: 2px solid Mark; }
+}

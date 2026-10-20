@@ -1,4 +1,4 @@
-import styles from "../login.module.css";
+import styles from "../auth.module.css";
 
 /** Inline SVG stays sharp at every size and needs no icon/font dependency. */
 export function Brand({ gradientId }: { gradientId: string }) {
