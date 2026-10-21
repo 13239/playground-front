@@ -2,6 +2,9 @@
 
 :root {
   color-scheme: light;
+  /* 페이지와 내부 패널에 같은 은은한 스크롤바 색을 사용한다. */
+  --scrollbar-thumb: rgb(135 117 181 / 18%);
+  --scrollbar-thumb-hover: rgb(135 117 181 / 36%);
   font-family:
     var(--font-noto-sans-kr), "Apple SD Gothic Neo", "Malgun Gothic", Arial,
     sans-serif;
@@ -15,6 +18,43 @@
 
 * {
   box-sizing: border-box;
+  /* 세부 스크롤바 스타일을 지원하지 않는 브라우저도 얇은 막대와 투명 트랙을 사용한다. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* Chrome·Edge·Safari에서는 기본 화살표를 없애고 실제 너비를 3px로 제한한다. */
+@supports selector(::-webkit-scrollbar-thumb) {
+  * {
+    /* 표준 속성이 전용 스타일을 덮어쓰지 않도록 이 브라우저에서만 기본값으로 되돌린다. */
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+
+  *::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+
+  *::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 body {

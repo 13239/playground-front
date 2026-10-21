@@ -63,7 +63,8 @@ export function ProfileEditor({ profile, onSave, onClose }: {
           <span className={styles.previewSparkle} aria-hidden="true"><LobbyIcon name="sparkles" /></span>
         </div>
         <fieldset className={styles.choices} disabled={pending}>
-          <legend>프로필 캐릭터 <span>10명의 친구들</span></legend>
+          {/* 캐릭터 수는 실제 목록에서 계산해 이미지가 추가되어도 안내 문구와 일치하게 한다. */}
+          <legend>프로필 캐릭터 <span>{profileAvatars.length}명의 친구들</span></legend>
           <div className={styles.avatarGrid}>
             {profileAvatars.map((avatar) => (
               <label className={styles.choice} key={avatar.id}>

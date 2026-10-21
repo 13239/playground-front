@@ -9,17 +9,17 @@ import { DismissibleDetails } from "./dismissible-details";
 import { LobbyIcon } from "./lobby-icon";
 import styles from "./lobby.module.css";
 
-/** 검증된 사용자 이름만 표시하며 아직 존재하지 않는 레벨·경험치 같은 계정 수치는 만들지 않는다. */
+/** 프로필에서 검증된 닉네임만 표시하며 아직 존재하지 않는 레벨·경험치 같은 계정 수치는 만들지 않는다. */
 export function AccountMenu({
-  username,
   sessionId,
   children,
 }: {
-  username: string;
   sessionId: string;
   children: ReactNode;
 }) {
   const { profile, error, loading, retry, save } = useProfile(sessionId);
+  // 프로필을 불러오는 중이거나 조회에 실패해도 로그인 아이디를 대신 표시하지 않는다.
+  const nickname = profile?.nickname ?? "플레이어";
   const [editorOpen, setEditorOpen] = useState(false);
 
   function openEditor(event: MouseEvent<HTMLButtonElement>) {
@@ -33,12 +33,12 @@ export function AccountMenu({
   return (
     <>
       <DismissibleDetails className={styles.accountMenu}>
-        <summary aria-label={`${username}님 계정 메뉴`}>
+        <summary aria-label={`${nickname}님 계정 메뉴`}>
           <span className={styles.profileAvatar}>
             <ProfileAvatar avatarId={profile?.avatarId ?? defaultProfileAvatar} size={64} />
           </span>
           <span className={styles.profileCopy}>
-            <strong>{username}</strong>
+            <strong>{nickname}</strong>
             <span>
               <i />
               플레이어
@@ -48,7 +48,7 @@ export function AccountMenu({
         </summary>
         <div className={styles.accountPopover}>
           <p className={styles.popoverEyebrow}>MY PLAYGROUND</p>
-          <strong>{username}님, 반가워요!</strong>
+          <strong>{nickname}님, 반가워요!</strong>
           <p>오늘도 즐거운 시간 보내세요.</p>
           <button
             type="button"
