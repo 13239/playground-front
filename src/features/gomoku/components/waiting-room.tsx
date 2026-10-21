@@ -423,15 +423,9 @@ function AuthenticatedWaitingRoom({
         <RoomDialog
           title="대기실에서 나갈까요?"
           busy={pending === "leave"}
+          showClose={false}
           onClose={() => setConfirmLeave(false)}
         >
-          <p>
-            {self.host && room.participants.length === 2
-              ? "남은 참가자에게 방장을 넘기고 나갑니다."
-              : room.participants.length === 1
-                ? "마지막 참가자가 나가면 이 방은 닫힙니다."
-                : "방에서 나가면 준비 상태가 해제됩니다."}
-          </p>
           {leaveError && (
             <p className={common.error} role="alert">
               {leaveError}

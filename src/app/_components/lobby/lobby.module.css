@@ -81,7 +81,7 @@
 /* 헤더의 검색·계정 영역에는 최소 너비를 두지 않아 긴 이름과 번역 문구가 화면을 밀어내지 않게 한다. */
 .header {
   display: grid;
-  grid-template-columns: auto auto minmax(150px, 1fr) auto minmax(130px, auto);
+  grid-template-columns: auto minmax(150px, 1fr) auto minmax(130px, auto);
   align-items: center;
   gap: clamp(16px, 2vw, 48px);
   min-height: 5.3em;
@@ -114,46 +114,6 @@
   width: 1.2em;
   height: 1.2em;
   stroke-width: 2;
-}
-.navigation {
-  display: flex;
-  align-items: center;
-  gap: clamp(4px, 0.8vw, 20px);
-}
-.navigation > a,
-.navigation > button {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-width: 4.3em;
-  min-height: 3.2em;
-  padding: 0.6em 0.85em;
-  border: 0;
-  border-radius: 1.3em;
-  background: transparent;
-  color: var(--ink);
-  font-size: 1.05em;
-  font-weight: 750;
-  white-space: nowrap;
-  transition: background 160ms;
-}
-.navigation > a:hover,
-.navigation > button:hover {
-  background: #e4dfff8c;
-}
-.navigation > .activeNavigation {
-  background: #e8e0ffb3;
-  color: #5019e4;
-}
-.activeNavigation::after {
-  position: absolute;
-  right: 30%;
-  bottom: 0;
-  left: 30%;
-  height: 3px;
-  border-radius: 5px;
-  background: #6523ff;
-  content: "";
 }
 .search {
   display: flex;
@@ -1314,13 +1274,6 @@
   .brand {
     font-size: 1.7em;
   }
-  .navigation {
-    gap: 0.25em;
-  }
-  .navigation > a,
-  .navigation > button {
-    min-width: 3.5em;
-  }
   .gameGrid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
@@ -1334,7 +1287,7 @@
 
 @media (max-width: 1250px) {
   .header {
-    grid-template-columns: auto auto minmax(100px, 1fr) auto auto;
+    grid-template-columns: auto minmax(100px, 1fr) auto auto;
     gap: 0.8em;
   }
   .brand {
@@ -1342,11 +1295,6 @@
   }
   .profileCopy {
     max-width: 6em;
-  }
-  .navigation > a,
-  .navigation > button {
-    min-width: 3.1em;
-    font-size: 0.95em;
   }
   .search input {
     font-size: 0.8em;
@@ -1419,8 +1367,13 @@
     justify-self: start;
     font-size: 1.65em;
   }
-  .navigation {
-    justify-self: center;
+  .notifications {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .accountSlot {
+    grid-column: 4;
+    grid-row: 1;
   }
   .search {
     grid-row: 2;
@@ -1430,12 +1383,6 @@
   }
   .search input {
     font-size: 0.9em;
-  }
-  .navigation > a,
-  .navigation > button {
-    min-width: 3.2em;
-    min-height: 2.8em;
-    padding-inline: 0.7em;
   }
   .profileCopy {
     display: none;
@@ -1486,31 +1433,6 @@
   .brandMark {
     width: 1.45em;
     height: 1.35em;
-  }
-  .navigation {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-self: stretch;
-    justify-content: space-between;
-    gap: 0.5em;
-  }
-  .navigation > a,
-  .navigation > button {
-    flex: 1;
-    min-height: 2.9em;
-    border-radius: 0.9em;
-    font-size: 0.95em;
-  }
-  .search {
-    grid-row: 3;
-  }
-  .notifications {
-    grid-column: 3;
-    grid-row: 1;
-  }
-  .accountSlot {
-    grid-column: 4;
-    grid-row: 1;
   }
   .profileChevron {
     display: none;

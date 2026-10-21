@@ -16,11 +16,13 @@ export function RoomDialog({
   children,
   onClose,
   busy = false,
+  showClose = true,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   busy?: boolean;
+  showClose?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -40,15 +42,17 @@ export function RoomDialog({
     >
       <div className={styles.dialogHeading}>
         <h2 id={titleId}>{title}</h2>
-        <button
-          type="button"
-          className={styles.iconButton}
-          aria-label="닫기"
-          disabled={busy}
-          onClick={onClose}
-        >
-          <LobbyIcon name="close" />
-        </button>
+        {showClose && (
+          <button
+            type="button"
+            className={styles.iconButton}
+            aria-label="닫기"
+            disabled={busy}
+            onClick={onClose}
+          >
+            <LobbyIcon name="close" />
+          </button>
+        )}
       </div>
       {children}
     </dialog>

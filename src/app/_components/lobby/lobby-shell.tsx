@@ -117,7 +117,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
       <a className={styles.skipLink} href="#game-catalog">
         게임 목록으로 건너뛰기
       </a>
-      <SiteHeader account={account} query={query} onQueryChange={setQuery} onSearch={browseGames} onBrowse={browseGames} onNotice={setNotice} />
+      <SiteHeader account={account} query={query} onQueryChange={setQuery} onSearch={browseGames} onNotice={setNotice} />
       <div className={styles.layout}>
         <main className={styles.main}>
           <HeroBanner onBrowse={browseGames} />

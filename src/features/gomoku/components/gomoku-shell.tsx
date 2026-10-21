@@ -23,7 +23,7 @@ export function GomokuShell({
       <a className={lobby.skipLink} href="#gomoku-main">
         본문으로 건너뛰기
       </a>
-      <SiteHeader active="games" account={account} onNotice={setNotice} />
+      <SiteHeader account={account} onNotice={setNotice} />
       <main id="gomoku-main" className={styles.main}>
         {children}
       </main>

@@ -475,8 +475,8 @@
   flex-direction: column;
   align-self: stretch;
   min-width: 0;
-  min-height: 36em;
-  max-height: max(36em, calc(100svh - 9em));
+  height: 0;
+  min-height: 100%;
   border: 1px solid white;
   border-radius: 1.35em;
   overflow: hidden;
@@ -484,6 +484,7 @@
 }
 .chatHeader {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 0.6em;
   padding: 1.3em 1em;
@@ -615,6 +616,7 @@
 }
 .chatFooter {
   position: relative;
+  flex-shrink: 0;
   padding: 0.8em;
   border-top: 1px solid #eceeff;
   background: #f8faffba;

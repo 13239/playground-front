@@ -19,7 +19,7 @@ import {
 } from "../contracts";
 import { HostedRoomDialog } from "./room-dialog";
 import { InviteRoomEntry, JoinRoomDialog, type JoinTarget } from "./join-room";
-import { RoomArtwork, RoomHero } from "./room-artwork";
+import { RoomHero } from "./room-artwork";
 import styles from "./gomoku.module.css";
 
 /** 2단계의 초대 코드 입장은 실제 서버에 연결하고 아직 범위 밖인 빠른 매칭은 비활성 상태로 유지한다. */
@@ -210,18 +210,6 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
   return (
     <section className={styles.roomSection} aria-label="오목 방 찾기">
       <form className={styles.toolbar} role="search" onSubmit={submitSearch}>
-        <label className={styles.roomSearch}>
-          <LobbyIcon name="search" />
-          <span className={styles.srOnly}>방 제목 또는 초대 코드 검색</span>
-          <input
-            type="search"
-            maxLength={30}
-            value={filters.query}
-            onChange={(event) => change({ query: event.target.value })}
-            placeholder="방 제목 또는 초대 코드로 검색하세요."
-            autoComplete="off"
-          />
-        </label>
         <button
           className={
             filters.publicOnly ? styles.filterButton : styles.activeFilter
@@ -254,6 +242,18 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
         >
           대기 중인 방만 보기
         </button>
+        <label className={styles.roomSearch}>
+          <LobbyIcon name="search" />
+          <span className={styles.srOnly}>방 제목 또는 초대 코드 검색</span>
+          <input
+            type="search"
+            maxLength={30}
+            value={filters.query}
+            onChange={(event) => change({ query: event.target.value })}
+            placeholder="방 제목 또는 초대 코드로 검색하세요."
+            autoComplete="off"
+          />
+        </label>
       </form>
       {data?.hostedRoom && (
         <div className={styles.hostedNotice}>
@@ -294,7 +294,7 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
         className={loading ? styles.loadingRows : undefined}
       >
         <div className={styles.tableHeader} aria-hidden="true">
-          <span>방 정보</span>
+          <span>방 이름</span>
           <span>호스트</span>
           <span>참여 인원</span>
           <span>게임 규칙</span>
@@ -344,7 +344,6 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
                 key={room.id}
               >
                 <div className={styles.roomIdentity}>
-                  <RoomArtwork />
                   <div>
                     <h2 title={room.title}>{room.title}</h2>
                     {room.visibility === "PRIVATE" && (

@@ -10,19 +10,15 @@ import styles from "./lobby.module.css";
 /** 홈과 게임 화면이 같은 탐색·계정 경계를 사용한다. 홈 검색의 상태와 스크롤 동작도 그대로 전달한다. */
 export function SiteHeader({
   account,
-  active = "home",
   query,
   onQueryChange,
   onSearch,
-  onBrowse,
   onNotice,
 }: {
   account: ReactNode;
-  active?: "home" | "games";
   query?: string;
   onQueryChange?: (value: string) => void;
   onSearch?: () => void;
-  onBrowse?: () => void;
   onNotice: (notice: { title: string; description: string }) => void;
 }) {
   const router = useRouter();
@@ -36,52 +32,6 @@ export function SiteHeader({
         </span>
         <span>Playground</span>
       </Link>
-      <nav className={styles.navigation} aria-label="주 메뉴">
-        <Link
-          href="/"
-          className={active === "home" ? styles.activeNavigation : undefined}
-          aria-current={active === "home" ? "page" : undefined}
-        >
-          홈
-        </Link>
-        {onBrowse ? (
-          <button type="button" onClick={onBrowse}>
-            게임
-          </button>
-        ) : (
-          <Link
-            href="/games/gomoku"
-            className={active === "games" ? styles.activeNavigation : undefined}
-            aria-current={active === "games" ? "page" : undefined}
-          >
-            게임
-          </Link>
-        )}
-        <button
-          type="button"
-          onClick={() =>
-            onNotice({
-              title: "상점을 준비하고 있어요",
-              description:
-                "플레이를 더 특별하게 만들어 줄 아이템들을 준비 중이에요. 조금만 기다려 주세요!",
-            })
-          }
-        >
-          상점
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            onNotice({
-              title: "즐거운 이벤트가 찾아올 거예요",
-              description:
-                "함께 참여할 수 있는 새로운 이벤트를 준비하고 있어요. 곧 이곳에서 만나요!",
-            })
-          }
-        >
-          이벤트
-        </button>
-      </nav>
       <form
         className={styles.search}
         role="search"
