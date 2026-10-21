@@ -889,7 +889,7 @@
   height: 1.2em;
 }
 /* 게임 목록과 채팅에 공통인 푸터의 구분선을 콘텐츠 전체 폭으로 연결한다. */
-/* 데스크톱 채팅 하단은 구분선에 맞추고 모바일 푸터의 위쪽 여백은 해당 미디어 쿼리에서 유지한다. */
+/* 데스크톱 채팅은 푸터와 살짝 띄우고, 모바일 푸터의 위쪽 여백은 해당 미디어 쿼리에서 유지한다. */
 .footer {
   display: flex;
   align-items: center;
@@ -915,11 +915,13 @@
   font-size: 1em;
 }
 
-/* 데스크톱 채팅은 본문 높이를 채워 공통 푸터까지 이어지고 내용만 자체 스크롤한다. 태블릿·모바일에서는 네이티브 대화상자로 열린다. */
+/* 데스크톱 채팅은 본문 열 높이에 맞추고 메시지 양과 관계없이 그 안에서만 스크롤한다. */
 .desktopChat {
+  position: relative;
   display: flex;
   align-self: stretch;
   min-height: 35em;
+  margin-bottom: 0.9em;
 }
 .chatPanel {
   display: flex;
@@ -932,9 +934,11 @@
   background: linear-gradient(155deg, #fbfcffe6, #edf4ffd6);
   box-shadow: 0 5px 20px #788ddd0c;
 }
-/* 늘어난 데스크톱 열의 실제 높이를 사용하며 모바일 대화상자의 100% 높이 규칙은 유지한다. */
 .desktopChat > .chatPanel {
+  position: absolute;
+  inset: 0;
   height: auto;
+  min-height: 0;
 }
 .chatHeader {
   display: flex;
@@ -942,7 +946,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5em;
-  padding: 1.4em 1.3em 0.8em;
+  padding: 0.85em 1.15em 0.2em;
 }
 .chatHeader h2 {
   display: flex;
@@ -976,14 +980,16 @@
   /* 단일 홈 채널이므로 접속 상태를 오른쪽에 정렬한다. */
   justify-content: flex-end;
   gap: 0.5em;
-  padding: 0 1.35em 1em;
+  padding: 0 1.15em 0.65em;
+  border-bottom: 1px solid #e3def4;
 }
 .connectionStatus {
   display: flex;
   align-items: center;
-  gap: 0.5em;
+  gap: 0.4em;
   color: #9492b0;
   font-size: 0.67em;
+  line-height: 1.2;
   white-space: nowrap;
 }
 .connectionStatus > span {
@@ -997,7 +1003,7 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  padding: 0 1.25em;
+  padding: 0.75em 1.25em 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   /* 스크롤바 모양은 페이지와 동일한 전역 3px 스타일을 사용한다. */
@@ -1651,18 +1657,21 @@
 .onlineCountButton {
   display: inline-flex;
   align-items: center;
-  gap: 0.4em;
-  padding: 0.45em 0.6em;
+  gap: 0.28em;
+  padding: 0.18em 0.45em;
   border: 1px solid #ded8f7;
   border-radius: 1.4em;
   background: #f4f0ff;
   color: #6747ae;
-  font-size: max(11px, 0.72em);
-  font-weight: 750;
   white-space: nowrap;
   cursor: pointer;
 }
-.onlineCountButton svg { width: 1.15em; height: 1.15em; }
+.screen .onlineCountButton {
+  font-size: max(11px, 0.62em);
+  font-weight: 700;
+  line-height: 1.15;
+}
+.onlineCountButton svg { width: 1em; height: 1em; }
 .onlineCountButton:disabled { opacity: 0.65; cursor: default; }
 .onlineCountButton:not(:disabled):hover { background: #eee6ff; }
 .onlinePopover {
@@ -1757,7 +1766,7 @@
 @media (max-width: 430px) {
   .chatHeader { padding-inline: 0.9em; }
   .chatHeader h2 { font-size: 1.02em; }
-  .onlineCountButton { font-size: 11px; padding-inline: 0.45em; }
+  .screen .onlineCountButton { font-size: 11px; padding-inline: 0.4em; }
   .chatBody { padding-inline: 0.8em; }
   .chatMessageContent { max-width: 90%; }
 }
