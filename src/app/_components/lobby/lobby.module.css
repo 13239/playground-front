@@ -973,35 +973,10 @@
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  justify-content: space-between;
+  /* 단일 홈 채널이므로 접속 상태를 오른쪽에 정렬한다. */
+  justify-content: flex-end;
   gap: 0.5em;
   padding: 0 1.35em 1em;
-}
-.channelSelect {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  color: #7368a9;
-}
-.channelSelect select {
-  max-width: 100%;
-  min-height: 2.4em;
-  padding: 0.35em 2.3em 0.35em 0.8em;
-  appearance: none;
-  border: 1px solid #e1e4fb;
-  border-radius: 0.8em;
-  background: #f7f9ff;
-  color: inherit;
-  font: inherit;
-  font-size: 0.7em;
-  cursor: pointer;
-}
-.channelSelect > svg {
-  position: absolute;
-  right: 0.5em;
-  width: 0.7em;
-  height: 0.7em;
-  pointer-events: none;
 }
 .connectionStatus {
   display: flex;
@@ -1663,4 +1638,126 @@
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* 6단계: 동일한 글로벌 채팅 연결의 실제 접속자 수·목록과 메시지 이력을 모든 화면 크기에 제공한다. */
+.chatHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+}
+.presenceAnchor { position: relative; }
+.onlineCountButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.45em 0.6em;
+  border: 1px solid #ded8f7;
+  border-radius: 1.4em;
+  background: #f4f0ff;
+  color: #6747ae;
+  font-size: max(11px, 0.72em);
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.onlineCountButton svg { width: 1.15em; height: 1.15em; }
+.onlineCountButton:disabled { opacity: 0.65; cursor: default; }
+.onlineCountButton:not(:disabled):hover { background: #eee6ff; }
+.onlinePopover {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 0.65em);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(290px, calc(100vw - 40px));
+  max-height: min(430px, 70dvh);
+  padding: 1em;
+  border: 1px solid #dedcf5;
+  border-radius: 1em;
+  background: #fff;
+  box-shadow: 0 16px 40px #29205225;
+  color: #302849;
+}
+.onlinePopoverHeader { display: flex; justify-content: space-between; align-items: center; }
+.onlinePopoverHeader strong { font-size: 0.88em; }
+.onlineClose {
+  display: grid;
+  place-items: center;
+  padding: 0.3em;
+  border: 0;
+  border-radius: 0.4em;
+  background: transparent;
+  cursor: pointer;
+}
+.onlineClose svg { width: 1.2em; height: 1.2em; }
+.onlineTotal, .onlineEmpty { color: #77728c; font-size: max(11px, 0.72em); line-height: 1.6; }
+.onlineList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.onlineList li { display: flex; align-items: center; gap: 0.6em; font-size: 0.84em; overflow-wrap: anywhere; }
+.onlineAvatar, .chatMessageAvatar { display: grid; flex-shrink: 0; place-items: center; width: 2em; height: 2em; overflow: hidden; border-radius: 50%; }
+.onlineAvatar img, .chatMessageAvatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.onlineActions { display: flex; justify-content: flex-end; gap: 0.5em; margin-top: 0.7em; }
+.onlineActions button, .chatLoadMore, .chatRetry {
+  padding: 0.4em 0.7em;
+  border: 1px solid #dbd3f1;
+  border-radius: 0.65em;
+  background: #f5f1ff;
+  color: #6a4aae;
+  font-size: max(11px, 0.74em);
+  font-weight: 700;
+  cursor: pointer;
+}
+.onlineActions button:disabled { opacity: 0.5; cursor: default; }
+.connectionOnline { color: #318568; }
+.connectionOnline > span { background: #36b88a; }
+.chatLoadMore { align-self: center; margin: 0.4em 0 0.8em; }
+.chatFeedback { align-self: center; color: #817b97; font-size: 0.75em; }
+.chatMessageList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85em;
+  padding: 0;
+  margin: 1em 0 1.4em;
+  list-style: none;
+}
+.chatMessage { display: flex; align-items: flex-start; gap: 0.5em; min-width: 0; }
+.chatMessageAvatar { width: 2.1em; height: 2.1em; }
+.chatMessageContent { min-width: 0; max-width: 88%; }
+.chatMessageMeta { display: flex; align-items: center; gap: 0.5em; margin-bottom: 0.3em; font-size: max(11px, 0.7em); color: #8c84a4; }
+.chatMessageMeta strong { color: #4b3e75; font-weight: 750; }
+.chatMessageContent p {
+  margin: 0;
+  padding: 0.7em 0.9em;
+  border: 1px solid #e9e3f8;
+  border-radius: 0.15em 0.85em 0.85em;
+  background: #fff;
+  font-size: max(12px, 0.8em);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.myChatMessage { justify-content: flex-end; }
+.myChatMessage .chatMessageMeta { justify-content: flex-end; }
+.myChatMessage .chatMessageContent p { background: #eee6ff; border-color: #ded2fc; border-radius: 0.85em 0.15em 0.85em 0.85em; }
+.chatComposer input:disabled { cursor: not-allowed; }
+.chatComposer > button:not(:disabled) { opacity: 1; cursor: pointer; }
+.chatComposer > button:disabled { cursor: default; }
+.chatRetry { display: block; margin: 0.5em auto 0; }
+@media (max-width: 430px) {
+  .chatHeader { padding-inline: 0.9em; }
+  .chatHeader h2 { font-size: 1.02em; }
+  .onlineCountButton { font-size: 11px; padding-inline: 0.45em; }
+  .chatBody { padding-inline: 0.8em; }
+  .chatMessageContent { max-width: 90%; }
 }

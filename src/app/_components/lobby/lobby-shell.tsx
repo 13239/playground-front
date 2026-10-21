@@ -70,6 +70,8 @@ function NoticeDialog({
 
 /** 서버는 공개 화면 틀만 전달하고 계정은 별도 세션 경계에서 확인한다. 검색·필터는 현재 공개 목록에만 적용한다. */
 export function LobbyShell({ account }: { account: ReactNode }) {
+  // 채팅 연결 상태는 상위 ChatProvider가 소유하므로 게임 검색·목록은 새 메시지마다 다시 렌더링하지 않는다.
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<GameCategoryId>("all");
   const [notice, setNotice] = useState<Notice>();
@@ -224,7 +226,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
           </section>
         </main>
         <aside className={styles.desktopChat}>
-          <ChatPanel />
+          <ChatPanel active />
         </aside>
       </div>
       {/* 공통 푸터는 게임·채팅 열 밖에 배치해 전체 폭을 사용하고 채팅 패널과 겹치지 않게 한다. */}
@@ -237,7 +239,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
         className={styles.mobileChatToggle}
         type="button"
         aria-label="실시간 채팅 열기"
-        onClick={() => mobileChatRef.current?.showModal()}
+        onClick={() => { mobileChatRef.current?.showModal(); setMobileChatOpen(true); }}
       >
         <LobbyIcon name="chat" />
         <span>채팅</span>
@@ -246,8 +248,9 @@ export function LobbyShell({ account }: { account: ReactNode }) {
         ref={mobileChatRef}
         className={styles.mobileChatDialog}
         aria-label="실시간 채팅"
+        onClose={() => setMobileChatOpen(false)}
       >
-        <ChatPanel onClose={() => mobileChatRef.current?.close()} />
+        <ChatPanel active={mobileChatOpen} onClose={() => mobileChatRef.current?.close()} />
       </dialog>
       {notice && (
         <NoticeDialog notice={notice} onClose={() => setNotice(undefined)} />

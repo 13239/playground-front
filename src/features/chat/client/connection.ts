@@ -9,6 +9,8 @@ export type AuthenticatedChatConnection = Readonly<{
   socket: WebSocket;
   connectionId: string;
   user: ChatUser;
+  // AUTHENTICATED 직후 수신된 접속자 변경·채팅 방송을 화면 구독 전까지 보관한다.
+  takeBufferedFrames: () => readonly string[];
   close: () => void;
 }>;
 
@@ -59,7 +61,7 @@ async function authenticationFrame(ticket: ReceivedTicket): Promise<object> {
   return { version: 1, type: "AUTH", ticket: ticket.ticket, proof };
 }
 
-/** AUTHENTICATED를 확인한 뒤에만 연결을 넘긴다. 화면 연결·재접속·메시지 처리는 후속 단계에서 추가한다. */
+/** AUTHENTICATED를 확인한 뒤 연결을 넘기며 후속 메시지는 화면 구독 전까지 유한 버퍼에 보관한다. */
 export async function connectChat(sessionId: string, signal?: AbortSignal): Promise<AuthenticatedChatConnection> {
   signal?.throwIfAborted();
   const ticket = await requestChatTicket(sessionId);
@@ -68,6 +70,7 @@ export async function connectChat(sessionId: string, signal?: AbortSignal): Prom
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(ticket.websocketUrl);
     let settled = false;
+    let bufferedListener: ((event: MessageEvent<unknown>) => void) | undefined;
     const timer = setTimeout(() => fail(new AuthRequestError("채팅 연결 응답이 지연되고 있습니다.", 504)), 10_000);
     const cleanup = () => {
       clearTimeout(timer);
@@ -79,6 +82,7 @@ export async function connectChat(sessionId: string, signal?: AbortSignal): Prom
       signal?.removeEventListener("abort", aborted);
       socket.removeEventListener("close", closed);
       cleanup();
+      if (bufferedListener) socket.removeEventListener("message", bufferedListener);
       if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
         socket.close(1000, "Client closed");
       }
@@ -110,8 +114,21 @@ export async function connectChat(sessionId: string, signal?: AbortSignal): Prom
       }
       settled = true;
       cleanup();
+      const bufferedFrames: string[] = [];
+      // 인증 프레임 뒤에 같은 네트워크 패킷으로 도착한 방송도 잃지 않는다. 메모리는 최대 128프레임으로 제한한다.
+      bufferedListener = (next) => {
+        if (bufferedFrames.length < 128 && typeof next.data === "string" && next.data.length <= 16_384) {
+          bufferedFrames.push(next.data);
+        }
+      };
+      socket.addEventListener("message", bufferedListener);
+      const takeBufferedFrames = () => {
+        if (bufferedListener) socket.removeEventListener("message", bufferedListener);
+        bufferedListener = undefined;
+        return bufferedFrames.splice(0);
+      };
       resolve({ socket, connectionId: value.connectionId,
-        user: { nickname: value.user.nickname, avatarId: value.user.avatarId }, close });
+        user: { nickname: value.user.nickname, avatarId: value.user.avatarId }, takeBufferedFrames, close });
     };
     socket.addEventListener("open", opened);
     socket.addEventListener("message", message);
