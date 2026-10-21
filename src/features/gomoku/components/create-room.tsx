@@ -18,7 +18,6 @@ import {
   type HostedRoom,
   type RoomDraft,
 } from "../contracts";
-import { HostedRoomDialog } from "./room-dialog";
 import { RoomHero } from "./room-artwork";
 import styles from "./gomoku.module.css";
 
@@ -86,12 +85,13 @@ function AuthenticatedCreateRoom({ sessionId }: { sessionId: string }) {
     setFailure("");
     try {
       requestId.current ??= newRoomRequestId();
-      setCreated(
-        await createRoom(sessionId, requestId.current, {
+      const room = await createRoom(sessionId, requestId.current, {
           ...draft,
           title: draft.title.trim(),
-        }),
-      );
+        });
+      setCreated(room);
+      // 생성된 방의 방장은 서버에서 참가 등록을 끝냈으므로 실제 대기실로 바로 이동한다.
+      router.replace(`/games/gomoku/rooms/${room.id}`);
       setDraft((current) => ({ ...current, password: "" }));
     } catch (error) {
       if (error instanceof AuthRequestError) {
@@ -385,14 +385,6 @@ function AuthenticatedCreateRoom({ sessionId }: { sessionId: string }) {
           </dl>
         </section>
       </aside>
-      {created && (
-        <HostedRoomDialog
-          room={created}
-          sessionId={sessionId}
-          created
-          onClose={() => router.replace("/games/gomoku")}
-        />
-      )}
     </div>
   );
 }

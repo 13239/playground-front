@@ -18,10 +18,11 @@ import {
   type RoomPage,
 } from "../contracts";
 import { HostedRoomDialog } from "./room-dialog";
+import { InviteRoomEntry, JoinRoomDialog, type JoinTarget } from "./join-room";
 import { RoomArtwork, RoomHero } from "./room-artwork";
 import styles from "./gomoku.module.css";
 
-/** 2단계에서 연결할 동작은 비활성 상태로 표시하고 성공한 척 입장이나 가짜 매칭을 수행하지 않는다. */
+/** 2단계의 초대 코드 입장은 실제 서버에 연결하고 아직 범위 밖인 빠른 매칭은 비활성 상태로 유지한다. */
 function RoomSidebar() {
   return (
     <aside className={styles.sidebar} aria-label="오목 시작과 규칙">
@@ -59,22 +60,7 @@ function RoomSidebar() {
           초대 코드로 입장
         </h2>
         <p className={styles.muted}>친구에게 받은 6자리 코드를 입력하세요.</p>
-        <div className={styles.inviteRow}>
-          <label className={styles.srOnly} htmlFor="invite-code">
-            초대 코드
-          </label>
-          <input
-            id="invite-code"
-            placeholder="예) ABC123"
-            maxLength={6}
-            autoComplete="off"
-            disabled
-          />
-          <button className={styles.primaryButton} type="button" disabled>
-            입장
-          </button>
-        </div>
-        <small className={styles.muted}>방 입장을 준비하고 있어요.</small>
+        <InviteRoomEntry />
       </section>
       <section className={`${styles.panel} ${styles.rules}`}>
         <h2>
@@ -106,7 +92,7 @@ function RoomSidebar() {
               <LobbyIcon name="copy" />
               첫판 선공
             </dt>
-            <dd>흑백 카드 뽑기</dd>
+            <dd>시작 후 흑백 추첨</dd>
           </div>
           <div>
             <dt>
@@ -178,6 +164,7 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [hostedRoom, setHostedRoom] = useState<HostedRoom>();
+  const [joining, setJoining] = useState<JoinTarget>();
   useEffect(() => {
     let active = true;
     // 자동 폴링 대신 입력을 짧게 모아 검색하고 복귀·계정 변경은 공통 세션 경계에서 재조회한다.
@@ -301,6 +288,7 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
           새로고침
         </button>
       </div>
+      {data?.joinedRoom && <p className={styles.muted}>참여 중인 방: <Link className={styles.textButton} href={`/games/gomoku/rooms/${data.joinedRoom.id}`}>{data.joinedRoom.title} · 대기실로 돌아가기</Link></p>}
       <div
         aria-busy={loading}
         className={loading ? styles.loadingRows : undefined}
@@ -399,15 +387,15 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
                 <button
                   type="button"
                   className={styles.entryButton}
-                  disabled={!room.owned || !data.hostedRoom}
-                  onClick={() => setHostedRoom(data.hostedRoom ?? undefined)}
+                  disabled={room.status !== "WAITING" || room.playerCount === 2 && data.joinedRoom?.id !== room.id}
+                  onClick={() => setJoining({ roomId: room.id, title: room.title, privateRoom: room.visibility === "PRIVATE" && data.joinedRoom?.id !== room.id })}
                   title={
                     room.owned
-                      ? "초대 코드와 내 방 관리"
-                      : "방 입장을 준비하고 있어요"
+                      ? "내 대기실로 입장"
+                      : "대기실 입장"
                   }
                 >
-                  {room.owned ? "내 방" : "입장"}
+                  {data.joinedRoom?.id === room.id ? "대기실로" : "입장"}
                 </button>
               </li>
             ))}
@@ -475,6 +463,7 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
           }}
         />
       )}
+      {joining && <JoinRoomDialog key={"roomId" in joining ? joining.roomId : joining.inviteCode} sessionId={sessionId} target={joining} onClose={() => { setJoining(undefined); setRevision((value) => value + 1); }} />}
     </section>
   );
 }

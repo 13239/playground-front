@@ -13,6 +13,7 @@ import {
   type RoomFilters,
   type RoomPage,
 } from "../contracts";
+import { isWaitingRoom, publicWaitingRoom, type WaitingRoom, type JoinRoomInput } from "../waiting-contracts";
 
 /** 결과를 화면의 로그인 세션과 대조해 늦은 이전 계정 응답을 사용하지 않는다. */
 async function readResponse(
@@ -84,6 +85,22 @@ export async function closeRoom(
     ).status !== 204
   )
     throw new AuthRequestError("방을 닫지 못했습니다.", 502);
+}
+
+/** 입장·조회·준비 결과를 같은 계약으로 검증하고 이전 계정의 늦은 응답을 사용하지 않는다. */
+async function waitingRequest(path: "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready",
+  sessionId: string, body: Readonly<Record<string, unknown>>): Promise<WaitingRoom> {
+  const value = await readResponse(await requestAuthenticatedApi(path, { sessionId, ...body }), sessionId);
+  if (!isWaitingRoom(value)) throw new AuthRequestError("대기실 정보를 확인하지 못했습니다.", 502);
+  return publicWaitingRoom(value);
+}
+export const joinRoom = (sessionId: string, input: JoinRoomInput) => waitingRequest("/api/gomoku/rooms/join", sessionId, input);
+export const readWaitingRoom = (sessionId: string, roomId: number) => waitingRequest("/api/gomoku/rooms/state", sessionId, { roomId });
+export const readyRoom = (sessionId: string, roomId: number, ready: boolean) => waitingRequest("/api/gomoku/rooms/ready", sessionId, { roomId, ready });
+export async function leaveRoom(sessionId: string, roomId: number): Promise<void> {
+  if ((await requestAuthenticatedApi("/api/gomoku/rooms/leave", { sessionId, roomId })).status !== 204) {
+    throw new AuthRequestError("방에서 나가지 못했습니다. 다시 시도해 주세요.", 502);
+  }
 }
 
 /** randomUUID가 없는 dev HTTP도 지원한다. 보안 난수만 사용하고 서버의 중복 생성 방지 ID로 한 번 보낸다. */

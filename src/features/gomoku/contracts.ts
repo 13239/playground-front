@@ -43,6 +43,8 @@ export type RoomPage = Readonly<{
   totalElements: number;
   totalPages: number;
   hostedRoom: HostedRoom | null;
+  // 방장이 아니어도 본인이 참가한 방으로 복귀할 수 있다.
+  joinedRoom: HostedRoom | null;
 }>;
 
 export const defaultRoomDraft: RoomDraft = {
@@ -132,7 +134,8 @@ export function isRoomPage(value: unknown): value is RoomPage {
     value.pageSize === 6 &&
     integer(value.totalElements, 0, Number.MAX_SAFE_INTEGER) &&
     integer(value.totalPages, 0, Number.MAX_SAFE_INTEGER) &&
-    (value.hostedRoom === null || isHostedRoom(value.hostedRoom))
+    (value.hostedRoom === null || isHostedRoom(value.hostedRoom)) &&
+    (value.joinedRoom === null || isHostedRoom(value.joinedRoom))
   );
 }
 
@@ -159,5 +162,6 @@ export function publicRoomPage(value: RoomPage): RoomPage {
     totalElements: value.totalElements,
     totalPages: value.totalPages,
     hostedRoom: value.hostedRoom && publicHostedRoom(value.hostedRoom),
+    joinedRoom: value.joinedRoom && publicHostedRoom(value.joinedRoom),
   };
 }

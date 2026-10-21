@@ -15,8 +15,10 @@ import {
   requestIdPattern,
   validateRoomDraft,
 } from "../contracts";
+import { inviteCodePattern } from "../contracts";
+import { isWaitingRoom, publicWaitingRoom } from "../waiting-contracts";
 
-type Operation = "search" | "create" | "close";
+type Operation = "search" | "create" | "close" | "join" | "state" | "ready" | "leave";
 const fields = {
   search: ["sessionId", "query", "publicOnly", "waitingOnly", "page"],
   create: [
@@ -29,9 +31,13 @@ const fields = {
     "forbiddenRule",
   ],
   close: ["sessionId", "roomId"],
+  join: ["sessionId", "roomId", "inviteCode", "password"],
+  state: ["sessionId", "roomId"],
+  ready: ["sessionId", "roomId", "ready"],
+  leave: ["sessionId", "roomId"],
 };
 
-/** 검색 조건도 서명 본문에 묶는다. 동일 Origin·화면의 세션을 확인하고 고정된 세 가지 경로만 호출한다. */
+/** 검색 조건도 서명 본문에 묶는다. 동일 Origin·화면의 세션을 확인하고 명시한 방 관리·대기실 경로만 호출한다. */
 export async function handleRoomRequest(
   request: Request,
   operation: Operation,
@@ -82,6 +88,14 @@ export async function handleRoomRequest(
         undoLimit: input.undoLimit,
         forbiddenRule: input.forbiddenRule,
       };
+    } else if (operation === "join") {
+      const byId = typeof input.roomId === "number" && Number.isSafeInteger(input.roomId) && input.roomId > 0;
+      const byCode = typeof input.inviteCode === "string" && inviteCodePattern.test(input.inviteCode);
+      if (byId === byCode || input.roomId !== undefined && !byId || input.inviteCode !== undefined && !byCode
+        || input.password !== undefined && (typeof input.password !== "string" || !/^[A-Za-z0-9]{4,8}$/.test(input.password))) {
+        throw new ApiError("INVALID_REQUEST_BODY");
+      }
+      body = { ...(byId ? { roomId: input.roomId } : { inviteCode: input.inviteCode }), password: input.password ?? null };
     } else {
       if (
         typeof input.roomId !== "number" ||
@@ -89,7 +103,8 @@ export async function handleRoomRequest(
         input.roomId <= 0
       )
         throw new ApiError("INVALID_REQUEST_BODY");
-      body = { roomId: input.roomId };
+      if (operation === "ready" && typeof input.ready !== "boolean") throw new ApiError("INVALID_REQUEST_BODY");
+      body = { roomId: input.roomId, ...(operation === "ready" ? { ready: input.ready } : {}) };
     }
     const path =
       operation === "create"
@@ -103,11 +118,11 @@ export async function handleRoomRequest(
           accessToken,
           proof,
           body,
-          ...(operation === "close" && { responseType: "empty" }),
+          ...((operation === "close" || operation === "leave") && { responseType: "empty" }),
         }),
       input.sessionId,
     );
-    if (operation === "close")
+    if (operation === "close" || operation === "leave")
       return new Response(null, {
         status: 204,
         headers: { "Cache-Control": "private, no-store" },
@@ -118,6 +133,12 @@ export async function handleRoomRequest(
         { ...publicHostedRoom(result), sessionId: input.sessionId },
         { status: 201, headers: { "Cache-Control": "private, no-store" } },
       );
+    }
+    // 대기실 스냅샷도 외부 필드를 그대로 재공개하지 않고 실제 계약을 검증한다.
+    if (operation !== "search") {
+      if (!isWaitingRoom(result)) throw new ApiError("INVALID_BACKEND_RESPONSE");
+      return Response.json({ ...publicWaitingRoom(result), sessionId: input.sessionId },
+        { headers: { "Cache-Control": "private, no-store" } });
     }
     if (!isRoomPage(result)) throw new ApiError("INVALID_BACKEND_RESPONSE");
     return Response.json(

@@ -2,6 +2,7 @@ import { SignJWT } from "jose";
 import { requestAuthenticatedApi, AuthRequestError } from "@/features/auth/client/api";
 import { getBrowserKey } from "@/features/auth/client/browser-key";
 import { isDevHttpAuth } from "@/features/auth/client/environment";
+import type { ChatDestination } from "./protocol";
 import { isChatAuthenticatedFrame, isChatTicket, publicChatTicket,
   type ChatTicket, type ChatUser } from "../contracts";
 
@@ -22,6 +23,9 @@ export function chatConnectionError(code: number, reason: string): AuthRequestEr
     return new AuthRequestError("로그인이 만료되었습니다. 다시 로그인해 주세요.", 401, undefined, "INVALID_SESSION");
   }
   if (code === 4401) return new AuthRequestError("채팅 접속 정보를 다시 발급받아 연결해 주세요.", 401, undefined, "CHAT_TICKET_INVALID");
+  if (code === 4403 && reason === "CHAT_ROOM_ACCESS_DENIED") {
+    return new AuthRequestError("현재 방의 채팅 참가 상태를 확인하고 있습니다.", 403, undefined, "CHAT_ROOM_ACCESS_DENIED");
+  }
   if (code === 4403) return new AuthRequestError("브라우저의 채팅 접속 인증을 확인할 수 없습니다.", 403, undefined, "CHAT_PROOF_INVALID");
   if (code === 4408) return new AuthRequestError("채팅 연결 응답이 지연되고 있습니다.", 504);
   if (code === 1008) return new AuthRequestError("채팅 연결 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.", 429);
@@ -62,7 +66,8 @@ async function authenticationFrame(ticket: ReceivedTicket): Promise<object> {
 }
 
 /** AUTHENTICATED를 확인한 뒤 연결을 넘기며 후속 메시지는 화면 구독 전까지 유한 버퍼에 보관한다. */
-export async function connectChat(sessionId: string, signal?: AbortSignal): Promise<AuthenticatedChatConnection> {
+export async function connectChat(sessionId: string, signal?: AbortSignal,
+  destination: ChatDestination = { scope: "GLOBAL" }): Promise<AuthenticatedChatConnection> {
   signal?.throwIfAborted();
   const ticket = await requestChatTicket(sessionId);
   const frame = await authenticationFrame(ticket);
@@ -93,7 +98,8 @@ export async function connectChat(sessionId: string, signal?: AbortSignal): Prom
       close();
       reject(failure);
     };
-    const opened = () => socket.send(JSON.stringify(frame));
+    // 방 번호는 첫 AUTH에서만 지정하고 이후 연결 대상은 서버가 고정한다.
+    const opened = () => socket.send(JSON.stringify({ ...frame, ...destination }));
     const aborted = () => {
       if (settled) close();
       else fail(new DOMException("채팅 연결이 취소되었습니다.", "AbortError"));

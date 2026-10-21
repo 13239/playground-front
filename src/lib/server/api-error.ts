@@ -17,6 +17,14 @@ const errors = {
   ROOM_CODE_UNAVAILABLE: [503, "방을 만들지 못했습니다. 잠시 후 다시 시도해 주세요."],
   ROOM_RATE_LIMIT_EXCEEDED: [429, "방 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   ROOM_SERVICE_UNAVAILABLE: [503, "오목 서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해 주세요."],
+  // 대기실의 충돌·비밀번호 오류를 로그인 만료로 취급하지 않는다.
+  ROOM_ALREADY_JOINED: [409, "참여 중인 방이 있습니다. 기존 방에서 나간 뒤 입장해 주세요."],
+  ROOM_FULL: [409, "방이 가득 찼습니다. 다른 방을 선택해 주세요."],
+  ROOM_CLOSED: [410, "이미 닫힌 방입니다. 다른 방을 선택해 주세요."],
+  ROOM_NOT_JOINED: [409, "이 방의 참가자가 아닙니다. 목록에서 다시 입장해 주세요."],
+  ROOM_PASSWORD_REQUIRED: [400, "비공개 방 비밀번호를 입력해 주세요."],
+  ROOM_PASSWORD_INVALID: [400, "방 비밀번호가 올바르지 않습니다."],
+  ROOM_NOT_FULL: [409, "상대가 입장한 뒤 준비해 주세요."],
   // 채팅 연결 실패·재접속 제한은 로그인 실패나 계정 잠금으로 처리하지 않는다.
   CHAT_TICKET_RATE_LIMIT_EXCEEDED: [429, "채팅 접속 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   CHAT_SERVICE_UNAVAILABLE: [503, "채팅 서비스를 일시적으로 이용할 수 없습니다."],

@@ -3,7 +3,7 @@ import { revalidateAuthSession } from "@/features/auth/client/session-store";
 import { connectChat } from "./connection";
 import { mergeMessages } from "./message-window";
 import { parseChatEvent, sendChatFrame, validatedChatContent,
-  type ChatEvent, type PublicChatMessage, type PublicChatUser } from "./protocol";
+  type ChatEvent, type PublicChatMessage, type PublicChatUser, type ChatDestination } from "./protocol";
 
 const HISTORY_LIMIT = 30;
 const PRESENCE_LIMIT = 50;
@@ -47,6 +47,8 @@ export const EMPTY_CHAT = emptySnapshot();
 
 /** WebSocket이라는 외부 상태를 한 곳에서 관리한다. 여러 패널은 같은 유한 메시지 창과 연결을 공유한다. */
 export class GlobalChatStore {
+  // 기존 공용 채팅을 기본값으로 유지하되 대기실은 방별 독립 store로 재접속·중복 제거를 공유한다.
+  constructor(private readonly destination: ChatDestination = { scope: "GLOBAL" }) {}
   private snapshot = emptySnapshot();
   private readonly listeners = new Set<() => void>();
   private socket: WebSocket | null = null;
@@ -141,7 +143,7 @@ export class GlobalChatStore {
     if (generation !== this.generation || signal.aborted) return;
     this.update({ state: this.retries ? "reconnecting" : "connecting" });
     try {
-      const connection = await connectChat(sessionId, signal);
+      const connection = await connectChat(sessionId, signal, this.destination);
       if (generation !== this.generation || signal.aborted) { connection.close(); return; }
       this.connectionClose = connection.close;
       this.socket = connection.socket;
@@ -149,7 +151,7 @@ export class GlobalChatStore {
       const connectedAt = performance.now();
       const onMessage = (event: MessageEvent<unknown>) => {
         if (generation !== this.generation || this.socket !== socket) return;
-        const frame = parseChatEvent(event.data);
+        const frame = parseChatEvent(event.data, this.destination);
         if (frame) this.receive(frame);
       };
       // 종료 이벤트가 없는 통신 단절도 같은 정리·재접속 경로로 처리한다. 자동 재접속끼리는 소켓으로 구분한다.
@@ -157,7 +159,7 @@ export class GlobalChatStore {
         if (generation !== this.generation || this.socket !== socket || signal.aborted) return;
         if (performance.now() - connectedAt >= 30_000) this.retries = 0;
         this.cancelConnection();
-        if (closeCode === 4401 || closeCode === 4403) {
+        if (closeCode === 4401 || closeCode === 4403 && this.destination.scope === "GLOBAL") {
           this.update({ state: "expired" });
           revalidateAuthSession();
         } else this.reconnect(generation, sessionId, signal);
@@ -195,7 +197,7 @@ export class GlobalChatStore {
       this.scheduleRecovery(700);
     } catch (error) {
       if (generation !== this.generation || signal.aborted) return;
-      if (error instanceof AuthRequestError && (error.status === 401 || error.status === 403)) {
+      if (error instanceof AuthRequestError && (error.status === 401 || error.status === 403 && error.code !== "CHAT_ROOM_ACCESS_DENIED")) {
         this.update({ state: "expired" });
         revalidateAuthSession();
       } else this.reconnect(generation, sessionId, signal);
@@ -216,7 +218,7 @@ export class GlobalChatStore {
     // 서버의 CHAT_HISTORY 500ms 제한을 넘기면 WebSocket 자체가 종료된다.
     if (this.historyRequest || now - this.lastHistoryAt < 650 || now < this.blockedUntil) return false;
     const id = crypto.randomUUID();
-    if (!sendChatFrame(this.socket, { type: "CHAT_HISTORY", scope: "GLOBAL", requestId: id,
+    if (!sendChatFrame(this.socket, { type: "CHAT_HISTORY", ...this.destination, requestId: id,
       limit: HISTORY_LIMIT, ...(before ? { before } : {}) })) return false;
     this.lastHistoryAt = now;
     this.historyRequest = { id, before, items: [], live: [] };
@@ -236,6 +238,8 @@ export class GlobalChatStore {
   retry = (): void => { if (this.snapshot.sessionId) this.connect(this.snapshot.sessionId); };
 
   loadPresence = (cursor: string | null = null): boolean => {
+    // 방 인원은 MySQL 참가 상태에서 표시하며 공용 채팅 접속자 목록과 섞지 않는다.
+    if (this.destination.scope !== "GLOBAL") return false;
     const now = performance.now();
     // 서버는 접속자 목록 요청 간격이 1초 미만이면 연결을 종료하므로 클라이언트에서도 제한한다.
     if (this.presenceRequest || now - this.lastPresenceAt < 1200 || now < this.blockedUntil) return false;
@@ -266,7 +270,7 @@ export class GlobalChatStore {
   };
 
   private transmit(item: PendingChatMessage): boolean {
-    if (!sendChatFrame(this.socket, { type: "CHAT_SEND", scope: "GLOBAL",
+    if (!sendChatFrame(this.socket, { type: "CHAT_SEND", ...this.destination,
       clientMessageId: item.clientMessageId, content: item.content })) return false;
     this.lastSendAt = performance.now();
     // Kafka 접수는 MongoDB 저장 확정이 아니므로 서버의 CHAT_MESSAGE/상태 조회까지 전송 중으로 표시한다.
@@ -313,7 +317,7 @@ export class GlobalChatStore {
   private queryStatus(id: string, manual: boolean): boolean {
     const now = performance.now();
     if (this.statusRequest || now - this.lastStatusAt < 650 || now < this.blockedUntil) return false;
-    if (!sendChatFrame(this.socket, { type: "CHAT_STATUS", scope: "GLOBAL", clientMessageId: id })) return false;
+    if (!sendChatFrame(this.socket, { type: "CHAT_STATUS", ...this.destination, clientMessageId: id })) return false;
     this.lastStatusAt = now;
     this.statusRequest = { clientMessageId: id, manual };
     this.statusTimer = setTimeout(() => {

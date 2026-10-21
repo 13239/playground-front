@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { AuthRequestError } from "@/features/auth/client/api";
 import { revalidateAuthSession } from "@/features/auth/client/session-store";
@@ -133,7 +134,7 @@ export function HostedRoomDialog({
           {copied ? "복사 완료" : "복사"}
         </button>
       </div>
-      <p className={styles.muted}>방 입장과 대기실은 곧 열릴 예정이에요.</p>
+      <p className={styles.muted}>친구에게 방 코드를 알려주고 대기실에서 함께 준비해보세요.</p>
       {error && (
         <p className={styles.error} role="alert">
           {error}
@@ -171,13 +172,7 @@ export function HostedRoomDialog({
           >
             방 닫기
           </button>
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={onClose}
-          >
-            목록 보기
-          </button>
+          <Link className={styles.primaryButton} href={`/games/gomoku/rooms/${room.id}`}>대기실로</Link>
         </div>
       )}
     </RoomDialog>

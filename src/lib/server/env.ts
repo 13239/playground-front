@@ -54,6 +54,22 @@ export function getAppOrigin(): string {
   return origin;
 }
 
+/** 최적화한 local 빌드도 별도 chat 포트에 연결하되 CSP에는 검증한 정확한 WebSocket Origin만 허용한다. */
+export function getChatWebSocketOrigin(): string {
+  const origin = getAppOrigin();
+  const environment = getAppEnvironment();
+  try {
+    const value = process.env.CHAT_WEBSOCKET_URL ?? (environment === "local"
+      ? "ws://localhost:8081/ws/chat" : `${origin.replace(/^http/, "ws")}/ws/chat`);
+    const url = new URL(value);
+    if (!["ws:", "wss:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/ws/chat" || url.search || url.hash
+      || origin.startsWith("https:") && url.protocol !== "wss:"
+      || environment === "local" && !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+      || environment !== "local" && url.host !== new URL(origin).host) throw new Error();
+    return url.origin;
+  } catch { throw new ApiError("SERVER_CONFIGURATION_ERROR"); }
+}
+
 export function getBackendTimeout(): number {
   const value = process.env.BACKEND_TIMEOUT_MS ?? "10000";
   const timeout = Number(value);

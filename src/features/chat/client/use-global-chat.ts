@@ -3,14 +3,20 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAuthSession } from "@/features/auth/client/session-store";
 import { EMPTY_CHAT, GlobalChatStore } from "./global-chat-store";
+import type { ChatDestination } from "./protocol";
 
 export type { PendingChatMessage, ChatConnectionState, ChatActionResult } from "./global-chat-store";
 
 /** 로비 단위로 한 번만 연결한다. 화면에 동시에 존재하는 PC·모바일 패널은 상태를 공유한다. */
 export function useGlobalChat() {
+  return useChatConnection({ scope: "GLOBAL" });
+}
+
+/** 방 채팅도 공통 인증·메모리 상한·전송 복구를 재사용한다. 호출 컴포넌트는 방·참가 식별자로 구분한다. */
+export function useChatConnection(destination: ChatDestination) {
   const auth = useAuthSession();
   const sessionId = auth.status === "authenticated" ? auth.session.sessionId : null;
-  const [store] = useState(() => new GlobalChatStore());
+  const [store] = useState(() => new GlobalChatStore(destination));
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
 
   useEffect(() => {

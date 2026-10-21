@@ -1,0 +1,848 @@
+/* 시안의 장면·참가자·방 채팅을 대기실 안에 격리하고 5K까지 읽기 좋은 최대 폭은 공통 화면에서 유지한다. */
+.waitingPage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 24%);
+  gap: 1em;
+  padding: 0.4em 0.8em;
+  color: #17104f;
+}
+.scene {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2em;
+  min-width: 0;
+  min-height: min(850px, calc(100svh - 10em));
+  padding: 1.6em;
+  overflow: hidden;
+  border-radius: 1.4em;
+  background: #e7e4fb;
+}
+.sceneImage {
+  object-fit: cover;
+  object-position: center;
+  z-index: -2;
+}
+.scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, #f2f6ff92, #f3edff30 55%, #fff4fc45);
+}
+.roomHeader,
+.heading,
+.titleRow,
+.roomCode,
+.participantCount {
+  display: flex;
+  align-items: center;
+}
+.roomHeader {
+  justify-content: space-between;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+.heading {
+  gap: 0.9em;
+  min-width: 0;
+  flex: 1 1 19em;
+}
+.gameIcon {
+  display: grid;
+  place-items: center;
+  width: 3.8em;
+  aspect-ratio: 1;
+  border: 2px solid #eecf9a;
+  border-radius: 1em;
+  color: #8c5426;
+  background: linear-gradient(135deg, #ffda9c, #dc9749);
+  box-shadow: 0 3px 8px #83633113;
+}
+.gameIcon svg {
+  width: 2.2em !important;
+  height: 2.2em !important;
+}
+.titleRow {
+  gap: 1em;
+  flex-wrap: wrap;
+}
+.titleRow h1 {
+  margin: 0;
+  font-size: clamp(1.4em, 1.65vw, 2em);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+}
+.heading > div {
+  min-width: 0;
+}
+.heading p {
+  margin: 0.3em 0 0;
+  max-width: 30em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #625594;
+  font-size: 0.85em;
+}
+.participantCount {
+  gap: 0.35em;
+  padding: 0.5em 0.7em;
+  border: 1px solid #fff;
+  border-radius: 2em;
+  background: #ffffffa6;
+  font-size: 0.75em;
+  font-weight: 750;
+  color: #7c2af1;
+  white-space: nowrap;
+}
+.roomCode {
+  gap: 1em;
+  padding: 0.5em 0.6em 0.5em 0.9em;
+  border: 2px solid white;
+  border-radius: 1.7em;
+  background: #ffffffbf;
+  box-shadow: 0 3px 18px #a69bdb20;
+}
+.roomCode > span {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  color: #8439ef;
+  font-size: 0.82em;
+  white-space: nowrap;
+}
+.roomCode strong {
+  color: #7027ef;
+  font-size: 1.8em;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+.roomCode button {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: 44px;
+  padding: 0.65em 0.8em;
+  border: 1px solid #d9a9ff;
+  border-radius: 0.8em;
+  color: white;
+  background: linear-gradient(135deg, #9b35ff, #6122f2);
+  font-size: 0.82em !important;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.manualCopy {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  flex-wrap: wrap;
+  font-size: 0.85em;
+}
+.manualCopy input {
+  max-width: 10em;
+}
+.playerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0.3fr minmax(0, 1fr);
+  align-items: center;
+  gap: 1em;
+  width: min(90%, 54em);
+  margin: 0.2em auto 0;
+}
+.playerCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.8em;
+  min-width: 0;
+  min-height: 18em;
+  padding: 1.4em 1em 1em;
+  border: 1px solid #d9d5ff;
+  border-radius: 1.3em;
+  background: linear-gradient(150deg, #fffc, #f7f4ffed);
+  box-shadow: 0 7px 25px #63469b16;
+}
+.selfCard {
+  border: 2px solid #a75cff;
+  box-shadow:
+    0 0 0 3px #d9c5ff50,
+    0 8px 28px #7e4cbb20;
+}
+.hostBadge {
+  position: absolute;
+  top: 0.65em;
+  left: 0.75em;
+  padding: 0.28em 0.65em;
+  border-radius: 2em;
+  background: linear-gradient(110deg, #ffbd50, #ff8f3e);
+  color: white;
+  font-size: 0.8em;
+  font-weight: 850;
+}
+.avatarCircle {
+  width: min(75%, 12em);
+  aspect-ratio: 1;
+  margin-top: 0.4em;
+  overflow: hidden;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #d7d8ff, #f4eaff);
+  box-shadow: 0 0 0 5px #e8e4ff90;
+}
+.avatarCircle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: multiply;
+}
+.playerCard h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45em;
+  max-width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.45em;
+  line-height: 1.3;
+  font-weight: 900;
+  text-align: center;
+}
+.playerCard h2 small {
+  padding: 0.25em 0.5em;
+  border-radius: 0.8em;
+  background: #e5d5ff;
+  color: #8b3de7;
+  font-size: 0.5em;
+  flex-shrink: 0;
+}
+.readyState {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  justify-content: center;
+  min-width: 7em;
+  padding: 0.45em 0.9em;
+  border-radius: 2em;
+  background: #ded2fc;
+  color: #7874ae;
+  font-size: 0.95em;
+  font-weight: 750;
+}
+.isReady {
+  background: linear-gradient(120deg, #05cfaa, #08ac99);
+  color: white;
+}
+.emptyPlayer {
+  border-style: dashed;
+  background: #ffffffbd;
+}
+.emptyAvatar {
+  display: grid;
+  place-items: center;
+  width: min(75%, 12em);
+  aspect-ratio: 1;
+  margin-top: 0.4em;
+  border: 2px dashed #d5c2ff;
+  border-radius: 50%;
+  background: #f1eaff9e;
+  color: #baa1ed;
+}
+.emptyAvatar svg {
+  width: 4em !important;
+  height: 4em !important;
+}
+.emptyPlayer h2 {
+  color: #7f73a8;
+  font-size: 1.1em;
+}
+.emptyPlayer p {
+  margin: -0.5em 0 0;
+  color: #a298ba;
+  font-size: 0.8em;
+  text-align: center;
+}
+.versus {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 0.5em;
+  min-width: 0;
+  text-align: center;
+  color: #ffebb1;
+}
+.versus::before {
+  content: "";
+  position: absolute;
+  width: 5em;
+  aspect-ratio: 1;
+  transform: rotate(45deg);
+  border-radius: 1.5em;
+  background: linear-gradient(135deg, #c18bfa9e, #dbc6ff65);
+  filter: blur(3px);
+}
+.versus strong {
+  position: relative;
+  font-size: 3.2em;
+  font-style: italic;
+  font-weight: 950;
+  color: white;
+  text-shadow: 0 3px 8px #9653e5;
+}
+.versus span {
+  position: relative;
+  font-size: 2em;
+}
+.rules {
+  margin-top: auto;
+  padding: 1em;
+  border: 1px solid white;
+  border-radius: 1.2em;
+  background: #f9faffed;
+  box-shadow: 0 6px 20px #5042870d;
+}
+.rules h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  margin: 0 0 0.75em;
+  font-size: 1.15em;
+  font-weight: 850;
+}
+.rules h2 svg {
+  color: #922eff;
+}
+.ruleGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65em;
+  margin: 0;
+}
+.ruleTile {
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  min-width: 0;
+  padding: 0.8em 0.65em;
+  border: 1px solid #eeebff;
+  border-radius: 0.9em;
+  background: #ffffffdf;
+}
+.ruleTile > div {
+  min-width: 0;
+}
+.ruleTile dt {
+  font-size: 0.78em;
+  color: #8b80b2;
+  white-space: nowrap;
+}
+.ruleTile dd {
+  margin: 0.2em 0 0;
+  color: #211360;
+  font-size: 1.12em;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.ruleTile small {
+  display: block;
+  margin-top: 0.2em;
+  font-size: 0.6em;
+  color: #8a83b4;
+  white-space: nowrap;
+}
+.ruleIcon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.6em;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #e7f1ff;
+  color: #1580ff;
+}
+.ruleIcon[data-color="orange"] {
+  background: #fff0dd;
+  color: #ff811b;
+}
+.ruleIcon[data-color="cyan"] {
+  background: #e5fbff;
+  color: #00abd6;
+}
+.ruleIcon[data-color="green"] {
+  background: #e8fff3;
+  color: #04ba8d;
+}
+.notice {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1em;
+  margin-top: 0.8em;
+  padding: 0.8em;
+  border: 1px solid #ece5ff;
+  border-radius: 0.9em;
+  background: #ffffffba;
+  text-align: left;
+}
+.notice > svg {
+  width: 2em !important;
+  height: 2em !important;
+  color: #9239f9;
+}
+.notice strong {
+  font-size: 0.98em;
+  font-weight: 850;
+}
+.notice p {
+  margin: 0.25em 0 0;
+  color: #8a7eaf;
+  font-size: 0.78em;
+  line-height: 1.6;
+}
+.roomActions {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1em;
+  width: min(70%, 660px);
+  margin: -0.2em auto 0;
+}
+.roomActions button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.65em;
+  min-height: 3.4em;
+  padding: 0.8em 1.2em;
+  border-radius: 0.8em;
+  font-size: 1.1em;
+  font-weight: 850;
+}
+.readyButton {
+  border: 1px solid #b46dff;
+  background: linear-gradient(115deg, #a62bff, #5f23ff);
+  color: white;
+  box-shadow: 0 5px 15px #8b4fff40;
+}
+.readyButton[aria-pressed="true"] {
+  background: #fff;
+  color: #7d3bd9;
+}
+.leaveButton {
+  border: 1px solid #ff878f;
+  background: #fffffff0;
+  color: #f04458;
+}
+.error {
+  margin: 0;
+  padding: 0.6em;
+  border-radius: 0.7em;
+  background: #fff4f7;
+  color: #ab3659;
+  font-size: 0.85em;
+  text-align: center;
+}
+.fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1em;
+  min-height: 60svh;
+  padding: 2em;
+  text-align: center;
+}
+.fallback > svg {
+  width: 3em !important;
+  height: 3em !important;
+  color: #9655ed;
+}
+.fallback h1 {
+  margin: 0;
+  font-size: 1.6em;
+  font-weight: 850;
+}
+.fallback p {
+  max-width: 32em;
+  color: #85799f;
+}
+/* 채팅은 실제 참가자 두 명의 방 연결만 사용하며 작은 화면에서는 대기실 아래에 같은 패널을 배치한다. */
+.roomChat {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 36em;
+  max-height: max(36em, calc(100svh - 9em));
+  border: 1px solid white;
+  border-radius: 1.35em;
+  overflow: hidden;
+  background: linear-gradient(155deg, #ffffffee, #f1f7ffef);
+}
+.chatHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 1.3em 1em;
+}
+.chatHeader h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0 auto 0 0;
+  font-size: 1.1em;
+  font-weight: 850;
+}
+.chatHeader h2 svg {
+  color: #9233ff;
+}
+.connectionDot {
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: #c9b8e4;
+}
+.connectionDot[data-connected="true"] {
+  background: #04c895;
+}
+.chatCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.3em 0.65em;
+  border: 1px solid #ebe6fc;
+  border-radius: 2em;
+  background: #f7f5ff;
+  font-size: 0.85em;
+}
+.chatBody {
+  flex: 1;
+  min-height: 0;
+  padding: 0.3em 0.85em 1em;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.systemNotice {
+  margin-bottom: 0.75em;
+  padding: 0.9em;
+  border: 1px solid #eee9ff;
+  border-radius: 1em;
+  background: #ffffffb8;
+  font-size: 0.78em;
+}
+.systemNotice strong {
+  color: #3a236e;
+  font-weight: 800;
+}
+.systemNotice small {
+  margin-left: 0.45em;
+  padding: 0.18em 0.4em;
+  border-radius: 0.6em;
+  color: #a17be2;
+  background: #f1e6ff;
+  font-size: 0.8em;
+  font-weight: 500;
+}
+.systemNotice p {
+  margin: 0.45em 0 0;
+  color: #6b5a92;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  margin: 1em 0 0;
+  padding: 0;
+  list-style: none;
+}
+.message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  min-width: 0;
+}
+.message > img {
+  flex: 0 0 2.5em;
+  width: 2.5em;
+  height: 2.5em;
+  border-radius: 50%;
+}
+.message > div {
+  min-width: 0;
+  max-width: calc(100% - 3em);
+}
+.messageMeta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.6em;
+  margin: 0 0 0.3em;
+  font-size: 0.75em;
+}
+.messageMeta strong {
+  font-size: 1.12em;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.messageMeta time,
+.messageMeta small {
+  color: #9a8dba;
+  font-size: 0.85em;
+}
+.message p {
+  display: inline-block;
+  margin: 0;
+  padding: 0.65em 0.8em;
+  border-radius: 0.1em 1em 1em;
+  background: #ece4ff;
+  color: #493180;
+  font-size: 0.85em;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message[data-own="true"] p {
+  background: #e6edff;
+}
+.pendingMessage {
+  padding-left: 3em;
+  opacity: 0.72;
+}
+.chatFooter {
+  position: relative;
+  padding: 0.8em;
+  border-top: 1px solid #eceeff;
+  background: #f8faffba;
+}
+.chatStatus {
+  margin: 0 0 0.6em;
+  font-size: 0.7em;
+  line-height: 1.7;
+  color: #9d90b9;
+  text-align: center;
+}
+.composer {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  min-height: 3.8em;
+  padding: 0.35em;
+  border: 1px solid #dcd9ff;
+  border-radius: 1em;
+  background: #fff;
+}
+.composer button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.4em;
+  border: 0;
+  border-radius: 0.75em;
+  color: #a39bcf;
+  background: transparent;
+}
+.composer .sendButton {
+  background: linear-gradient(130deg, #c98bff, #a373ed);
+  color: white;
+}
+.composer input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px !important;
+  padding: 0.3em !important;
+  border: 0 !important;
+  background: transparent !important;
+  font-size: 16px !important;
+  color: #5c4783;
+}
+.chatTextButton {
+  min-height: 44px;
+  padding: 0.45em 0.6em;
+  border: 0;
+  border-radius: 0.6em;
+  background: #f0eaff;
+  color: #9162cb;
+  font-size: 0.72em !important;
+}
+.emojiTray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2em;
+  margin: 0.3em 0 0.7em;
+  padding: 0.4em;
+  border: 1px solid #eae2fd;
+  border-radius: 0.7em;
+  background: white;
+}
+.emojiTray button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 0.5em;
+  background: #f8f4ff;
+  font-size: 1.1em;
+}
+@media (max-width: 1500px) {
+  .waitingPage {
+    grid-template-columns: minmax(0, 1fr) minmax(290px, 25%);
+  }
+  .scene {
+    padding: 1.1em;
+  }
+  .playerRow {
+    width: 94%;
+  }
+  .ruleTile {
+    gap: 0.4em;
+    padding: 0.8em 0.45em;
+  }
+  .ruleIcon {
+    width: 2em;
+  }
+  .ruleTile dd {
+    font-size: 1em;
+  }
+  .roomCode {
+    gap: 0.7em;
+  }
+}
+@media (max-width: 1100px) {
+  .waitingPage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .scene {
+    min-height: 0;
+  }
+  .roomChat {
+    height: 34em;
+    min-height: 0;
+    max-height: 70svh;
+  }
+  .playerRow {
+    width: min(90%, 800px);
+  }
+}
+@media (max-width: 700px) {
+  .waitingPage {
+    padding: 0.2em 0.5em;
+    gap: 0.8em;
+  }
+  .scene {
+    padding: 1em 0.75em;
+    gap: 1.2em;
+  }
+  .heading {
+    flex-basis: 100%;
+  }
+  .titleRow {
+    gap: 0.5em;
+  }
+  .titleRow h1 {
+    font-size: 1.6em;
+  }
+  .roomCode {
+    width: 100%;
+    justify-content: space-between;
+    padding: 0.45em 0.6em;
+    border-radius: 1.1em;
+  }
+  .roomCode strong {
+    font-size: 1.7em;
+  }
+  .playerRow {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) 1.8em minmax(0, 1fr);
+    gap: 0.45em;
+  }
+  .playerCard {
+    gap: 0.8em;
+    min-height: 16em;
+    padding: 2em 0.5em 1em;
+    border-radius: 1em;
+  }
+  .avatarCircle,
+  .emptyAvatar {
+    width: 85%;
+  }
+  .playerCard h2 {
+    font-size: 1.1em;
+  }
+  .emptyPlayer h2 {
+    font-size: 0.9em;
+  }
+  .hostBadge {
+    font-size: 0.7em;
+    left: 0.5em;
+    top: 0.55em;
+  }
+  .readyState {
+    min-width: 0;
+    padding: 0.4em 0.6em;
+    font-size: 0.78em;
+  }
+  .versus strong {
+    font-size: 1.65em;
+  }
+  .versus span {
+    font-size: 1.4em;
+  }
+  .versus::before {
+    width: 2.5em;
+  }
+  .rules {
+    padding: 0.9em;
+  }
+  .ruleGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5em;
+  }
+  .ruleTile {
+    gap: 0.6em;
+    padding: 0.8em;
+  }
+  .ruleTile:last-child {
+    grid-column: 1/-1;
+  }
+  .ruleTile dd {
+    font-size: 1.1em;
+  }
+  .ruleTile small {
+    font-size: 0.65em;
+  }
+  .notice {
+    padding: 0.8em 0.6em;
+    gap: 0.6em;
+  }
+  .notice strong {
+    font-size: 0.9em;
+  }
+  .notice p {
+    font-size: 0.74em;
+  }
+  .roomActions {
+    width: 100%;
+    gap: 0.65em;
+  }
+  .roomActions button {
+    min-height: 3.4em;
+    padding: 0.65em 0.5em;
+    font-size: 1em;
+  }
+  .roomChat {
+    height: 34em;
+    max-height: 75svh;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .waitingPage * {
+    scroll-behavior: auto;
+  }
+}

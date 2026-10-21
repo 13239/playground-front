@@ -1,5 +1,8 @@
 import { isProfileAvatarId, type ProfileAvatarId } from "@/features/profile/catalog";
 
+/** 공용 채팅과 방 채팅은 별도 연결·메시지 창을 사용하며 방 번호는 서버 참가 검증 대상이다. */
+export type ChatDestination = Readonly<{ scope: "GLOBAL" }> | Readonly<{ scope: "GAME_ROOM"; gameType: "GOMOKU"; roomId: number }>;
+
 /** 채팅 서버는 저장 완료 메시지·이력·접속자 정보만 공개하며 내부 사용자 식별자는 받지 않는다. */
 export type PublicChatUser = Readonly<{ nickname: string; avatarId: ProfileAvatarId }>;
 export type PublicChatMessage = Readonly<{
@@ -36,8 +39,11 @@ function user(value: unknown): value is PublicChatUser {
     && [...value.nickname].length <= 50 && isProfileAvatarId(value.avatarId);
 }
 
-function message(value: unknown): value is PublicChatMessage {
+function message(value: unknown, destination: ChatDestination): value is PublicChatMessage {
   return object(value) && typeof value.id === "string" && mongoIdPattern.test(value.id)
+    && value.scope === destination.scope
+    && (destination.scope === "GLOBAL" ? value.gameType == null && value.roomId == null
+      : value.gameType === destination.gameType && value.roomId === destination.roomId)
     && (value.clientMessageId === undefined || (typeof value.clientMessageId === "string" && uuidPattern.test(value.clientMessageId)))
     // 사용자 타입으로 좁히기 전에 메시지 고유 필드를 검증해 타입 정보가 사라지지 않게 한다.
     && typeof value.content === "string" && [...value.content].length <= 1000
@@ -50,19 +56,19 @@ function validCount(value: unknown): value is number {
 }
 
 /** 알 수 없는 프레임·너무 큰 문자열·잘못된 서버 응답은 UI 상태에 반영하지 않는다. */
-export function parseChatEvent(data: unknown): ChatEvent | null {
+export function parseChatEvent(data: unknown, destination: ChatDestination = { scope: "GLOBAL" }): ChatEvent | null {
   if (typeof data !== "string" || data.length > 16_384) return null;
   let value: unknown;
   try { value = JSON.parse(data); } catch { return null; }
   if (!object(value) || value.version !== 1) return null;
   switch (value.type) {
     case "CHAT_MESSAGE":
-      return message(value.message) ? { type: "CHAT_MESSAGE", message: value.message } : null;
+      return message(value.message, destination) ? { type: "CHAT_MESSAGE", message: value.message } : null;
     case "CHAT_ACCEPTED":
       return typeof value.clientMessageId === "string" && uuidPattern.test(value.clientMessageId)
         ? { type: "CHAT_ACCEPTED", clientMessageId: value.clientMessageId } : null;
     case "CHAT_HISTORY_ITEM":
-      return typeof value.requestId === "string" && uuidPattern.test(value.requestId) && message(value.message)
+      return typeof value.requestId === "string" && uuidPattern.test(value.requestId) && message(value.message, destination)
         ? { type: "CHAT_HISTORY_ITEM", requestId: value.requestId, message: value.message } : null;
     case "CHAT_HISTORY_END":
       return typeof value.requestId === "string" && uuidPattern.test(value.requestId)
@@ -83,7 +89,7 @@ export function parseChatEvent(data: unknown): ChatEvent | null {
       // 다른 사용자의 결과나 요청 UUID가 다른 메시지를 전송 완료로 처리하지 않는다.
       return typeof value.clientMessageId === "string" && uuidPattern.test(value.clientMessageId)
         && typeof value.stored === "boolean"
-        && (value.stored ? message(value.message) && value.message.ownMessage
+        && (value.stored ? message(value.message, destination) && value.message.ownMessage
           && value.message.clientMessageId === value.clientMessageId : value.message == null)
         ? { type: "CHAT_STATUS_RESULT", clientMessageId: value.clientMessageId, stored: value.stored,
             ...(value.stored ? { message: value.message as PublicChatMessage } : {}) } : null;

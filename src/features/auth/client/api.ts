@@ -12,7 +12,9 @@ export { AuthRequestError } from "./error";
 // 프로필은 인증과 같은 브라우저 증명·탭 잠금·한 번의 토큰 갱신 절차를 공유한다.
 // 방 검색·생성·닫기도 기능별로 인증을 복제하지 않고 이 잠금과 갱신을 재사용한다.
 // 채팅의 일회용 접속 증명도 같은 로그인·토큰 갱신 경계를 통과한다.
-type FeaturePath = "/api/auth/profile" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close" | "/api/chat/tickets";
+// 대기실도 공통 잠금·브라우저 증명·토큰 갱신을 재사용하고 별도 인증 쿠키를 만들지 않는다.
+type FeaturePath = "/api/auth/profile" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close"
+  | "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/leave" | "/api/chat/tickets";
 type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | FeaturePath;
 
 async function authRequest(path: AuthPath, input?: LoginInput | SessionMutationInput): Promise<Response> {

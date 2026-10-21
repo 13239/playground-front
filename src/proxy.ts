@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getAppOrigin } from "@/lib/server/env";
+import { getAppOrigin, getChatWebSocketOrigin } from "@/lib/server/env";
 
 /** HTML마다 새로운 nonce를 생성한다. 외부 x-nonce/CSP 헤더는 덮어쓰며 인증 판별은 API에서 수행한다. */
 export function proxy(request: NextRequest) {
@@ -7,13 +7,15 @@ export function proxy(request: NextRequest) {
   const development = process.env.NODE_ENV === "development";
   // dev도 최적화 빌드의 엄격한 CSP를 쓴다. HTTPS 강제 헤더만 공개 Origin의 실제 프로토콜에 맞춘다.
   const https = getAppOrigin().startsWith("https://");
+  // HMR·같은 호스트의 운영 WSS·로컬 chat 포트만 허용하고 임의의 ws:/wss: 서버 전체는 열지 않는다.
+  const socketSources = [...new Set([getAppOrigin().replace(/^http/, "ws"), getChatWebSocketOrigin()])].join(" ");
   const csp = [
     "default-src 'self'", `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${development ? " 'unsafe-eval'" : ""}`,
     "script-src-attr 'none'", development ? "style-src 'self' 'unsafe-inline'" : `style-src 'self' 'nonce-${nonce}'`,
     // next/image의 위치·크기 스타일 속성만 허용한다. 스크립트의 inline 실행은 별도로 금지한다.
     "style-src-attr 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self'", "object-src 'none'",
     "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'",
-    `connect-src 'self'${development ? " ws: wss:" : ""}`,
+    `connect-src 'self' ${socketSources}`,
     ...(https && !development ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
   const headers = new Headers(request.headers);
