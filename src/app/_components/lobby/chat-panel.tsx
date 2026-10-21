@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { useChat } from "@/features/chat/client/chat-provider";
 import { LobbyIcon } from "./lobby-icon";
@@ -21,22 +21,25 @@ export function ChatPanel({
   const [draft, setDraft] = useState("");
   const [composerError, setComposerError] = useState("");
   const [onlineOpen, setOnlineOpen] = useState(false);
+  const [lastActive, setLastActive] = useState(active);
+  const [draftSession, setDraftSession] = useState(chat.sessionId);
   const [presenceSpinning, setPresenceSpinning] = useState(false);
   const [presenceSpinTick, setPresenceSpinTick] = useState(0);
   const bodyRef = useRef<HTMLDivElement>(null);
   const onlineRef = useRef<HTMLDivElement>(null);
   const nearBottom = useRef(true);
-  const preserveScroll = useRef<number | null>(null);
+  const preserveScroll = useRef<{ id: string; offset: number } | null>(null);
   const previousMessageCount = useRef(0);
   const connected = chat.state === "connected";
+  const { loadPresence } = chat;
   const onlineLabel =
     chat.onlineCount === null
       ? "접속자 확인 중"
       : `${chat.onlineCount.toLocaleString("ko-KR")}명 접속 중`;
 
   useEffect(() => {
-    if (onlineOpen && connected && active) chat.loadPresence(0);
-  }, [onlineOpen, connected, active, chat.loadPresence]);
+    if (onlineOpen && connected && active) loadPresence();
+  }, [onlineOpen, connected, active, loadPresence]);
 
   useEffect(() => {
     if (!presenceSpinning) return;
@@ -70,27 +73,44 @@ export function ChatPanel({
     };
   }, [onlineOpen]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const body = bodyRef.current;
     if (!active || !body) return;
     if (preserveScroll.current !== null) {
-      body.scrollTop += body.scrollHeight - preserveScroll.current;
-      preserveScroll.current =
-        chat.history === "loading" ? body.scrollHeight : null;
+      // 500개 창에서 뒤쪽을 제거하면 전체 높이가 같아질 수 있으므로 보이던 메시지의 위치를 기준으로 보정한다.
+      const anchor = preserveScroll.current;
+      const message = body.querySelector<HTMLElement>(`[data-chat-message-id="${anchor.id}"]`);
+      if (message) body.scrollTop += message.getBoundingClientRect().top - body.getBoundingClientRect().top - anchor.offset;
+      if (chat.history !== "loading") preserveScroll.current = null;
     } else if (nearBottom.current || previousMessageCount.current === 0) {
       body.scrollTop = body.scrollHeight;
     }
     previousMessageCount.current = chat.messages.length;
   }, [chat.messages, chat.pending, chat.history, active]);
 
-  // 이미 열려 있는 접속자 팝업은 패널을 닫을 때 함께 닫는다.
-  useEffect(() => {
+  // 이미 열려 있는 접속자 팝업은 패널을 닫을 때 함께 닫는다. Effect의 추가 렌더 대신 prop 전환에 맞춰 조정한다.
+  if (lastActive !== active) {
+    setLastActive(active);
     if (!active) setOnlineOpen(false);
-  }, [active]);
+  }
+  // 다른 계정으로 전환됐을 때 이전 사용자의 작성 중 본문과 팝업 상태를 새 로그인에 남기지 않는다.
+  if (chat.sessionId && draftSession !== chat.sessionId) {
+    setDraftSession(chat.sessionId);
+    setDraft("");
+    setComposerError("");
+    setOnlineOpen(false);
+  }
 
   function loadEarlier() {
     const body = bodyRef.current;
-    if (body) preserveScroll.current = body.scrollHeight;
+    if (body) {
+      const top = body.getBoundingClientRect().top;
+      const message = [...body.querySelectorAll<HTMLElement>("[data-chat-message-id]")]
+        .find((element) => element.getBoundingClientRect().bottom > top);
+      if (message?.dataset.chatMessageId) {
+        preserveScroll.current = { id: message.dataset.chatMessageId, offset: message.getBoundingClientRect().top - top };
+      }
+    }
     if (!chat.loadOlder()) preserveScroll.current = null;
   }
 
@@ -150,7 +170,7 @@ export function ChatPanel({
                     aria-label="접속자 목록 새로고침"
                     aria-busy={presenceSpinning}
                     onClick={() => {
-                      chat.loadPresence(0);
+                      chat.loadPresence();
                       setPresenceSpinning(true);
                       setPresenceSpinTick((value) => value + 1);
                     }}
@@ -175,13 +195,13 @@ export function ChatPanel({
                       : "표시할 접속자가 없어요."}
                   </p>
                 )}
-                {chat.onlineNextOffset !== null && (
+                {chat.onlineNextCursor !== null && (
                   <div className={styles.onlineActions}>
                     <button
                       type="button"
                       disabled={chat.onlineLoading}
                       onClick={() =>
-                        chat.loadPresence(chat.onlineNextOffset ?? 0)
+                        chat.loadPresence(chat.onlineNextCursor)
                       }
                     >
                       더 보기
@@ -241,11 +261,16 @@ export function ChatPanel({
           <button
             type="button"
             className={styles.chatLoadMore}
-            onClick={() => chat.retry()}
+            onClick={chat.retryHistory}
           >
             대화 다시 불러오기
           </button>
         )}
+        {/* 과거 탐색 중에는 메시지 창을 보존하고 사용자가 원할 때 최신 대화로 복귀한다. */}
+        {chat.viewingOlder && <button type="button" className={styles.chatLoadMore} disabled={chat.history === "loading"}
+          onClick={() => { preserveScroll.current = null; nearBottom.current = true; chat.returnToLatest(); }}>
+          {chat.hasNewMessages ? "새 대화가 있어요 · 최신 대화 보기" : "최신 대화 보기"}
+        </button>}
         <div className={styles.welcomeMessage}>
           <span className={styles.systemAvatar}>
             <LobbyIcon name="gamepad" />
@@ -277,6 +302,7 @@ export function ChatPanel({
           {chat.messages.map((message) => (
             <li
               key={message.id}
+              data-chat-message-id={message.id}
               className={`${styles.chatMessage} ${message.ownMessage ? styles.myChatMessage : ""}`}
             >
               {!message.ownMessage && (
@@ -315,6 +341,9 @@ export function ChatPanel({
                   </span>
                 </span>
                 <p>{pending.content}</p>
+                {/* 본문과 요청 식별자는 유지하고 서버 저장 여부를 먼저 확인한 뒤 재전송한다. */}
+                {pending.state !== "queued" && <button type="button" className={styles.chatRetry}
+                  disabled={!connected} onClick={() => chat.retryMessage(pending.clientMessageId)}>전송 확인 후 다시 보내기</button>}
               </div>
             </li>
           ))}

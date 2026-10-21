@@ -18,7 +18,9 @@ export type ChatEvent =
   | Readonly<{ type: "CHAT_HISTORY_ITEM"; requestId: string; message: PublicChatMessage }>
   | Readonly<{ type: "CHAT_HISTORY_END"; requestId: string; hasMore: boolean; nextCursor: string | null }>
   | Readonly<{ type: "PRESENCE_CHANGED"; onlineCount: number }>
-  | Readonly<{ type: "PRESENCE_SNAPSHOT"; onlineCount: number; onlineUsers: PublicChatUser[]; hasMore: boolean; nextOnlineOffset: number | null }>
+  | Readonly<{ type: "PRESENCE_SNAPSHOT"; requestId: string; onlineCount: number; onlineUsers: PublicChatUser[]; hasMore: boolean; nextOnlineCursor: string | null }>
+  | Readonly<{ type: "CHAT_STATUS_RESULT"; clientMessageId: string; stored: boolean; message?: PublicChatMessage }>
+  | Readonly<{ type: "CHAT_ERROR"; operation: string; code: string; retryAfterMillis: number; clientMessageId?: string; requestId?: string }>
   | Readonly<{ type: "PONG" }>;
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -37,9 +39,10 @@ function user(value: unknown): value is PublicChatUser {
 function message(value: unknown): value is PublicChatMessage {
   return object(value) && typeof value.id === "string" && mongoIdPattern.test(value.id)
     && (value.clientMessageId === undefined || (typeof value.clientMessageId === "string" && uuidPattern.test(value.clientMessageId)))
-    && user(value) && typeof value.content === "string" && [...value.content].length <= 1000
+    // 사용자 타입으로 좁히기 전에 메시지 고유 필드를 검증해 타입 정보가 사라지지 않게 한다.
+    && typeof value.content === "string" && [...value.content].length <= 1000
     && typeof value.createdAt === "string" && Number.isFinite(Date.parse(value.createdAt))
-    && typeof value.ownMessage === "boolean";
+    && typeof value.ownMessage === "boolean" && user(value);
 }
 
 function validCount(value: unknown): value is number {
@@ -69,12 +72,32 @@ export function parseChatEvent(data: unknown): ChatEvent | null {
     case "PRESENCE_CHANGED":
       return validCount(value.onlineCount) ? { type: "PRESENCE_CHANGED", onlineCount: value.onlineCount } : null;
     case "PRESENCE_SNAPSHOT":
-      return validCount(value.onlineCount) && Array.isArray(value.onlineUsers) && value.onlineUsers.length <= 100
+      return typeof value.requestId === "string" && uuidPattern.test(value.requestId)
+        && validCount(value.onlineCount) && Array.isArray(value.onlineUsers) && value.onlineUsers.length <= 100
         && value.onlineUsers.every(user) && typeof value.hasMore === "boolean"
-        && (value.nextOnlineOffset == null || validCount(value.nextOnlineOffset))
-        && (!value.hasMore || validCount(value.nextOnlineOffset))
-        ? { type: "PRESENCE_SNAPSHOT", onlineCount: value.onlineCount, onlineUsers: value.onlineUsers,
-            hasMore: value.hasMore, nextOnlineOffset: value.nextOnlineOffset ?? null } : null;
+        && (value.nextOnlineCursor == null || typeof value.nextOnlineCursor === "string" && uuidPattern.test(value.nextOnlineCursor))
+        && (!value.hasMore || typeof value.nextOnlineCursor === "string")
+        ? { type: "PRESENCE_SNAPSHOT", requestId: value.requestId, onlineCount: value.onlineCount, onlineUsers: value.onlineUsers,
+            hasMore: value.hasMore, nextOnlineCursor: value.nextOnlineCursor ?? null } : null;
+    case "CHAT_STATUS_RESULT":
+      // 다른 사용자의 결과나 요청 UUID가 다른 메시지를 전송 완료로 처리하지 않는다.
+      return typeof value.clientMessageId === "string" && uuidPattern.test(value.clientMessageId)
+        && typeof value.stored === "boolean"
+        && (value.stored ? message(value.message) && value.message.ownMessage
+          && value.message.clientMessageId === value.clientMessageId : value.message == null)
+        ? { type: "CHAT_STATUS_RESULT", clientMessageId: value.clientMessageId, stored: value.stored,
+            ...(value.stored ? { message: value.message as PublicChatMessage } : {}) } : null;
+    case "CHAT_ERROR":
+      return typeof value.operation === "string"
+        && ["CHAT_SEND", "CHAT_HISTORY", "CHAT_STATUS", "PRESENCE_GET"].includes(value.operation)
+        && value.code === "CHAT_REQUEST_RATE_LIMIT_EXCEEDED"
+        && validCount(value.retryAfterMillis) && value.retryAfterMillis > 0 && value.retryAfterMillis <= 60_000
+        && (value.clientMessageId == null || typeof value.clientMessageId === "string" && uuidPattern.test(value.clientMessageId))
+        && (value.requestId == null || typeof value.requestId === "string" && uuidPattern.test(value.requestId))
+        ? { type: "CHAT_ERROR", operation: value.operation, code: value.code,
+            retryAfterMillis: value.retryAfterMillis,
+            ...(typeof value.clientMessageId === "string" ? { clientMessageId: value.clientMessageId } : {}),
+            ...(typeof value.requestId === "string" ? { requestId: value.requestId } : {}) } : null;
     case "PONG": return { type: "PONG" };
     default: return null;
   }
@@ -94,7 +117,8 @@ export function validatedChatContent(input: string): string | null {
 }
 
 export function sendChatFrame(socket: WebSocket | null, frame: object): boolean {
-  if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+  // 브라우저의 송신 대기도 제한해 끊긴 네트워크에서 메시지가 메모리에 계속 쌓이지 않게 한다.
+  if (!socket || socket.readyState !== WebSocket.OPEN || socket.bufferedAmount > 65_536) return false;
   const json = JSON.stringify({ version: 1, ...frame });
   if (encoder.encode(json).length > 4096) return false;
   try { socket.send(json); return true; }

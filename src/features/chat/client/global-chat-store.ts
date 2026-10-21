@@ -1,0 +1,405 @@
+import { AuthRequestError } from "@/features/auth/client/api";
+import { revalidateAuthSession } from "@/features/auth/client/session-store";
+import { connectChat } from "./connection";
+import { mergeMessages } from "./message-window";
+import { parseChatEvent, sendChatFrame, validatedChatContent,
+  type ChatEvent, type PublicChatMessage, type PublicChatUser } from "./protocol";
+
+const HISTORY_LIMIT = 30;
+const PRESENCE_LIMIT = 50;
+const RETRY_MAX_MS = 15_000;
+const MAX_PENDING = 20;
+const MAX_SEND_ATTEMPTS = 3;
+type Timer = ReturnType<typeof setTimeout>;
+
+export type PendingChatMessage = Readonly<{
+  clientMessageId: string;
+  content: string;
+  state: "queued" | "unconfirmed" | "failed";
+  attempts: number;
+}>;
+export type ChatConnectionState = "login" | "connecting" | "connected" | "reconnecting" | "expired";
+export type ChatActionResult = Readonly<{ ok: boolean; message?: string }>;
+export type ChatSnapshot = Readonly<{
+  sessionId: string | null;
+  state: ChatConnectionState;
+  messages: PublicChatMessage[];
+  pending: PendingChatMessage[];
+  history: "idle" | "loading" | "more" | "done" | "error";
+  viewingOlder: boolean;
+  hasNewMessages: boolean;
+  onlineCount: number | null;
+  onlineUsers: PublicChatUser[];
+  onlineNextCursor: string | null;
+  onlineLoading: boolean;
+}>;
+
+function emptySnapshot(): ChatSnapshot {
+  return { sessionId: null, state: "login", messages: [], pending: [], history: "idle",
+    viewingOlder: false, hasNewMessages: false, onlineCount: null, onlineUsers: [],
+    onlineNextCursor: null, onlineLoading: false };
+}
+
+// SSR와 인증 재확인 중에는 이전 사용자의 메시지·미확정 전송을 화면에 노출하지 않는다.
+export const EMPTY_CHAT = emptySnapshot();
+
+/** WebSocket이라는 외부 상태를 한 곳에서 관리한다. 여러 패널은 같은 유한 메시지 창과 연결을 공유한다. */
+export class GlobalChatStore {
+  private snapshot = emptySnapshot();
+  private readonly listeners = new Set<() => void>();
+  private socket: WebSocket | null = null;
+  private connectionClose?: () => void;
+  private removeListeners?: () => void;
+  private abort?: AbortController;
+  private generation = 0;
+  private retries = 0;
+  private retryTimer?: Timer;
+  private pingTimer?: ReturnType<typeof setInterval>;
+  private historyTimer?: Timer;
+  private presenceTimer?: Timer;
+  private recoveryTimer?: Timer;
+  private statusTimer?: Timer;
+  private readonly pendingTimers = new Map<string, Timer>();
+  private historyRequest?: { id: string; before: string | null; items: PublicChatMessage[]; live: PublicChatMessage[] };
+  private presenceRequest?: { id: string; cursor: string | null };
+  private statusRequest?: { clientMessageId: string; manual: boolean };
+  private nextCursor: string | null = null;
+  private failedHistoryBefore: string | null = null;
+  private lastHistoryAt = Number.NEGATIVE_INFINITY;
+  private lastPresenceAt = Number.NEGATIVE_INFINITY;
+  private lastStatusAt = Number.NEGATIVE_INFINITY;
+  private lastSendAt = Number.NEGATIVE_INFINITY;
+  private blockedUntil = 0;
+
+  getSnapshot = (): ChatSnapshot => this.snapshot;
+  getServerSnapshot = (): ChatSnapshot => EMPTY_CHAT;
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => { this.listeners.delete(listener); };
+  };
+
+  private update(patch: Partial<ChatSnapshot>): void {
+    this.snapshot = { ...this.snapshot, ...patch };
+    for (const listener of this.listeners) listener();
+  }
+
+  connect = (sessionId: string): (() => void) => {
+    this.disconnect();
+    if (this.snapshot.sessionId !== sessionId) {
+      this.snapshot = emptySnapshot();
+      this.nextCursor = null;
+      this.retries = 0;
+    }
+    this.abort = new AbortController();
+    this.update({ sessionId, state: "connecting", history: "idle", viewingOlder: false, hasNewMessages: false,
+      pending: this.snapshot.pending.map((item) => ({ ...item, state: "unconfirmed" })),
+      onlineCount: null, onlineUsers: [], onlineNextCursor: null, onlineLoading: false });
+    void this.establish(this.generation, sessionId, this.abort.signal);
+    return this.disconnect;
+  };
+
+  clear = (): void => {
+    this.disconnect();
+    this.snapshot = emptySnapshot();
+    for (const listener of this.listeners) listener();
+  };
+
+  disconnect = (): void => {
+    this.generation++;
+    this.abort?.abort();
+    this.cancelConnection();
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = undefined;
+  };
+
+  private cancelConnection(): void {
+    this.removeListeners?.();
+    this.removeListeners = undefined;
+    this.connectionClose?.();
+    this.connectionClose = undefined;
+    this.socket = null;
+    if (this.pingTimer) clearInterval(this.pingTimer);
+    for (const timer of [this.historyTimer, this.presenceTimer, this.recoveryTimer, this.statusTimer]) {
+      if (timer) clearTimeout(timer);
+    }
+    // 타이머는 연결 수명에 묶되 같은 로그인 세션의 미확정 UUID와 본문은 재연결에 유지한다.
+    for (const timer of this.pendingTimers.values()) clearTimeout(timer);
+    this.pendingTimers.clear();
+    this.pingTimer = undefined;
+    this.historyTimer = this.presenceTimer = this.recoveryTimer = this.statusTimer = undefined;
+    this.historyRequest = this.presenceRequest = this.statusRequest = undefined;
+    this.lastHistoryAt = this.lastPresenceAt = this.lastStatusAt = this.lastSendAt = Number.NEGATIVE_INFINITY;
+    this.blockedUntil = 0;
+  }
+
+  private async establish(generation: number, sessionId: string, signal: AbortSignal): Promise<void> {
+    if (generation !== this.generation || signal.aborted) return;
+    this.update({ state: this.retries ? "reconnecting" : "connecting" });
+    try {
+      const connection = await connectChat(sessionId, signal);
+      if (generation !== this.generation || signal.aborted) { connection.close(); return; }
+      this.connectionClose = connection.close;
+      this.socket = connection.socket;
+      const socket = connection.socket;
+      const connectedAt = performance.now();
+      const onMessage = (event: MessageEvent<unknown>) => {
+        if (generation !== this.generation || this.socket !== socket) return;
+        const frame = parseChatEvent(event.data);
+        if (frame) this.receive(frame);
+      };
+      const onClose = (event: CloseEvent) => {
+        if (generation !== this.generation || this.socket !== socket) return;
+        if (performance.now() - connectedAt >= 30_000) this.retries = 0;
+        this.cancelConnection();
+        if (event.code === 4401 || event.code === 4403) {
+          this.update({ state: "expired" });
+          revalidateAuthSession();
+        } else this.reconnect(generation, sessionId, signal);
+      };
+      socket.addEventListener("message", onMessage);
+      socket.addEventListener("close", onClose);
+      this.removeListeners = () => {
+        socket.removeEventListener("message", onMessage);
+        socket.removeEventListener("close", onClose);
+      };
+      this.update({ state: "connected" });
+      for (const data of connection.takeBufferedFrames()) onMessage({ data } as MessageEvent<string>);
+      // 연결이 인증 직후 종료된 경우 close 이벤트를 놓치지 않고 바로 재접속한다.
+      if (socket.readyState !== WebSocket.OPEN) {
+        this.cancelConnection();
+        this.reconnect(generation, sessionId, signal);
+        return;
+      }
+      // 서버는 90초 입력 대기 제한을 적용하므로 25초 주기의 경량 PING을 보낸다.
+      this.pingTimer = setInterval(() => { sendChatFrame(socket, { type: "PING" }); }, 25_000);
+      // 서버가 로그인 경계를 강제한 최근 메시지만 재조회해 Kafka 전파 누락도 복구한다.
+      this.loadHistory();
+      this.scheduleRecovery(700);
+    } catch (error) {
+      if (generation !== this.generation || signal.aborted) return;
+      if (error instanceof AuthRequestError && (error.status === 401 || error.status === 403)) {
+        this.update({ state: "expired" });
+        revalidateAuthSession();
+      } else this.reconnect(generation, sessionId, signal);
+    }
+  }
+
+  private reconnect(generation: number, sessionId: string, signal: AbortSignal): void {
+    if (generation !== this.generation || signal.aborted) return;
+    this.update({ state: "reconnecting", onlineCount: null, onlineUsers: [], onlineNextCursor: null,
+      onlineLoading: false, pending: this.snapshot.pending.map((item) => ({ ...item, state: "unconfirmed" })) });
+    const delay = Math.min(RETRY_MAX_MS, 1000 * 2 ** Math.min(this.retries++, 4));
+    this.retryTimer = setTimeout(() => { void this.establish(generation, sessionId, signal); },
+      delay + Math.floor(Math.random() * 400));
+  }
+
+  private loadHistory(before: string | null = null): boolean {
+    const now = performance.now();
+    // 서버의 CHAT_HISTORY 500ms 제한을 넘기면 WebSocket 자체가 종료된다.
+    if (this.historyRequest || now - this.lastHistoryAt < 650 || now < this.blockedUntil) return false;
+    const id = crypto.randomUUID();
+    if (!sendChatFrame(this.socket, { type: "CHAT_HISTORY", scope: "GLOBAL", requestId: id,
+      limit: HISTORY_LIMIT, ...(before ? { before } : {}) })) return false;
+    this.lastHistoryAt = now;
+    this.historyRequest = { id, before, items: [], live: [] };
+    this.historyTimer = setTimeout(() => {
+      if (this.historyRequest?.id !== id) return;
+      this.historyRequest = undefined;
+      this.failedHistoryBefore = before;
+      this.update({ history: "error" });
+    }, 15_000);
+    this.update({ history: "loading", viewingOlder: Boolean(before) || this.snapshot.viewingOlder });
+    return true;
+  }
+
+  loadOlder = (): boolean => Boolean(this.nextCursor) && this.loadHistory(this.nextCursor);
+  returnToLatest = (): boolean => this.loadHistory();
+  retryHistory = (): boolean => this.loadHistory(this.failedHistoryBefore);
+  retry = (): void => { if (this.snapshot.sessionId) this.connect(this.snapshot.sessionId); };
+
+  loadPresence = (cursor: string | null = null): boolean => {
+    const now = performance.now();
+    // 서버는 접속자 목록 요청 간격이 1초 미만이면 연결을 종료하므로 클라이언트에서도 제한한다.
+    if (this.presenceRequest || now - this.lastPresenceAt < 1200 || now < this.blockedUntil) return false;
+    const id = crypto.randomUUID();
+    if (!sendChatFrame(this.socket, { type: "PRESENCE_GET", requestId: id, onlineLimit: PRESENCE_LIMIT,
+      ...(cursor ? { onlineCursor: cursor } : {}) })) return false;
+    this.lastPresenceAt = now;
+    this.presenceRequest = { id, cursor };
+    this.presenceTimer = setTimeout(() => {
+      if (this.presenceRequest?.id !== id) return;
+      this.presenceRequest = undefined;
+      this.update({ onlineLoading: false });
+    }, 10_000);
+    this.update({ onlineLoading: true });
+    return true;
+  };
+
+  sendMessage = (input: string): ChatActionResult => {
+    const content = validatedChatContent(input);
+    if (!content) return { ok: false, message: "메시지는 1~1000자이며 제어 문자와 과도한 길이는 사용할 수 없어요." };
+    if (this.snapshot.pending.length >= MAX_PENDING) return { ok: false, message: "이전 메시지의 전송 상태를 먼저 확인해 주세요." };
+    if (performance.now() - this.lastSendAt < 250 || performance.now() < this.blockedUntil) {
+      return { ok: false, message: "잠시 후 메시지를 보내 주세요." };
+    }
+    const pending: PendingChatMessage = { clientMessageId: crypto.randomUUID(), content, state: "queued", attempts: 0 };
+    return this.transmit(pending) ? { ok: true }
+      : { ok: false, message: "채팅 연결을 확인한 뒤 다시 전송해 주세요." };
+  };
+
+  private transmit(item: PendingChatMessage): boolean {
+    if (!sendChatFrame(this.socket, { type: "CHAT_SEND", scope: "GLOBAL",
+      clientMessageId: item.clientMessageId, content: item.content })) return false;
+    this.lastSendAt = performance.now();
+    // Kafka 접수는 MongoDB 저장 확정이 아니므로 서버의 CHAT_MESSAGE/상태 조회까지 전송 중으로 표시한다.
+    const pending: PendingChatMessage = { ...item, state: "queued", attempts: item.attempts + 1 };
+    this.update({ pending: [...this.snapshot.pending.filter((value) => value.clientMessageId !== item.clientMessageId), pending] });
+    const previous = this.pendingTimers.get(item.clientMessageId);
+    if (previous) clearTimeout(previous);
+    // Kafka 접수 후 DB 확정 이벤트가 오지 않을 때 전송 완료로 오인하지 않는다.
+    this.pendingTimers.set(item.clientMessageId, setTimeout(() => {
+      this.pendingTimers.delete(item.clientMessageId);
+      this.markPending(item.clientMessageId, "unconfirmed");
+      this.scheduleRecovery();
+    }, 30_000));
+    return true;
+  }
+
+  private markPending(id: string, state: PendingChatMessage["state"]): void {
+    this.update({ pending: this.snapshot.pending.map((item) => item.clientMessageId === id ? { ...item, state } : item) });
+  }
+
+  private confirm(message: PublicChatMessage): void {
+    if (!message.clientMessageId) return;
+    const timer = this.pendingTimers.get(message.clientMessageId);
+    if (timer) clearTimeout(timer);
+    this.pendingTimers.delete(message.clientMessageId);
+    this.update({ pending: this.snapshot.pending.filter((item) => item.clientMessageId !== message.clientMessageId) });
+  }
+
+  retryMessage = (id: string): void => {
+    const item = this.snapshot.pending.find((value) => value.clientMessageId === id);
+    if (item && item.state !== "queued") this.queryStatus(id, true);
+  };
+
+  private scheduleRecovery(delay = 700): void {
+    if (this.recoveryTimer || this.snapshot.state !== "connected") return;
+    this.recoveryTimer = setTimeout(() => {
+      this.recoveryTimer = undefined;
+      const item = this.snapshot.pending.find((value) => value.state === "unconfirmed");
+      if (!item) return;
+      if (!this.queryStatus(item.clientMessageId, false)) this.scheduleRecovery(700);
+    }, Math.max(delay, this.blockedUntil - performance.now() + 50));
+  }
+
+  private queryStatus(id: string, manual: boolean): boolean {
+    const now = performance.now();
+    if (this.statusRequest || now - this.lastStatusAt < 650 || now < this.blockedUntil) return false;
+    if (!sendChatFrame(this.socket, { type: "CHAT_STATUS", scope: "GLOBAL", clientMessageId: id })) return false;
+    this.lastStatusAt = now;
+    this.statusRequest = { clientMessageId: id, manual };
+    this.statusTimer = setTimeout(() => {
+      if (this.statusRequest?.clientMessageId !== id) return;
+      this.statusRequest = undefined;
+      this.markPending(id, "failed");
+      this.scheduleRecovery();
+    }, 10_000);
+    return true;
+  }
+
+  private receive(frame: ChatEvent): void {
+    switch (frame.type) {
+      case "CHAT_MESSAGE":
+        this.confirm(frame.message);
+        // 이력 쿼리 이후 도착한 방송은 페이지 완료 시에도 유지해 조회와 실시간 수신 사이의 경합을 막는다.
+        if (this.historyRequest && !this.historyRequest.before) {
+          this.historyRequest.live = mergeMessages(this.historyRequest.live, [frame.message]);
+        }
+        this.update({ messages: mergeMessages(this.snapshot.messages, [frame.message], this.snapshot.viewingOlder ? "oldest" : "latest"),
+          hasNewMessages: this.snapshot.hasNewMessages || this.snapshot.viewingOlder });
+        break;
+      case "CHAT_HISTORY_ITEM":
+        if (frame.requestId === this.historyRequest?.id && this.historyRequest.items.length < HISTORY_LIMIT) {
+          this.historyRequest.items.push(frame.message);
+          this.confirm(frame.message);
+        }
+        break;
+      case "CHAT_HISTORY_END": {
+        const request = this.historyRequest;
+        if (!request || frame.requestId !== request.id) break;
+        this.historyRequest = undefined;
+        if (this.historyTimer) clearTimeout(this.historyTimer);
+        this.historyTimer = undefined;
+        this.nextCursor = frame.nextCursor;
+        // 한 페이지를 모아서 한 번 정렬한다. 과거 탐색 중 새 방송이 오래된 페이지를 밀어내지 않는다.
+        this.update({ messages: mergeMessages(request.before ? this.snapshot.messages : request.live, request.items, request.before ? "oldest" : "latest"),
+          history: frame.hasMore ? "more" : "done", viewingOlder: Boolean(request.before),
+          hasNewMessages: request.before ? this.snapshot.hasNewMessages : false });
+        break;
+      }
+      case "PRESENCE_CHANGED": this.update({ onlineCount: frame.onlineCount }); break;
+      case "PRESENCE_SNAPSHOT": {
+        const request = this.presenceRequest;
+        if (!request || request.id !== frame.requestId) break;
+        this.presenceRequest = undefined;
+        if (this.presenceTimer) clearTimeout(this.presenceTimer);
+        this.presenceTimer = undefined;
+        // 이전 페이지의 요청 시각은 보존하여 연달아 조회할 때 서버 제한을 지킨다.
+        this.update({ onlineCount: frame.onlineCount, onlineUsers: request.cursor
+          ? [...this.snapshot.onlineUsers, ...frame.onlineUsers] : frame.onlineUsers,
+        onlineNextCursor: frame.nextOnlineCursor, onlineLoading: false });
+        break;
+      }
+      case "CHAT_STATUS_RESULT": {
+        const request = this.statusRequest;
+        if (!request || request.clientMessageId !== frame.clientMessageId) break;
+        this.statusRequest = undefined;
+        if (this.statusTimer) clearTimeout(this.statusTimer);
+        this.statusTimer = undefined;
+        const item = this.snapshot.pending.find((value) => value.clientMessageId === frame.clientMessageId);
+        if (frame.stored && frame.message) {
+          this.confirm(frame.message);
+          if (this.historyRequest && !this.historyRequest.before) {
+            this.historyRequest.live = mergeMessages(this.historyRequest.live, [frame.message]);
+          }
+          this.update({ messages: mergeMessages(this.snapshot.messages, [frame.message], this.snapshot.viewingOlder ? "oldest" : "latest") });
+        } else if (item) {
+          // 상태 확인 후에만 같은 UUID·본문으로 재전송한다. 자동 전송은 최대 세 번이고 이후에는 사용자 입력을 기다린다.
+          if ((item.attempts < MAX_SEND_ATTEMPTS || request.manual) && performance.now() - this.lastSendAt >= 250) {
+            if (!this.transmit(item)) this.markPending(item.clientMessageId, "failed");
+          } else this.markPending(item.clientMessageId, "failed");
+        }
+        this.scheduleRecovery();
+        break;
+      }
+      case "CHAT_ERROR":
+        this.blockedUntil = Math.max(this.blockedUntil, performance.now() + frame.retryAfterMillis);
+        if (frame.operation === "CHAT_HISTORY" && this.historyRequest && frame.requestId === this.historyRequest.id) {
+          this.failedHistoryBefore = this.historyRequest.before;
+          this.historyRequest = undefined;
+          if (this.historyTimer) clearTimeout(this.historyTimer);
+          this.update({ history: "error" });
+        }
+        if (frame.operation === "PRESENCE_GET" && this.presenceRequest && frame.requestId === this.presenceRequest.id) {
+          this.presenceRequest = undefined;
+          if (this.presenceTimer) clearTimeout(this.presenceTimer);
+          this.update({ onlineLoading: false });
+        }
+        if (frame.operation === "CHAT_STATUS" && this.statusRequest && frame.clientMessageId === this.statusRequest.clientMessageId) {
+          this.statusRequest = undefined;
+          if (this.statusTimer) clearTimeout(this.statusTimer);
+        }
+        if (frame.operation === "CHAT_SEND" && frame.clientMessageId) {
+          const timer = this.pendingTimers.get(frame.clientMessageId);
+          if (timer) clearTimeout(timer);
+          this.pendingTimers.delete(frame.clientMessageId);
+          const item = this.snapshot.pending.find((value) => value.clientMessageId === frame.clientMessageId);
+          if (item) this.markPending(item.clientMessageId, item.attempts >= MAX_SEND_ATTEMPTS ? "failed" : "unconfirmed");
+        }
+        this.scheduleRecovery(frame.retryAfterMillis + 100);
+        break;
+      case "CHAT_ACCEPTED":
+      case "PONG": break;
+    }
+  }
+}
