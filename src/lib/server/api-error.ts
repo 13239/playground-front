@@ -17,6 +17,9 @@ const errors = {
   ROOM_CODE_UNAVAILABLE: [503, "방을 만들지 못했습니다. 잠시 후 다시 시도해 주세요."],
   ROOM_RATE_LIMIT_EXCEEDED: [429, "방 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   ROOM_SERVICE_UNAVAILABLE: [503, "오목 서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해 주세요."],
+  // 채팅 연결 실패·재접속 제한은 로그인 실패나 계정 잠금으로 처리하지 않는다.
+  CHAT_TICKET_RATE_LIMIT_EXCEEDED: [429, "채팅 접속 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
+  CHAT_SERVICE_UNAVAILABLE: [503, "채팅 서비스를 일시적으로 이용할 수 없습니다."],
   // 가입 전용 제한·장애는 로그인 실패나 계정 잠금으로 표시하지 않는다.
   SIGN_UP_RATE_LIMIT_EXCEEDED: [429, "회원가입 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   SIGN_UP_SERVICE_UNAVAILABLE: [503, "회원가입 서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해 주세요."],

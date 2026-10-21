@@ -39,7 +39,8 @@ function base64url(value: ArrayBuffer): string {
 }
 
 /** 요청마다 새로운 증명을 만든다. nonce 갱신은 서버가 실행 전에 거절한 경우에만 한 번 재시도한다. */
-export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomoku/${string}`, input?: object, nonceRetry = true): Promise<Response> {
+// 채팅 증명 발급의 실제 경로·메서드·세션 본문도 기존 로그인 키로 서명한다.
+export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomoku/${string}` | "/api/chat/tickets", input?: object, nonceRetry = true): Promise<Response> {
   try {
     // 프로필도 동일 경로·메서드·본문에 서명한다. 조회는 GET, 캐릭터 변경은 멱등적인 PUT을 사용한다.
     // 오목 검색은 조건도 서명하도록 POST 본문을 쓰고 생성·닫기도 같은 인증 경계를 공유한다.

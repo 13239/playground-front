@@ -889,11 +889,12 @@
   height: 1.2em;
 }
 /* 게임 목록과 채팅에 공통인 푸터의 구분선을 콘텐츠 전체 폭으로 연결한다. */
+/* 데스크톱 채팅 하단은 구분선에 맞추고 모바일 푸터의 위쪽 여백은 해당 미디어 쿼리에서 유지한다. */
 .footer {
   display: flex;
   align-items: center;
   gap: 1.2em;
-  margin: 2.5em 0 1.5em;
+  margin: 0 0 1.5em;
   padding-top: 1.25em;
   border-top: 1px solid #c9c5e64d;
   color: #9592b4;
@@ -914,13 +915,11 @@
   font-size: 1em;
 }
 
-/* 데스크톱 채팅은 헤더·공통 푸터 공간을 남기고 자체 스크롤하며 태블릿·모바일에서는 네이티브 대화상자로 열린다. */
+/* 데스크톱 채팅은 본문 높이를 채워 공통 푸터까지 이어지고 내용만 자체 스크롤한다. 태블릿·모바일에서는 네이티브 대화상자로 열린다. */
 .desktopChat {
-  position: sticky;
-  top: 1em;
-  height: calc(100dvh - 11em);
+  display: flex;
+  align-self: stretch;
   min-height: 35em;
-  max-height: 70em;
 }
 .chatPanel {
   display: flex;
@@ -932,6 +931,10 @@
   border-radius: 1.4em;
   background: linear-gradient(155deg, #fbfcffe6, #edf4ffd6);
   box-shadow: 0 5px 20px #788ddd0c;
+}
+/* 늘어난 데스크톱 열의 실제 높이를 사용하며 모바일 대화상자의 100% 높이 규칙은 유지한다. */
+.desktopChat > .chatPanel {
+  height: auto;
 }
 .chatHeader {
   display: flex;
@@ -1417,6 +1420,7 @@
     height: 1.5em;
   }
   .footer {
+    margin-top: 2.5em;
     margin-bottom: 6em;
   }
 }

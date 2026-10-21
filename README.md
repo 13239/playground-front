@@ -218,3 +218,13 @@ BFF 세 경로는 `POST /api/gomoku/rooms`, `POST /api/gomoku/rooms/search`, `PO
 빠른 매칭, 다른 방 입장, 초대 코드 입장, 대기실과 실제 대국은 다음 단계에서 연결한다. 해당 버튼은 준비 중 상태로 표시한다. 2명·20×20·30초는 고정 규칙이고 첫판 흑백 카드 뽑기, 이후 직전 패자 흑돌, 무승부 재추첨을 적용할 예정이다. 관전 기능은 제공하지 않는다.
 
 공통 헤더는 `site-header.tsx`, 방 공개 계약은 `src/features/gomoku/contracts.ts`에서 관리한다. [오목 이미지 자산과 제작 지시](docs/gomoku-assets.md)를 함께 유지한다.
+
+## 채팅 2단계: 기존 로그인으로 접속 인증
+
+`POST /api/chat/tickets` BFF를 추가했다. 화면의 `sessionId`만 받고 Origin·실제 본문 증명·암호화 쿠키와 세션 일치를 확인한 뒤 기존 back 보안 경로로 호출한다. 사용자 ID·닉네임·채널을 입력받지 않으며 응답은 일회용 증명·시각·공개 접속 주소·증명 정책·화면 세션 ID만 재공개한다.
+
+`src/features/chat/client/connection.ts`의 `connectChat(sessionId, signal)`은 기존 로그인 키로 접속 증명 해시와 정확한 WebSocket 주소를 서명하고, 첫 AUTH 프레임을 보낸 뒤 AUTHENTICATED를 확인해야 연결을 반환한다. 추출 불가 키와 기존 인증 잠금·갱신 흐름을 재사용한다. 증명은 URL·storage·쿠키에 저장하지 않는다. AbortSignal이나 반환된 close 함수로 연결을 정리할 수 있다.
+
+local/prod는 브라우저 키 소유 증명을 요구하고 기존 dev HTTP에서만 dev-http 바인딩 예외를 사용한다. 일시 장애·시간 초과·로그인 만료·증명 재발급을 별도로 분류한다. Next Route Handler가 WebSocket 업그레이드를 프록시하지 않으며 공개 접속 주소는 back이 발급하고 BFF가 검증한다.
+
+아직 홈 채팅 화면에 연결을 마운트하지 않았다. 공용 연결 관리·자동 재접속·메시지·접속자 팝업은 후속 단계에서 구현한다. 자세한 프레임·설정은 [채팅 인증 안내](../playground-chat/docs/chat-authentication.md)를 따른다.
