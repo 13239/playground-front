@@ -1183,6 +1183,9 @@
 .chatComposer input::placeholder {
   color: #a0a6cb;
 }
+.screen .chatComposer input:focus-visible {
+  outline: none;
+}
 .chatComposer > button {
   display: grid;
   flex: 0 0 auto;
@@ -1681,8 +1684,8 @@
   right: 0;
   display: flex;
   flex-direction: column;
-  width: min(290px, calc(100vw - 40px));
-  max-height: min(430px, 70dvh);
+  width: min(210px, calc(100vw - 40px));
+  max-height: min(360px, 70dvh);
   padding: 1em;
   border: 1px solid #dedcf5;
   border-radius: 1em;
@@ -1690,27 +1693,43 @@
   box-shadow: 0 16px 40px #29205225;
   color: #302849;
 }
-.onlinePopoverHeader { display: flex; justify-content: space-between; align-items: center; }
+.onlinePopoverHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 -1em 0.55em;
+  padding: 0 1em 0.65em;
+  border-bottom: 1px solid #e3def4;
+}
 .onlinePopoverHeader strong { font-size: 0.88em; }
-.onlineClose {
+.onlineRefresh {
   display: grid;
   place-items: center;
-  padding: 0.3em;
+  padding: 0.2em;
   border: 0;
   border-radius: 0.4em;
   background: transparent;
+  color: #6a4aae;
   cursor: pointer;
 }
-.onlineClose svg { width: 1.2em; height: 1.2em; }
+.onlineRefresh svg { width: 1.15em; height: 1.15em; }
+.onlineRefresh:not(:disabled):hover { background: #f3eeff; }
+.onlineRefresh:active { background: #ebe3ff; }
+.onlineRefreshSpin svg { animation: onlineRefreshTurn 0.68s linear infinite; }
+@keyframes onlineRefreshTurn {
+  to { transform: rotate(360deg); }
+}
 .onlineTotal, .onlineEmpty { color: #77728c; font-size: max(11px, 0.72em); line-height: 1.6; }
 .onlineList {
   display: flex;
   flex-direction: column;
   gap: 0.35em;
   min-height: 0;
+  max-height: 220px;
   margin: 0;
   padding: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
 }
 .onlineList li { display: flex; align-items: center; gap: 0.6em; font-size: 0.84em; overflow-wrap: anywhere; }
