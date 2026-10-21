@@ -8,6 +8,8 @@ import { parseChatEvent, sendChatFrame, validatedChatContent,
 const HISTORY_LIMIT = 30;
 const PRESENCE_LIMIT = 50;
 const RETRY_MAX_MS = 15_000;
+const PING_INTERVAL_MS = 25_000;
+const PONG_TIMEOUT_MS = 15_000;
 const MAX_PENDING = 20;
 const MAX_SEND_ATTEMPTS = 3;
 type Timer = ReturnType<typeof setTimeout>;
@@ -55,6 +57,7 @@ export class GlobalChatStore {
   private retries = 0;
   private retryTimer?: Timer;
   private pingTimer?: ReturnType<typeof setInterval>;
+  private pongTimer?: Timer;
   private historyTimer?: Timer;
   private presenceTimer?: Timer;
   private recoveryTimer?: Timer;
@@ -119,13 +122,15 @@ export class GlobalChatStore {
     this.connectionClose = undefined;
     this.socket = null;
     if (this.pingTimer) clearInterval(this.pingTimer);
-    for (const timer of [this.historyTimer, this.presenceTimer, this.recoveryTimer, this.statusTimer]) {
+    // PONG 대기도 연결과 함께 정리해 이전 소켓의 응답 기한이 다음 연결에 남지 않게 한다.
+    for (const timer of [this.pongTimer, this.historyTimer, this.presenceTimer, this.recoveryTimer, this.statusTimer]) {
       if (timer) clearTimeout(timer);
     }
     // 타이머는 연결 수명에 묶되 같은 로그인 세션의 미확정 UUID와 본문은 재연결에 유지한다.
     for (const timer of this.pendingTimers.values()) clearTimeout(timer);
     this.pendingTimers.clear();
     this.pingTimer = undefined;
+    this.pongTimer = undefined;
     this.historyTimer = this.presenceTimer = this.recoveryTimer = this.statusTimer = undefined;
     this.historyRequest = this.presenceRequest = this.statusRequest = undefined;
     this.lastHistoryAt = this.lastPresenceAt = this.lastStatusAt = this.lastSendAt = Number.NEGATIVE_INFINITY;
@@ -147,15 +152,17 @@ export class GlobalChatStore {
         const frame = parseChatEvent(event.data);
         if (frame) this.receive(frame);
       };
-      const onClose = (event: CloseEvent) => {
-        if (generation !== this.generation || this.socket !== socket) return;
+      // 종료 이벤트가 없는 통신 단절도 같은 정리·재접속 경로로 처리한다. 자동 재접속끼리는 소켓으로 구분한다.
+      const onConnectionLost = (closeCode?: number) => {
+        if (generation !== this.generation || this.socket !== socket || signal.aborted) return;
         if (performance.now() - connectedAt >= 30_000) this.retries = 0;
         this.cancelConnection();
-        if (event.code === 4401 || event.code === 4403) {
+        if (closeCode === 4401 || closeCode === 4403) {
           this.update({ state: "expired" });
           revalidateAuthSession();
         } else this.reconnect(generation, sessionId, signal);
       };
+      const onClose = (event: CloseEvent) => onConnectionLost(event.code);
       socket.addEventListener("message", onMessage);
       socket.addEventListener("close", onClose);
       this.removeListeners = () => {
@@ -164,14 +171,25 @@ export class GlobalChatStore {
       };
       this.update({ state: "connected" });
       for (const data of connection.takeBufferedFrames()) onMessage({ data } as MessageEvent<string>);
+      // 상태 구독자가 로그아웃·계정 전환을 처리했다면 이전 연결에 새 타이머를 설치하지 않는다.
+      if (generation !== this.generation || this.socket !== socket || signal.aborted) return;
       // 연결이 인증 직후 종료된 경우 close 이벤트를 놓치지 않고 바로 재접속한다.
       if (socket.readyState !== WebSocket.OPEN) {
-        this.cancelConnection();
-        this.reconnect(generation, sessionId, signal);
+        onConnectionLost();
         return;
       }
       // 서버는 90초 입력 대기 제한을 적용하므로 25초 주기의 경량 PING을 보낸다.
-      this.pingTimer = setInterval(() => { sendChatFrame(socket, { type: "PING" }); }, 25_000);
+      this.pingTimer = setInterval(() => {
+        // PONG에는 요청 ID가 없으므로 한 연결에서 동시에 기다리는 PING은 하나로 제한한다.
+        if (generation !== this.generation || this.socket !== socket || signal.aborted || this.pongTimer !== undefined) return;
+        const timer = setTimeout(() => {
+          // 취소 직전 실행 대기 중이던 콜백도 이미 응답한 PING이나 다음 PING에 영향을 주지 않는다.
+          if (this.pongTimer === timer) onConnectionLost();
+        }, PONG_TIMEOUT_MS);
+        this.pongTimer = timer;
+        // 송신 버퍼 초과·소켓 오류는 PONG 기한까지 기다리지 않고 기존 지수 지연으로 재접속한다.
+        if (!sendChatFrame(socket, { type: "PING" })) onConnectionLost();
+      }, PING_INTERVAL_MS);
       // 서버가 로그인 경계를 강제한 최근 메시지만 재조회해 Kafka 전파 누락도 복구한다.
       this.loadHistory();
       this.scheduleRecovery(700);
@@ -398,8 +416,12 @@ export class GlobalChatStore {
         }
         this.scheduleRecovery(frame.retryAfterMillis + 100);
         break;
-      case "CHAT_ACCEPTED":
-      case "PONG": break;
+      case "CHAT_ACCEPTED": break;
+      case "PONG":
+        // 유효한 현재 소켓의 PONG만 응답 대기를 끝낸다. 다른 방송 수신은 응답 기한을 연장하지 않는다.
+        if (this.pongTimer !== undefined) clearTimeout(this.pongTimer);
+        this.pongTimer = undefined;
+        break;
     }
   }
 }
