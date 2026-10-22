@@ -3,6 +3,7 @@ import { readAuthCookie, writeAuthCookie } from "@/features/auth/server/cookies"
 import { parseLoginInput } from "@/features/auth/server/login-input";
 import { apiErrorResponse } from "@/lib/server/api-error";
 import { getTrustedClientIp } from "@/lib/server/client-ip";
+import { getClientUserAgent } from "@/lib/server/client-user-agent";
 import { getAuthCookieKey } from "@/lib/server/env";
 import { readJsonBody } from "@/lib/server/request-body";
 import { assertSameOrigin } from "@/lib/server/request-security";
@@ -19,7 +20,7 @@ export async function POST(request: Request): Promise<Response> {
     getAuthCookieKey();
     // 교체 증명은 브라우저 JSON이 아닌 복호화한 HttpOnly 쿠키에서만 가져온다.
     const previousSession = await readAuthCookie();
-    await writeAuthCookie(await loginWithBackend(input, proof, clientIp, previousSession?.refreshToken));
+    await writeAuthCookie(await loginWithBackend(input, proof, { clientIp, userAgent: getClientUserAgent(request) }, previousSession?.refreshToken));
     return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return apiErrorResponse(error);

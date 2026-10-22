@@ -2,6 +2,7 @@ import { validateSignUpInput } from "@/features/auth/sign-up-validation";
 import { ApiError, apiErrorResponse } from "@/lib/server/api-error";
 import { backendRequest } from "@/lib/server/backend-client";
 import { getTrustedClientIp } from "@/lib/server/client-ip";
+import { getClientUserAgent } from "@/lib/server/client-user-agent";
 import { readJsonBody } from "@/lib/server/request-body";
 import { assertSameOrigin } from "@/lib/server/request-security";
 
@@ -12,7 +13,7 @@ export async function POST(request: Request): Promise<Response> {
     const result = validateSignUpInput(await readJsonBody(request));
     if (!result.valid) throw new ApiError("VALIDATION_FAILED", { fieldErrors: result.errors });
     await backendRequest("/api/user/sign-up", {
-      method: "POST", body: result.input, clientIp: getTrustedClientIp(request), responseType: "empty",
+      method: "POST", body: result.input, clientIp: getTrustedClientIp(request), userAgent: getClientUserAgent(request), responseType: "empty",
     });
     return new Response(null, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) { return apiErrorResponse(error); }

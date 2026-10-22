@@ -13,13 +13,18 @@ function refreshRequestId(refreshToken: string): string {
     .update("playground:refresh:v1:").update(refreshToken).digest("hex");
 }
 
-/** 검증한 IP와 기존 쿠키의 교체 증명만 Spring에 전달하며 토큰 원문은 서버 내부에서만 사용한다. */
-export async function loginWithBackend(input: LoginInput, proof: BrowserRequestProof, clientIp?: string, previousRefreshToken?: string): Promise<AuthTokens> {
+/** 검증한 IP·브라우저 User-Agent와 기존 쿠키의 교체 증명만 Spring에 전달하며 토큰 원문은 서버 내부에서만 사용한다. */
+export async function loginWithBackend(
+  input: LoginInput,
+  proof: BrowserRequestProof,
+  client: Readonly<{ clientIp?: string; userAgent?: string }>,
+  previousRefreshToken?: string,
+): Promise<AuthTokens> {
   return parseAuthTokens(await backendRequest("/api/auth/login", {
     // 로그인 직전에 다른 요청이 갱신했어도 기존의 짧은 중복 갱신 증명으로 교체할 수 있다.
     method: "POST", body: { ...input, ...(previousRefreshToken && {
       previousRefreshToken, previousRefreshRequestId: refreshRequestId(previousRefreshToken),
-    }) }, clientIp, proof,
+    }) }, ...client, proof,
   }));
 }
 

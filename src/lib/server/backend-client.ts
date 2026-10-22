@@ -11,6 +11,8 @@ type BackendRequest = Readonly<{
   body?: object;
   accessToken?: string;
   clientIp?: string;
+  // 로그인·회원가입 활동 로그에 남길 브라우저 User-Agent
+  userAgent?: string;
   // 회원가입처럼 본문 없는 성공 응답을 JSON 오류로 오인하지 않도록 호출자가 명시한다.
   responseType?: "json" | "empty" | "stream";
   // 이벤트 프록시가 브라우저 취소를 상위 연결까지 전달한다.
@@ -44,6 +46,8 @@ export async function backendRequest(
     if (options.clientIp.includes("%") || !isIP(options.clientIp)) throw new ApiError("INVALID_REQUEST_BODY");
     headers.set("X-Real-IP", options.clientIp);
   }
+  // BFF 서버 자신의 User-Agent와 구분되도록 정제한 브라우저 값만 전용 헤더로 전달한다.
+  if (options.userAgent) headers.set("X-Client-User-Agent", options.userAgent);
   const body = options.body === undefined ? undefined : JSON.stringify(options.body);
   const timeout = AbortSignal.timeout(options.responseType === "stream" ? 25_000 : getBackendTimeout());
   const deadline = options.signal ? AbortSignal.any([timeout, options.signal]) : timeout;
