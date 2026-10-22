@@ -1,3 +1,4 @@
+import { createUuidV4 } from "@/lib/client/uuid";
 import { SignJWT } from "jose";
 import { getBrowserKey } from "./browser-key";
 import { AuthRequestError, requireSuccess } from "./error";
@@ -65,7 +66,7 @@ async function signBoundRequest(path: string, method: string, body: string | und
   return new SignJWT({ nonce: nonce.value, htm: method, htu: window.location.origin + path,
     bht: base64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(proofBody(path, body ?? "")))) })
     .setProtectedHeader({ alg: "ES256", typ: "bff-session-proof+jwt", jwk: key.publicKey })
-    .setJti(crypto.randomUUID()).setIssuedAt(Math.floor((nonce.serverTime + performance.now() - nonce.receivedAt) / 1000))
+    .setJti(createUuidV4()).setIssuedAt(Math.floor((nonce.serverTime + performance.now() - nonce.receivedAt) / 1000))
     .sign(key.privateKey);
 }
 

@@ -1,3 +1,4 @@
+import { createUuidV4 } from "@/lib/client/uuid";
 import { SignJWT } from "jose";
 import { requestAuthenticatedApi, AuthRequestError } from "@/features/auth/client/api";
 import { getBrowserKey } from "@/features/auth/client/browser-key";
@@ -59,7 +60,7 @@ async function authenticationFrame(ticket: ReceivedTicket): Promise<object> {
     .replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
   const proof = await new SignJWT({ ticketHash, htu: ticket.websocketUrl })
     .setProtectedHeader({ alg: "ES256", typ: "chat-connection-proof+jwt", jwk: key.publicKey })
-    .setJti(crypto.randomUUID())
+    .setJti(createUuidV4())
     .setIssuedAt(Math.floor((Date.parse(ticket.serverTime) + performance.now() - ticket.receivedAt) / 1000))
     .sign(key.privateKey);
   return { version: 1, type: "AUTH", ticket: ticket.ticket, proof };

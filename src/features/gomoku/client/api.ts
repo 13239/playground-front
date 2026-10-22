@@ -1,3 +1,4 @@
+import { createUuidV4 } from "@/lib/client/uuid";
 import {
   AuthRequestError,
   requestAuthenticatedApi,
@@ -149,13 +150,7 @@ export async function openRoomPage(sessionId: string, roomId: number, membership
   }
 }
 
-/** randomUUID가 없는 dev HTTP도 지원한다. 보안 난수만 사용하고 서버의 중복 생성 방지 ID로 한 번 보낸다. */
+/** HTTPS에서는 randomUUID를 우선 사용하고, dev HTTP에서는 보안 난수로 UUID v4를 생성한다. */
 export function newRoomRequestId(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  bytes[6] = (bytes[6] & 15) | 64;
-  bytes[8] = (bytes[8] & 63) | 128;
-  const value = Array.from(bytes, (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
-  return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
+  return createUuidV4();
 }

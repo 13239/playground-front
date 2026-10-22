@@ -1,3 +1,4 @@
+import { createUuidV4 } from "@/lib/client/uuid";
 import { AuthRequestError } from "@/features/auth/client/api";
 import { revalidateAuthSession } from "@/features/auth/client/session-store";
 import { authRetryDelay } from "@/features/auth/client/request-cooldown";
@@ -228,6 +229,8 @@ export class GlobalChatStore {
       this.scheduleRecovery(700);
     } catch (error) {
       if (generation !== this.generation || signal.aborted) return;
+      // 인증 후 이력 조회 등에서 예외가 나더라도 이전 WebSocket을 닫고 재시도한다.
+      this.cancelConnection();
       if (error instanceof AuthRequestError && (error.status === 401 || error.status === 403 && error.code !== "CHAT_ROOM_ACCESS_DENIED")) {
         this.update({ state: "expired" });
         revalidateAuthSession();
@@ -250,7 +253,7 @@ export class GlobalChatStore {
     const now = performance.now();
     // 서버의 CHAT_HISTORY 500ms 제한을 넘기면 WebSocket 자체가 종료된다.
     if (this.historyRequest || now - this.lastHistoryAt < 650 || now < this.blockedUntil) return false;
-    const id = crypto.randomUUID();
+    const id = createUuidV4();
     if (!sendChatFrame(this.socket, { type: "CHAT_HISTORY", ...this.destination, requestId: id,
       limit: HISTORY_LIMIT, ...(before ? { before } : {}) })) return false;
     this.lastHistoryAt = now;
@@ -277,7 +280,7 @@ export class GlobalChatStore {
     const now = performance.now();
     // 서버는 접속자 목록 요청 간격이 1초 미만이면 연결을 종료하므로 클라이언트에서도 제한한다.
     if (this.presenceRequest || now - this.lastPresenceAt < 1200 || now < this.blockedUntil) return false;
-    const id = crypto.randomUUID();
+    const id = createUuidV4();
     if (!sendChatFrame(this.socket, { type: "PRESENCE_GET", requestId: id, onlineLimit: PRESENCE_LIMIT,
       ...(cursor ? { onlineCursor: cursor } : {}) })) return false;
     this.lastPresenceAt = now;
@@ -298,7 +301,7 @@ export class GlobalChatStore {
     if (performance.now() - this.lastSendAt < 250 || performance.now() < this.blockedUntil) {
       return { ok: false, message: "잠시 후 메시지를 보내 주세요." };
     }
-    const pending: PendingChatMessage = { clientMessageId: crypto.randomUUID(), content, state: "queued", attempts: 0 };
+    const pending: PendingChatMessage = { clientMessageId: createUuidV4(), content, state: "queued", attempts: 0 };
     return this.transmit(pending) ? { ok: true }
       : { ok: false, message: "채팅 연결을 확인한 뒤 다시 전송해 주세요." };
   };
