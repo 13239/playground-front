@@ -4,6 +4,7 @@ import {
 } from "@/features/profile/catalog";
 import {
   inviteCodePattern,
+  membershipIdPattern,
   isObject,
   type ForbiddenRule,
   type RoomVisibility,
@@ -63,9 +64,7 @@ export function isWaitingRoom(value: unknown): value is WaitingRoom {
     !Number.isSafeInteger(value.revision) ||
     (value.revision as number) < 0 ||
     typeof value.membershipId !== "string" ||
-    !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
-      value.membershipId,
-    ) ||
+    !membershipIdPattern.test(value.membershipId) ||
     typeof value.allReady !== "boolean" ||
     !Array.isArray(value.participants) ||
     value.participants.length < 1 ||

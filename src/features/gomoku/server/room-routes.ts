@@ -10,6 +10,7 @@ import {
   isHostedRoom,
   isObject,
   isRoomPage,
+  membershipIdPattern,
   publicHostedRoom,
   publicRoomPage,
   requestIdPattern,
@@ -112,8 +113,9 @@ export async function handleRoomRequest(
       if (["ready", "leave", "lifecycle"].includes(operation)
         && (typeof input.pageId !== "string" || !requestIdPattern.test(input.pageId))) throw new ApiError("INVALID_REQUEST_BODY");
       // 참가·페이지 범위를 본문 증명에 함께 결합해 이전 화면의 늦은 퇴장과 재입장을 구분한다.
+      // DB 이전으로 생성된 v1 참가 ID도 조회와 동일하게 허용하며 클라이언트 pageId·tabId는 계속 v4만 받는다.
       if ((operation === "leave" || operation === "lifecycle")
-        && (typeof input.membershipId !== "string" || !requestIdPattern.test(input.membershipId))) throw new ApiError("INVALID_REQUEST_BODY");
+        && (typeof input.membershipId !== "string" || !membershipIdPattern.test(input.membershipId))) throw new ApiError("INVALID_REQUEST_BODY");
       if (operation === "lifecycle" && (typeof input.tabId !== "string" || !requestIdPattern.test(input.tabId)
         || !["OPEN", "CLOSE", "LEAVE"].includes(input.action as string))) throw new ApiError("INVALID_REQUEST_BODY");
       body = { roomId: input.roomId, ...(operation === "ready" ? { ready: input.ready } : {}),

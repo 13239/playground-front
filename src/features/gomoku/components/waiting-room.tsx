@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { AuthRequestError } from "@/features/auth/client/api";
@@ -23,15 +23,61 @@ import gameStyles from "./game-room.module.css";
 import common from "./gomoku.module.css";
 import styles from "./waiting-room.module.css";
 
+// 인증 재확인으로 화면을 숨겨도 같은 문서·참가의 점유권은 유지하고, 새 로그인에는 이전 점유권을 넘기지 않는다.
+type RoomConnection = Readonly<{ roomId: number; sessionId: string; membershipId: string; pageId?: string; denial?: string; error?: string }>;
+
 /** 계정·방 경계가 바뀌면 준비 상태와 방 채팅도 새로 만들어 이전 사용자의 정보를 숨긴다. */
 export function WaitingRoomScreen({ roomId }: { roomId: number }) {
   const auth = useAuthSession();
+  const router = useRouter();
+  const [connection, setConnection] = useState<RoomConnection>();
+  const stopped = useRef(false);
+  // 창 전환의 checking/error는 참가 종료가 아니다. 로그아웃·다른 로그인에서는 기존 컨트롤러를 해제한다.
+  const sessionId = auth.status === "authenticated" ? auth.session.sessionId
+    : auth.status === "checking" || auth.status === "error" ? connection?.sessionId : undefined;
+  const membershipId = connection?.roomId === roomId && connection.sessionId === sessionId ? connection.membershipId : undefined;
+  const onMembership = useCallback((sessionId: string, membershipId: string) => {
+    setConnection(current => current?.roomId === roomId && current.sessionId === sessionId && current.membershipId === membershipId
+      ? current : { roomId, sessionId, membershipId });
+  }, [roomId]);
+  const onRestore = useCallback(() => router.replace("/games/gomoku"), [router]);
+  const onOpened = useCallback((pageId: string) => {
+    setConnection(current => current?.roomId === roomId && current.sessionId === sessionId && current.membershipId === membershipId
+      && (current.pageId !== pageId || current.error) ? { ...current, pageId, error: undefined } : current);
+  }, [roomId, sessionId, membershipId]);
+  const onDenied = useCallback((error: unknown) => {
+    setConnection(current => current?.roomId === roomId && current.sessionId === sessionId && current.membershipId === membershipId
+      ? { ...current, denial: error instanceof AuthRequestError ? error.message : "방 접속을 확인하지 못했습니다." } : current);
+  }, [roomId, sessionId, membershipId]);
+  const onError = useCallback((error: unknown) => {
+    // 입장 실패를 준비 버튼만 꺼진 상태로 감추지 않고, 현재 참가에 해당하는 공개 오류만 표시한다.
+    setConnection(current => current?.roomId === roomId && current.sessionId === sessionId && current.membershipId === membershipId
+      ? { ...current, error: error instanceof AuthRequestError ? error.message : "방 입장을 확인하지 못했습니다. 다시 연결해 주세요." } : current);
+    if (error instanceof AuthRequestError && (error.status === 401 || error.code === "LOGIN_SESSION_CHANGED")) revalidateAuthSession();
+  }, [roomId, sessionId, membershipId]);
+  // 화면 내부의 인증 상태·채팅 재생성과 독립적으로 pagehide·새로고침·뒤로가기와 Web Lock을 관리한다.
+  const departure = useRoomDeparture({ sessionId, roomId, membershipId, stopped, onRestore, onOpened, onDenied, onError });
   if (auth.status === "authenticated") {
+    const current = connection?.roomId === roomId && connection.sessionId === auth.session.sessionId ? connection : undefined;
+    if (current?.denial) return (
+      <div className={styles.fallback} role="status">
+        <LobbyIcon name="board" />
+        <h1>대기실을 확인해 주세요</h1>
+        <p>{current.denial}</p>
+        <Link className={common.primaryButton} href="/games/gomoku">방 목록으로</Link>
+      </div>
+    );
     return (
       <AuthenticatedWaitingRoom
         key={`${roomId}:${auth.session.sessionId}`}
         roomId={roomId}
         sessionId={auth.session.sessionId}
+        pageId={current?.pageId}
+        connectionError={current?.error}
+        onRetryConnection={departure.retry}
+        stopped={stopped}
+        onMembership={onMembership}
+        onComplete={departure.complete}
       />
     );
   }
@@ -66,15 +112,26 @@ export function WaitingRoomScreen({ roomId }: { roomId: number }) {
 function AuthenticatedWaitingRoom({
   roomId,
   sessionId,
+  pageId,
+  connectionError,
+  onRetryConnection,
+  stopped: stoppedRef,
+  onMembership,
+  onComplete,
 }: {
   roomId: number;
   sessionId: string;
+  pageId?: string;
+  connectionError?: string;
+  onRetryConnection: () => void;
+  stopped: RefObject<boolean>;
+  onMembership: (sessionId: string, membershipId: string) => void;
+  onComplete: (sessionId: string, membershipId: string) => void;
 }) {
   const router = useRouter();
   const [room, setRoom] = useState<WaitingRoom>();
   const [error, setError] = useState("");
   const [fatal, setFatal] = useState(false);
-  const [pageId, setPageId] = useState<string>();
   const [pending, setPending] = useState<"ready" | "leave" | "game" | null>(null);
   const [copied, setCopied] = useState(false);
   const [copyFallback, setCopyFallback] = useState(false);
@@ -82,7 +139,6 @@ function AuthenticatedWaitingRoom({
   const [leaveError, setLeaveError] = useState("");
   const mounted = useRef(false);
   const busy = useRef(false);
-  const stopped = useRef(false);
   const revision = useRef(-1);
   const codeRef = useRef<HTMLInputElement>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -92,7 +148,7 @@ function AuthenticatedWaitingRoom({
   const accept = useCallback((next: WaitingRoom) => {
     // 먼저 끝난 준비 요청보다 오래된 조회 응답이 UI를 되돌리지 못하게 한다.
     // 첫 참가 정보가 도착하기 전에 뒤로간 경우에도 늦은 응답의 참가 식별자로 해당 입장만 정리한다.
-    if (stopped.current) {
+    if (stoppedRef.current) {
       if (window.location.pathname !== `/games/gomoku/rooms/${roomId}`) {
         void leaveRoom(sessionId, roomId, next.membershipId, newRoomRequestId()).catch(() => {});
       }
@@ -100,9 +156,11 @@ function AuthenticatedWaitingRoom({
     }
     if (!mounted.current || next.revision < revision.current) return;
     revision.current = next.revision;
+    // 인증 재확인 뒤에도 바깥 수명 관리자가 같은 참가·pageId를 재사용하도록 본인의 참가 정보만 전달한다.
+    onMembership(sessionId, next.membershipId);
     setRoom(next);
     setError("");
-  }, [sessionId, roomId]);
+  }, [sessionId, roomId, stoppedRef, onMembership]);
 
   const fail = useCallback((failure: unknown) => {
     if (!mounted.current) return;
@@ -133,12 +191,8 @@ function AuthenticatedWaitingRoom({
   }, []);
   // 중첩 요청 없이 동기화하고 숨겨진 대기 탭은 접속 리스만 유지하도록 조회 간격을 늘린다.
   // 대국에서는 이벤트 알림·5초 접속 확인·5회 재접속을 공통 훅에서 관리한다.
-  const onRestore = useCallback(() => router.replace("/games/gomoku"), [router]);
   // 페이지 OPEN이 서버에서 확정되기 전에는 착수·준비·퇴장을 보내지 않는다.
-  const onOpened = useCallback((id: string) => { if (mounted.current) setPageId(id); }, []);
-  const onDenied = useCallback((reason: unknown) => { if (mounted.current) fail(reason); }, [fail]);
-  const departure = useRoomDeparture({ sessionId, roomId, membershipId: room?.membershipId, stopped, onRestore, onOpened, onDenied });
-  const sync = useRoomSync({ sessionId, roomId, pageId, playing: room?.game != null, busy, stopped, accept, fail });
+  const sync = useRoomSync({ sessionId, roomId, pageId, playing: room?.game != null, busy, stopped: stoppedRef, accept, fail });
 
   async function gameAction(action: GameAction) {
     if (!room?.game || !pageId || busy.current) return;
@@ -184,7 +238,8 @@ function AuthenticatedWaitingRoom({
     setLeaveError("");
     try {
       await leaveRoom(sessionId, roomId, room.membershipId, pageId);
-      departure.complete();
+      // 이전 로그인에서 늦게 끝난 퇴장은 새 로그인·새 참가의 점유권을 해제하지 않는다.
+      onComplete(sessionId, room.membershipId);
       if (mounted.current) router.replace("/games/gomoku");
     } catch (failure) {
       fail(failure);
@@ -255,7 +310,9 @@ function AuthenticatedWaitingRoom({
     (a, b) => Number(b.host) - Number(a.host),
   );
   const notice =
-    room.participants.length === 1
+    !pageId
+      ? ["방 입장을 확인하고 있어요", connectionError ? "연결 상태를 확인한 뒤 다시 연결해 주세요." : "확인이 끝나면 준비하기를 누를 수 있어요."]
+      : room.participants.length === 1
       ? ["상대를 기다리고 있어요", "상단 방 코드를 복사해 친구에게 알려주세요."]
       : room.allReady
         ? [
@@ -390,6 +447,12 @@ function AuthenticatedWaitingRoom({
             </div>
           </div>
         </section>
+        {connectionError && (
+          <div className={styles.error} role="alert">
+            <p>{connectionError}</p>
+            <button className={common.secondaryButton} type="button" onClick={onRetryConnection}>다시 연결</button>
+          </div>
+        )}
         {error && (
           <p className={styles.error} role="alert">
             {error}
@@ -406,7 +469,9 @@ function AuthenticatedWaitingRoom({
             <LobbyIcon name="check" />
             {pending === "ready"
               ? "변경 중…"
-              : self.ready
+              : !pageId
+                ? "입장 확인 중…"
+                : self.ready
                 ? "준비 취소"
                 : "준비하기"}
           </button>

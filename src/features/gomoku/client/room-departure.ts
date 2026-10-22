@@ -36,12 +36,21 @@ export class RoomDeparture {
     return this.lockReady;
   }
 
-  async prepare(): Promise<number> {
-    if (this.departed) return 0;
+  /** 서버의 OPEN 성공만 입장 완료의 기준으로 삼고, 종료 알림의 사전 서명과 분리한다. */
+  async open(): Promise<boolean> {
+    if (this.departed) return false;
     await this.claimLock();
+    // 잠금 대기 중 로그아웃·방 이동이 끝났다면 이전 참가의 OPEN을 뒤늦게 보내지 않는다.
+    if (this.departed) return false;
     this.opened ??= openRoomPage(this.page.sessionId, this.page.roomId, this.page.membershipId, this.page.pageId, this.page.tabId)
       .catch(error => { this.opened = undefined; throw error; });
     await this.opened;
+    return !this.departed;
+  }
+
+  /** 종료 증명 준비 실패는 재시도하되, 이미 확인된 입장과 준비·대국 권한을 취소하지 않는다. */
+  async prepare(): Promise<number> {
+    if (!await this.open()) return 0;
     const [close, leave] = await Promise.all([
       preparePageExit({ ...this.page, action: "CLOSE" }), preparePageExit({ ...this.page, action: "LEAVE" }),
     ]);
