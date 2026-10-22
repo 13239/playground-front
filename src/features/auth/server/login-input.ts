@@ -18,7 +18,16 @@ export function parseLoginInput(value: unknown): LoginInput {
     fields.password = "비밀번호를 1~72자로 입력해 주세요.";
   }
   if (typeof input.keepLoggedIn !== "boolean") fields.keepLoggedIn = "로그인 유지 여부를 선택해 주세요.";
+  // 문자열·null을 동의로 해석하지 않고 명시적인 boolean만 허용한다. 생략은 안전하게 false로 처리한다.
+  if (input.replaceExistingSession !== undefined && typeof input.replaceExistingSession !== "boolean") {
+    fields.replaceExistingSession = "기존 로그인 종료 여부를 선택해 주세요.";
+  }
   if (Object.keys(fields).length) throw new ApiError("VALIDATION_FAILED", { fieldErrors: fields });
   // 검사한 공개 계약의 필드만 Spring에 전달하며 알 수 없는 추가 필드는 버린다.
-  return { username: input.username as string, password: input.password as string, keepLoggedIn: input.keepLoggedIn as boolean };
+  return {
+    username: input.username as string,
+    password: input.password as string,
+    keepLoggedIn: input.keepLoggedIn as boolean,
+    replaceExistingSession: input.replaceExistingSession === true,
+  };
 }

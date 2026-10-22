@@ -53,6 +53,8 @@ const errors = {
   BFF_AUTHENTICATION_REQUIRED: [403, "허용되지 않은 서버 연결입니다."],
   // 충돌 응답은 먼저 성공한 요청이 설정한 인증 쿠키를 유지하며 재시도를 안내한다.
   LOGIN_SESSION_CHANGED: [409, "로그인 상태가 변경되었습니다. 현재 상태를 다시 확인해 주세요."],
+  // 유효한 자격 증명으로 확인한 중복 로그인은 기존 세션·쿠키를 유지한 채 사용자 선택을 기다린다.
+  LOGIN_CONFIRMATION_REQUIRED: [409, "이미 다른 곳에서 로그인되어 있어요. 기존 로그인을 종료하고 계속할까요?"],
   LOGIN_RATE_LIMIT_EXCEEDED: [429, "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   AUTH_SERVICE_UNAVAILABLE: [503, "로그인 서비스를 일시적으로 이용할 수 없습니다."],
   INVALID_AUTHENTICATION_REQUEST: [400, "인증 요청 형식이 올바르지 않습니다."],

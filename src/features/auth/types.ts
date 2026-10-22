@@ -3,6 +3,8 @@ export type LoginInput = Readonly<{
   username: string;
   password: string;
   keepLoggedIn: boolean;
+  // 다른 로그인을 종료하는 재요청에만 true를 보내며, 생략한 첫 요청은 기존 로그인을 유지한다.
+  replaceExistingSession?: boolean;
 }>;
 
 /** 가입 화면과 BFF는 필수 세 항목만 전달하며 선택 개인정보나 계정 상태는 브라우저에서 받지 않는다. */

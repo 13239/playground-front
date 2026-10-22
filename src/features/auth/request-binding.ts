@@ -9,7 +9,13 @@ export function proofBody(path: string, body: string): string {
     return JSON.stringify(Object.fromEntries(Object.entries(input).filter(([key]) => key !== "password")));
   }
   if (typeof input !== "object" || input === null || !("username" in input) || typeof input.username !== "string"
-    || !("keepLoggedIn" in input) || typeof input.keepLoggedIn !== "boolean") throw new TypeError("Invalid login binding");
-  // 로그인 대상·유지 선택은 서명에 결합하고, 비밀번호는 증명·nonce·응답·로그에 포함하지 않는다.
-  return JSON.stringify({ username: input.username, keepLoggedIn: input.keepLoggedIn });
+    || !("keepLoggedIn" in input) || typeof input.keepLoggedIn !== "boolean"
+    || "replaceExistingSession" in input && typeof input.replaceExistingSession !== "boolean") throw new TypeError("Invalid login binding");
+  // 로그인 대상·유지 선택·교체 동의는 서명에 결합하고, 비밀번호는 증명·nonce·응답·로그에 포함하지 않는다.
+  // 동의 필드가 없는 기존 클라이언트의 서명은 그대로 검증하되 서버에서는 교체 동의 없음으로 처리한다.
+  return JSON.stringify({
+    username: input.username,
+    keepLoggedIn: input.keepLoggedIn,
+    ...("replaceExistingSession" in input && { replaceExistingSession: input.replaceExistingSession }),
+  });
 }
