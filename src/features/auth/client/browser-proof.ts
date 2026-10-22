@@ -3,23 +3,28 @@ import { getBrowserKey } from "./browser-key";
 import { AuthRequestError, requireSuccess } from "./error";
 import { proofBody } from "../request-binding";
 import { isDevHttpAuth } from "./environment";
+import { assertAuthRequestAllowed, rememberAuthRateLimit } from "./request-cooldown";
 
 type Purpose = "login" | "session";
 type Nonce = Readonly<{ value: string; receivedAt: number; serverTime: number; validUntil: number; thumbprint: string }>;
 const nonces = new Map<Purpose, Nonce>();
+let nonceRevision = 0;
 
 /** 탭에는 목적별 nonce 두 건만 보관한다. 인증 토큰이나 개인키 문자열을 저장하지 않는다. */
-export function clearProofNonces(): void { nonces.clear(); }
+export function clearProofNonces(): void { nonceRevision++; nonces.clear(); }
 
 async function nonceFor(purpose: Purpose, thumbprint: string, signal?: AbortSignal): Promise<Nonce> {
   signal?.throwIfAborted();
   const cached = nonces.get(purpose);
   if (cached && cached.thumbprint === thumbprint && performance.now() < cached.validUntil) return cached;
+  const currentRevision = nonceRevision;
+  // 종료 증명 준비도 공통 제한을 지킨다. 일반 탭 복귀에는 유효한 nonce를 그대로 재사용한다.
+  assertAuthRequestAllowed("/api/auth/proof-challenge");
   const response = await requireSuccess(await fetch("/api/auth/proof-challenge", {
     method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
     signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(35_000)]) : AbortSignal.timeout(35_000),
     headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose, keyThumbprint: thumbprint }),
-  }));
+  })).catch(error => { rememberAuthRateLimit("/api/auth/proof-challenge", error); throw error; });
   const value: unknown = await response.json();
   if (typeof value !== "object" || value === null || !("nonce" in value) || typeof value.nonce !== "string"
     || value.nonce.length > 2048 || !("serverTime" in value) || typeof value.serverTime !== "string"
@@ -32,7 +37,8 @@ async function nonceFor(purpose: Purpose, thumbprint: string, signal?: AbortSign
   const receivedAt = performance.now();
   const result = { value: value.nonce, serverTime, receivedAt, validUntil: receivedAt + lifetime - 5000, thumbprint };
   signal?.throwIfAborted();
-  nonces.set(purpose, result);
+  // 계정 변경 전에 시작한 발급 응답이 새 세션의 nonce 캐시를 되살리지 않게 한다.
+  if (currentRevision === nonceRevision) nonces.set(purpose, result);
   return result;
 }
 
@@ -72,6 +78,8 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
   const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeout)]) : AbortSignal.timeout(timeout);
   try {
     signal?.throwIfAborted();
+    // 세션·프로필·채팅 티켓이 같은 제한을 반복해서 소모하지 않도록 서명과 HTTP 요청 전에 확인한다.
+    assertAuthRequestAllowed(path);
     // 프로필도 동일 경로·메서드·본문에 서명한다. 조회는 GET, 캐릭터 변경은 멱등적인 PUT을 사용한다.
     // 오목 검색은 조건도 서명하도록 POST 본문을 쓰고 생성·닫기도 같은 인증 경계를 공유한다.
     const method = path === "/api/auth/session" || path === "/api/auth/profile" && input === undefined
@@ -99,6 +107,7 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
   } catch (error) {
     // 네트워크 오류로 포장하지 않아 종료된 스트림에 대한 자동 재시도가 발생하지 않는다.
     if (signal?.aborted) throw signal.reason;
+    rememberAuthRateLimit(path, error);
     if (nonceRetry && error instanceof AuthRequestError
       && ["BROWSER_PROOF_EXPIRED", "BROWSER_PROOF_INVALID"].includes(error.code ?? "")) {
       clearProofNonces();

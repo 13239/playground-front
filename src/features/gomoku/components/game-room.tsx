@@ -56,8 +56,7 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
         </div>)}
       </aside>
       <div className={styles.playArea}>
-      <header className={styles.gameHeader}><div><span className={styles.eyebrow}>GOMOKU · {game.round}번째 대국</span>
-        <h1>{room.title}</h1></div><span className={styles.roomCode}>방 코드 {room.inviteCode}</span></header>
+      {/* 대국 중에는 방 제목·코드·규칙 문구를 반복하지 않고 참가자 정보와 판에 집중한다. */}
       {(reconnectAttempt > 0 || connectionLost) && <div className={styles.connectionNotice} role="alert">
         <strong>{connectionLost ? "5회 재접속을 마쳤지만 연결하지 못했어요." : `대국 연결을 복구하고 있어요. 재접속 ${reconnectAttempt}/5`}</strong>
         <p>연결 복구 중에도 턴 시간은 계속 흘러요.{connectionLost && " 서버에서 연결 종료 결과를 확인해 주세요."}</p>
@@ -87,7 +86,6 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
             : game.turnSeat === self.seat ? "내 차례예요" : "상대의 차례예요"}</strong>
           {game.phase === "PLAYING" && <ActiveTurnCountdown serverTime={room.serverTime} deadline={game.deadline} />}
         </div>
-        {game.phase === "PLAYING" && <p className={styles.ruleHint}>한 수 30초 · 시간 초과 시 상대 턴으로 넘어가요 · {room.forbiddenRule === "STANDARD" ? "흑 3·3 / 4·4 / 장목 금수" : "금수 없는 자유 룰"}</p>}
         {game.phase === "FINISHED" && <div className={styles.result}>
           <p>{game.finishReason && reasons[game.finishReason]}</p>
           <div className={styles.actions}><button className={styles.primaryButton} type="button" disabled={disabled || requestedRematch} onClick={() => onAction({ action: "REMATCH" })}>

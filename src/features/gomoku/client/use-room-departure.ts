@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
+import { authRetryDelay } from "@/features/auth/client/request-cooldown";
 import { newRoomRequestId } from "./api";
 import { RoomDeparture } from "./room-departure";
 
@@ -62,7 +63,8 @@ export function useRoomDeparture({ sessionId, roomId, membershipId, stopped: sto
         if (!disposed && !controller.hasDeparted) {
           // 입장 실패는 주기 조회 성공에 지워지지 않는 별도 안내로 전달하고, 종료 준비만 실패하면 입장은 유지한다.
           if (!opened) onError(error);
-          timer = setTimeout(() => void prepare(), 5000);
+          // 종료용 증명 준비도 429 대기를 지키며, 대국 재접속 실패 횟수에는 포함하지 않는다.
+          timer = setTimeout(() => void prepare(), authRetryDelay(error));
         }
       } finally { preparing = false; }
     };

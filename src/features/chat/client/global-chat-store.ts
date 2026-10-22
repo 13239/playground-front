@@ -1,5 +1,6 @@
 import { AuthRequestError } from "@/features/auth/client/api";
 import { revalidateAuthSession } from "@/features/auth/client/session-store";
+import { authRetryDelay } from "@/features/auth/client/request-cooldown";
 import { connectChat } from "./connection";
 import { mergeMessages } from "./message-window";
 import { parseChatEvent, sendChatFrame, validatedChatContent,
@@ -57,6 +58,7 @@ export class GlobalChatStore {
   private abort?: AbortController;
   private generation = 0;
   private retries = 0;
+  private reconnectAt = 0;
   private retryTimer?: Timer;
   private pingTimer?: ReturnType<typeof setInterval>;
   private pongTimer?: Timer;
@@ -94,6 +96,7 @@ export class GlobalChatStore {
       this.snapshot = emptySnapshot();
       this.nextCursor = null;
       this.retries = 0;
+      this.reconnectAt = 0;
     }
     this.abort = new AbortController();
     this.update({ sessionId, state: "connecting", history: "idle", viewingOlder: false, hasNewMessages: false,
@@ -141,6 +144,13 @@ export class GlobalChatStore {
 
   private async establish(generation: number, sessionId: string, signal: AbortSignal): Promise<void> {
     if (generation !== this.generation || signal.aborted) return;
+    // 같은 세션의 인증 재확인으로 효과가 다시 연결돼도 기존 제한 대기 시간은 유지한다.
+    const remaining = this.reconnectAt - performance.now();
+    if (remaining > 0) {
+      this.update({ state: "reconnecting" });
+      this.retryTimer = setTimeout(() => { void this.establish(generation, sessionId, signal); }, remaining);
+      return;
+    }
     this.update({ state: this.retries ? "reconnecting" : "connecting" });
     try {
       const connection = await connectChat(sessionId, signal, this.destination);
@@ -149,6 +159,8 @@ export class GlobalChatStore {
       this.socket = connection.socket;
       const socket = connection.socket;
       const connectedAt = performance.now();
+      let lastPingAt = connectedAt;
+      let lastResumeAt = connectedAt;
       const onMessage = (event: MessageEvent<unknown>) => {
         if (generation !== this.generation || this.socket !== socket) return;
         const frame = parseChatEvent(event.data, this.destination);
@@ -162,16 +174,44 @@ export class GlobalChatStore {
         if (closeCode === 4401 || closeCode === 4403 && this.destination.scope === "GLOBAL") {
           this.update({ state: "expired" });
           revalidateAuthSession();
-        } else this.reconnect(generation, sessionId, signal);
+        } else this.reconnect(generation, sessionId, signal, closeCode === 1008 ? 60_000 : 0);
       };
       const onClose = (event: CloseEvent) => onConnectionLost(event.code);
+      const ping = () => {
+        // 복귀 직후의 확인과 주기 PING도 서버의 최소 1초 간격·단일 PONG 대기를 공유한다.
+        if (generation !== this.generation || this.socket !== socket || signal.aborted || this.pongTimer !== undefined
+          || performance.now() - lastPingAt < 1000) return;
+        lastPingAt = performance.now();
+        const timer = setTimeout(() => {
+          // 취소 직전 실행 대기 중이던 콜백도 이미 응답한 PING이나 다음 PING에 영향을 주지 않는다.
+          if (this.pongTimer === timer) onConnectionLost();
+        }, PONG_TIMEOUT_MS);
+        this.pongTimer = timer;
+        // 송신 버퍼 초과·소켓 오류는 PONG 기한까지 기다리지 않고 기존 지수 지연으로 재접속한다.
+        if (!sendChatFrame(socket, { type: "PING" })) onConnectionLost();
+      };
+      const onResume = () => {
+        if (document.visibilityState !== "visible" || performance.now() - lastResumeAt < 30_000
+          || generation !== this.generation || this.socket !== socket) return;
+        lastResumeAt = performance.now();
+        // 절전 뒤에도 정상 소켓은 유지하고 응답 여부만 확인한다. 과거 메시지 탐색 위치는 바꾸지 않는다.
+        ping();
+        if (!this.snapshot.viewingOlder) this.loadHistory();
+      };
       socket.addEventListener("message", onMessage);
       socket.addEventListener("close", onClose);
+      document.addEventListener("visibilitychange", onResume);
+      window.addEventListener("focus", onResume);
+      window.addEventListener("online", onResume);
       this.removeListeners = () => {
         socket.removeEventListener("message", onMessage);
         socket.removeEventListener("close", onClose);
+        document.removeEventListener("visibilitychange", onResume);
+        window.removeEventListener("focus", onResume);
+        window.removeEventListener("online", onResume);
       };
       this.update({ state: "connected" });
+      this.reconnectAt = 0;
       for (const data of connection.takeBufferedFrames()) onMessage({ data } as MessageEvent<string>);
       // 상태 구독자가 로그아웃·계정 전환을 처리했다면 이전 연결에 새 타이머를 설치하지 않는다.
       if (generation !== this.generation || this.socket !== socket || signal.aborted) return;
@@ -181,17 +221,8 @@ export class GlobalChatStore {
         return;
       }
       // 서버는 90초 입력 대기 제한을 적용하므로 25초 주기의 경량 PING을 보낸다.
-      this.pingTimer = setInterval(() => {
-        // PONG에는 요청 ID가 없으므로 한 연결에서 동시에 기다리는 PING은 하나로 제한한다.
-        if (generation !== this.generation || this.socket !== socket || signal.aborted || this.pongTimer !== undefined) return;
-        const timer = setTimeout(() => {
-          // 취소 직전 실행 대기 중이던 콜백도 이미 응답한 PING이나 다음 PING에 영향을 주지 않는다.
-          if (this.pongTimer === timer) onConnectionLost();
-        }, PONG_TIMEOUT_MS);
-        this.pongTimer = timer;
-        // 송신 버퍼 초과·소켓 오류는 PONG 기한까지 기다리지 않고 기존 지수 지연으로 재접속한다.
-        if (!sendChatFrame(socket, { type: "PING" })) onConnectionLost();
-      }, PING_INTERVAL_MS);
+      // PONG에는 요청 ID가 없으므로 한 연결에서 동시에 기다리는 PING은 하나로 제한한다.
+      this.pingTimer = setInterval(ping, PING_INTERVAL_MS);
       // 서버가 로그인 경계를 강제한 최근 메시지만 재조회해 Kafka 전파 누락도 복구한다.
       this.loadHistory();
       this.scheduleRecovery(700);
@@ -200,15 +231,17 @@ export class GlobalChatStore {
       if (error instanceof AuthRequestError && (error.status === 401 || error.status === 403 && error.code !== "CHAT_ROOM_ACCESS_DENIED")) {
         this.update({ state: "expired" });
         revalidateAuthSession();
-      } else this.reconnect(generation, sessionId, signal);
+      } else this.reconnect(generation, sessionId, signal, error instanceof AuthRequestError && error.status === 429 ? authRetryDelay(error) : 0);
     }
   }
 
-  private reconnect(generation: number, sessionId: string, signal: AbortSignal): void {
+  private reconnect(generation: number, sessionId: string, signal: AbortSignal, retryAfter = 0): void {
     if (generation !== this.generation || signal.aborted) return;
     this.update({ state: "reconnecting", onlineCount: null, onlineUsers: [], onlineNextCursor: null,
       onlineLoading: false, pending: this.snapshot.pending.map((item) => ({ ...item, state: "unconfirmed" })) });
-    const delay = Math.min(RETRY_MAX_MS, 1000 * 2 ** Math.min(this.retries++, 4));
+    // 티켓 발급·연결 제한의 Retry-After는 일반 지수 재접속 상한보다 우선한다.
+    const delay = Math.max(retryAfter, Math.min(RETRY_MAX_MS, 1000 * 2 ** Math.min(this.retries++, 4)));
+    this.reconnectAt = performance.now() + delay;
     this.retryTimer = setTimeout(() => { void this.establish(generation, sessionId, signal); },
       delay + Math.floor(Math.random() * 400));
   }
@@ -235,7 +268,8 @@ export class GlobalChatStore {
   loadOlder = (): boolean => Boolean(this.nextCursor) && this.loadHistory(this.nextCursor);
   returnToLatest = (): boolean => this.loadHistory();
   retryHistory = (): boolean => this.loadHistory(this.failedHistoryBefore);
-  retry = (): void => { if (this.snapshot.sessionId) this.connect(this.snapshot.sessionId); };
+  // 수동 재연결도 서버가 정한 대기 시간을 건너뛰지 않는다.
+  retry = (): void => { if (this.snapshot.sessionId && performance.now() >= this.reconnectAt) this.connect(this.snapshot.sessionId); };
 
   loadPresence = (cursor: string | null = null): boolean => {
     // 방 인원은 MySQL 참가 상태에서 표시하며 공용 채팅 접속자 목록과 섞지 않는다.

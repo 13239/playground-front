@@ -1,6 +1,6 @@
-/* 대국판은 작은 화면에서 선택 후 착수하며 확대 시 판 영역만 스크롤한다. 큰 화면에서도 판의 가독성을 유지한다. */
+/* 대국판은 터치에서 같은 교차점을 두 번 눌러 착수하고, 브라우저의 기본 확대·스크롤을 유지한다. 큰 화면에서도 판의 가독성을 유지한다. */
 /* 제공된 대국 시안: 왼쪽 참가자·타이머, 가운데 좌표판, 오른쪽 실시간 채팅을 같은 보라색 톤으로 연결한다. */
-/* 공통 폼의 큰 입력 높이를 판 확대 선택기에 적용하지 않는다. */
+/* 별도의 확대 선택기·착수 도구 없이 판이 참가자와 채팅 사이 가용 너비를 채우게 한다. */
 /* 차례와 타이머는 왼쪽 카드에 표시하고 중앙 상태 안내는 화면 낭독기에 유지한다. */
 
 .gameLayout {
@@ -19,10 +19,10 @@
   color: #231b4b;
   display: grid;
   grid-template-columns: minmax(190px, .55fr) minmax(0, 1fr);
-  gap: 1rem;
+  gap: clamp(.75rem, 1.2vw, 1.5rem);
 }
 
-.gameHeader, .boardTools, .moveBar, .turnBar, .actions {
+.turnBar, .actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,25 +30,11 @@
   flex-wrap: wrap;
 }
 
-.gameHeader h1 {
-  margin: .2rem 0;
-  font-size: .9rem;
-  overflow-wrap: anywhere;
-}
-
 .eyebrow {
   font-size: .75rem;
   font-weight: 800;
   letter-spacing: .1em;
   color: #71619c;
-}
-
-.roomCode {
-  padding: .6rem .9rem;
-  border-radius: .8rem;
-  background: #ebe6fb;
-  font-size: .8rem;
-  font-weight: 700;
 }
 
 .players {
@@ -122,49 +108,14 @@
   color: #b3384d;
 }
 
-.ruleHint {
-  font-size: .78rem;
-  color: #675d7d;
-  line-height: 1.6;
-}
-
 .boardSection {
-  margin: .8rem auto;
-  width: min(100%, calc(100svh - 25rem), 1100px);
-}
-
-.boardTools {
-  margin-bottom: .6rem;
-  font-size: .75rem;
-  font-weight: 700;
-}
-
-.boardTools small {
-  color: #73668b;
-}
-
-.boardTools label {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-}
-
-.boardTools select {
-  min-height: 36px;
-  border: 1px solid #d6cbe9;
-  border-radius: .5rem;
-  background: #fff;
-  padding: .3rem;
-}
-
-.gameScene .boardTools select {
-  min-height: 30px;
-  padding: .25rem;
-  font-size: .75rem;
+  min-width: 0;
+  width: 100%;
+  margin: 0;
 }
 
 .boardScroll {
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   border-radius: 1rem;
   border: 0;
@@ -278,17 +229,6 @@
   border: 1px solid #ec6971;
   background: #ec6971;
   border-radius: 50%;
-}
-
-.moveBar {
-  margin-top: .7rem;
-}
-
-.moveBar p {
-  flex: 1 1 12rem;
-  margin: 0;
-  font-size: .8rem;
-  line-height: 1.6;
 }
 
 .primaryButton, .secondaryButton, .dangerButton {
@@ -438,16 +378,6 @@
 
 .playArea {
   min-width: 0;
-}
-
-.gameHeader {
-  display: flex;
-  gap: .5rem;
-  margin: 0 0 .4rem;
-}
-
-.gameHeader .eyebrow {
-  display: none;
 }
 
 .playerSlot {
@@ -623,7 +553,7 @@
 }
 
 .boardFrame {
-  width: calc(100% * var(--board-zoom));
+  width: 100%;
   padding: .5rem;
   background: linear-gradient(115deg, #ffdc9e, #efc07a);
 }
@@ -790,10 +720,6 @@
     gap: 1.5rem;
   }
 
-  .boardSection {
-    width: min(100%, 82svh, 1200px);
-  }
-
   .gameLayout {
     gap: 1.6rem;
   }
@@ -858,10 +784,6 @@
     flex-wrap: nowrap;
   }
 
-  .boardSection {
-    width: min(100%, 80svh, 900px);
-  }
-
   .columnLabels, .rowLabels {
     font-size: .7rem;
   }
@@ -893,14 +815,6 @@
     width: 100%;
   }
 
-  .boardTools {
-    font-size: .75rem;
-  }
-
-  .ruleHint {
-    font-size: .7rem;
-  }
-
   .lottery {
     min-height: 26rem;
   }
@@ -911,10 +825,6 @@
 
   .actions > button {
     flex: 1 1 auto;
-  }
-
-  .moveBar .primaryButton {
-    min-width: 100px;
   }
 
   .gameLayout {
@@ -962,18 +872,6 @@
 
   .playerBadge {
     padding: .25rem .5rem;
-    font-size: .7rem;
-  }
-
-  .gameHeader h1 {
-    font-size: 1rem;
-  }
-
-  .roomCode {
-    font-size: .7rem;
-  }
-
-  .boardTools label {
     font-size: .7rem;
   }
 

@@ -12,9 +12,11 @@ import styles from "./lobby.module.css";
 /** 프로필에서 검증된 닉네임만 표시하며 아직 존재하지 않는 레벨·경험치 같은 계정 수치는 만들지 않는다. */
 export function AccountMenu({
   sessionId,
+  sessionWarning,
   children,
 }: {
   sessionId: string;
+  sessionWarning?: string;
   children: ReactNode;
 }) {
   const { profile, error, loading, retry, save } = useProfile(sessionId);
@@ -39,9 +41,10 @@ export function AccountMenu({
           </span>
           <span className={styles.profileCopy}>
             <strong>{nickname}</strong>
-            <span>
+            {/* 확인 장애에도 메뉴·프로필은 유지하고 짧은 상태 안내로만 표시한다. */}
+            <span title={sessionWarning}>
               <i />
-              플레이어
+              {sessionWarning ? "연결 확인 지연" : "플레이어"}
             </span>
           </span>
           <LobbyIcon name="down" className={styles.profileChevron} />

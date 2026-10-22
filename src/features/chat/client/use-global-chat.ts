@@ -21,6 +21,7 @@ export function useChatConnection(destination: ChatDestination) {
 
   useEffect(() => {
     if (sessionId) return store.connect(sessionId);
+    // 일반 복귀 확인은 authenticated를 유지해 소켓을 재생성하지 않는다. 실제 인증 변경 때만 메모리를 숨긴다.
     // 잠깐의 인증 재확인에는 메모리를 숨긴 채 유지한다. 로그아웃·새 로그인에서는 이전 전송을 폐기한다.
     if (auth.status === "anonymous") store.clear();
     else store.disconnect();

@@ -19,11 +19,20 @@ export class AuthRequestError extends Error {
 /** 프록시 HTML·예외 원문은 노출하지 않고 제한된 공개 오류만 읽는다. */
 export async function requireSuccess(response: Response): Promise<Response> {
   if (response.ok) return response;
+  // 본문을 제공하지 않는 프록시의 429도 표준 Retry-After(초 또는 HTTP 날짜)를 보존한다.
+  const header = response.headers.get("Retry-After");
+  const headerSeconds = header && /^\d{1,5}$/.test(header) ? Number(header)
+    : header ? Math.ceil((Date.parse(header) - Date.now()) / 1000) : undefined;
+  let retryAfterSeconds = headerSeconds !== undefined && Number.isSafeInteger(headerSeconds) && headerSeconds > 0 && headerSeconds <= 86_400
+    ? headerSeconds : undefined;
   let problem: unknown;
   try { problem = await response.json(); } catch { /* 프록시의 HTML 오류 응답은 화면에 노출하지 않는다. */ }
   if (typeof problem === "object" && problem !== null && "detail" in problem
     && typeof problem.detail === "string" && problem.detail.length <= 300) {
     const seconds = "retryAfterSeconds" in problem ? problem.retryAfterSeconds : undefined;
+    if (typeof seconds === "number" && Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 86_400) {
+      retryAfterSeconds = Math.max(retryAfterSeconds ?? 0, seconds);
+    }
     const code = "code" in problem && typeof problem.code === "string" && /^[A-Z_]{1,64}$/.test(problem.code) ? problem.code : undefined;
     const fieldErrors: Record<string, string> = {};
     if (code === "VALIDATION_FAILED" && "errors" in problem && typeof problem.errors === "object" && problem.errors !== null && !Array.isArray(problem.errors)) {
@@ -32,8 +41,8 @@ export async function requireSuccess(response: Response): Promise<Response> {
       }
     }
     throw new AuthRequestError(problem.detail, response.status,
-      typeof seconds === "number" && Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 86_400 ? seconds : undefined, code,
+      retryAfterSeconds, code,
       Object.keys(fieldErrors).length ? fieldErrors : undefined);
   }
-  throw new AuthRequestError("요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.", response.status);
+  throw new AuthRequestError("요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.", response.status, retryAfterSeconds);
 }
