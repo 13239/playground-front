@@ -38,9 +38,34 @@ function base64url(value: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(value))).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
+/** 종료 시에는 비동기 키 읽기·nonce 발급을 기다릴 수 없으므로 본문에 결합한 증명을 미리 만들어 둔다. */
+export type PreparedPageExit = Readonly<{ body: string; headers: Readonly<Record<string, string>>; validUntil: number }>;
+export async function preparePageExit(input: Readonly<{
+  sessionId: string; roomId: number; membershipId: string; pageId: string; action: "CLOSE" | "LEAVE";
+}>): Promise<PreparedPageExit> {
+  const body = JSON.stringify(input);
+  if (isDevHttpAuth()) return { body, headers: { "Content-Type": "application/json" }, validUntil: performance.now() + 50_000 };
+  const key = await getBrowserKey(false);
+  const nonce = await nonceFor("session", key.thumbprint);
+  const proof = await signBoundRequest("/api/gomoku/rooms/lifecycle", "POST", body, key, nonce);
+  return { body, headers: { "Content-Type": "application/json", "X-Browser-Proof": proof }, validUntil: nonce.validUntil };
+}
+
+/** 일반 요청과 미리 준비한 종료 요청이 같은 메서드·경로·본문·세션 nonce 결합을 사용한다. */
+async function signBoundRequest(path: string, method: string, body: string | undefined,
+  key: Awaited<ReturnType<typeof getBrowserKey>>, nonce: Nonce): Promise<string> {
+  return new SignJWT({ nonce: nonce.value, htm: method, htu: window.location.origin + path,
+    bht: base64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(proofBody(path, body ?? "")))) })
+    .setProtectedHeader({ alg: "ES256", typ: "bff-session-proof+jwt", jwk: key.publicKey })
+    .setJti(crypto.randomUUID()).setIssuedAt(Math.floor((nonce.serverTime + performance.now() - nonce.receivedAt) / 1000))
+    .sign(key.privateKey);
+}
+
 /** 요청마다 새로운 증명을 만든다. nonce 갱신은 서버가 실행 전에 거절한 경우에만 한 번 재시도한다. */
 // 채팅 증명 발급의 실제 경로·메서드·세션 본문도 기존 로그인 키로 서명한다.
 export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomoku/${string}` | "/api/chat/tickets", input?: object, nonceRetry = true): Promise<Response> {
+  // 대국 접속 확인은 5초 안에 실패를 감지해 5회 재접속 예산을 지킨다. 스트림은 서버가 20초마다 정상 종료한다.
+  const timeout = path === "/api/gomoku/rooms/state" ? 5_000 : 35_000;
   try {
     // 프로필도 동일 경로·메서드·본문에 서명한다. 조회는 GET, 캐릭터 변경은 멱등적인 PUT을 사용한다.
     // 오목 검색은 조건도 서명하도록 POST 본문을 쓰고 생성·닫기도 같은 인증 경계를 공유한다.
@@ -50,22 +75,18 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     if (isDevHttpAuth()) {
       return await requireSuccess(await fetch(path, {
         method, credentials: "same-origin", cache: "no-store", redirect: "error",
-        signal: AbortSignal.timeout(35_000), ...(input !== undefined && { headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+        signal: AbortSignal.timeout(timeout), ...(input !== undefined && { headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
       }));
     }
     const purpose = path === "/api/auth/login" ? "login" : "session";
     const key = await getBrowserKey(purpose === "login");
     const nonce = await nonceFor(purpose, key.thumbprint);
     const body = input === undefined ? undefined : JSON.stringify(input);
-    const proof = await new SignJWT({ nonce: nonce.value, htm: method, htu: window.location.origin + path,
-      bht: base64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(proofBody(path, body ?? "")))) })
-      .setProtectedHeader({ alg: "ES256", typ: "bff-session-proof+jwt", jwk: key.publicKey })
-      .setJti(crypto.randomUUID()).setIssuedAt(Math.floor((nonce.serverTime + performance.now() - nonce.receivedAt) / 1000))
-      .sign(key.privateKey);
+    const proof = await signBoundRequest(path, method, body, key, nonce);
     // 동일 Origin의 BFF만 호출하며 인증 토큰을 읽거나 브라우저 저장소에 보관하지 않는다.
     return await requireSuccess(await fetch(path, {
       method, credentials: "same-origin", cache: "no-store", redirect: "error", body,
-      signal: AbortSignal.timeout(35_000),
+      signal: AbortSignal.timeout(timeout),
       headers: { "X-Browser-Proof": proof, ...(input !== undefined && { "Content-Type": "application/json" }) },
     }));
   } catch (error) {

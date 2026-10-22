@@ -11,10 +11,15 @@ import {
   useAuthSession,
 } from "@/features/auth/client/session-store";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
-import { leaveRoom, readWaitingRoom, readyRoom } from "../client/api";
+import { leaveRoom, readWaitingRoom, readyRoom, sendGameAction } from "../client/api";
+import { useRoomSync } from "../client/use-room-sync";
+import { useRoomDeparture } from "../client/use-room-departure";
+import type { GameAction } from "../game-contracts";
 import type { WaitingParticipant, WaitingRoom } from "../waiting-contracts";
 import { RoomDialog } from "./room-dialog";
 import { RoomChatPanel } from "./room-chat-panel";
+import { GameRoom } from "./game-room";
+import gameStyles from "./game-room.module.css";
 import common from "./gomoku.module.css";
 import styles from "./waiting-room.module.css";
 
@@ -69,13 +74,14 @@ function AuthenticatedWaitingRoom({
   const [room, setRoom] = useState<WaitingRoom>();
   const [error, setError] = useState("");
   const [fatal, setFatal] = useState(false);
-  const [pending, setPending] = useState<"ready" | "leave" | null>(null);
+  const [pending, setPending] = useState<"ready" | "leave" | "game" | null>(null);
   const [copied, setCopied] = useState(false);
   const [copyFallback, setCopyFallback] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaveError, setLeaveError] = useState("");
   const mounted = useRef(false);
   const busy = useRef(false);
+  const stopped = useRef(false);
   const revision = useRef(-1);
   const codeRef = useRef<HTMLInputElement>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -84,11 +90,18 @@ function AuthenticatedWaitingRoom({
 
   const accept = useCallback((next: WaitingRoom) => {
     // 먼저 끝난 준비 요청보다 오래된 조회 응답이 UI를 되돌리지 못하게 한다.
+    // 첫 참가 정보가 도착하기 전에 뒤로간 경우에도 늦은 응답의 참가 식별자로 해당 입장만 정리한다.
+    if (stopped.current) {
+      if (window.location.pathname !== `/games/gomoku/rooms/${roomId}`) {
+        void leaveRoom(sessionId, roomId, next.membershipId).catch(() => {});
+      }
+      return;
+    }
     if (!mounted.current || next.revision < revision.current) return;
     revision.current = next.revision;
     setRoom(next);
     setError("");
-  }, []);
+  }, [sessionId, roomId]);
 
   const fail = useCallback((failure: unknown) => {
     if (!mounted.current) return;
@@ -112,55 +125,39 @@ function AuthenticatedWaitingRoom({
 
   useEffect(() => {
     mounted.current = true;
-    let disposed = false;
-    let fetching = false;
-    let timer: ReturnType<typeof setTimeout>;
-    let terminal = false;
-    const refresh = async () => {
-      if (disposed || fetching || terminal) return;
-      if (busy.current) {
-        timer = setTimeout(() => void refresh(), 500);
-        return;
-      }
-      fetching = true;
-      try {
-        const result = await readWaitingRoom(sessionId, roomId);
-        if (!disposed) accept(result);
-      } catch (failure) {
-        if (!disposed) {
-          terminal =
-            failure instanceof AuthRequestError &&
-            ["ROOM_NOT_FOUND", "ROOM_CLOSED", "ROOM_NOT_JOINED"].includes(
-              failure.code ?? "",
-            );
-          fail(failure);
-        }
-      } finally {
-        fetching = false;
-        // 중첩 요청 없이 동기화하고 숨겨진 탭은 접속 리스만 유지하도록 조회 간격을 늘린다.
-        if (!disposed && !terminal)
-          timer = setTimeout(
-            () => void refresh(),
-            document.hidden ? 10_000 : 2_000,
-          );
-      }
-    };
-    const visible = () => {
-      if (!document.hidden) {
-        clearTimeout(timer);
-        void refresh();
-      }
-    };
-    document.addEventListener("visibilitychange", visible);
-    void refresh();
     return () => {
-      disposed = true;
       mounted.current = false;
-      clearTimeout(timer);
       clearTimeout(copyTimer.current);
-      document.removeEventListener("visibilitychange", visible);
     };
-  }, [sessionId, roomId, accept, fail]);
+  }, []);
+  // 중첩 요청 없이 동기화하고 숨겨진 대기 탭은 접속 리스만 유지하도록 조회 간격을 늘린다.
+  // 대국에서는 이벤트 알림·5초 접속 확인·5회 재접속을 공통 훅에서 관리한다.
+  const onRestore = useCallback(() => router.replace("/games/gomoku"), [router]);
+  const departure = useRoomDeparture({ sessionId, roomId, membershipId: room?.membershipId, stopped, onRestore });
+  const sync = useRoomSync({ sessionId, roomId, playing: room?.game != null, busy, stopped, accept, fail });
+
+  async function gameAction(action: GameAction) {
+    if (!room?.game || busy.current) return;
+    busy.current = true; setPending("game");
+    try { accept(await sendGameAction(sessionId, room, action)); }
+    catch (failure) {
+      // 충돌·불명확한 전송 결과는 판을 복구하되 무르기·금수 안내는 조회 성공으로 지우지 않는다.
+      try { accept(await readWaitingRoom(sessionId, roomId)); } catch { /* 주기 조회가 복구를 이어간다. */ }
+      fail(failure);
+    } finally { busy.current = false; if (mounted.current) setPending(null); }
+  }
+
+  async function recoverResult() {
+    if (busy.current) return;
+    busy.current = true; setPending("game");
+    try {
+      const current = await readWaitingRoom(sessionId, roomId);
+      // 재접속 예산을 소진한 당사자는 복구 뒤 새 착수를 하지 않고 본인의 연결 종료 결과만 확정한다.
+      accept(current.game && current.game.phase !== "FINISHED" ? await sendGameAction(sessionId, current, { action: "DISCONNECT" }) : current);
+      sync.restart();
+    } catch (failure) { fail(failure); }
+    finally { busy.current = false; if (mounted.current) setPending(null); }
+  }
 
   async function changeReady() {
     const self = room?.participants.find((p) => p.self);
@@ -177,12 +174,13 @@ function AuthenticatedWaitingRoom({
     }
   }
   async function leave() {
-    if (busy.current) return;
+    if (busy.current || !room) return;
     busy.current = true;
     setPending("leave");
     setLeaveError("");
     try {
-      await leaveRoom(sessionId, roomId);
+      await leaveRoom(sessionId, roomId, room.membershipId);
+      departure.complete();
       if (mounted.current) router.replace("/games/gomoku");
     } catch (failure) {
       fail(failure);
@@ -247,6 +245,7 @@ function AuthenticatedWaitingRoom({
         </Link>
       </div>
     );
+  // 대기실과 같은 참가·채팅 연결을 유지한 채 시안의 플레이어/판/채팅 3열 대국 화면으로 전환한다.
   const self = room.participants.find((p) => p.self)!;
   const ordered = [...room.participants].sort(
     (a, b) => Number(b.host) - Number(a.host),
@@ -272,8 +271,11 @@ function AuthenticatedWaitingRoom({
             : ["함께 대국을 준비해요", "준비가 되면 준비하기를 눌러주세요."];
 
   return (
-    <div className={styles.waitingPage}>
-      <section className={styles.scene} aria-label="오목 대기실">
+    <div className={room.game ? gameStyles.gameLayout : styles.waitingPage}>
+      {room.game ? <GameRoom key={room.game.id} room={{ ...room, game: room.game }} pending={pending !== null} error={error}
+        reconnectAttempt={sync.attempt} connectionLost={sync.lost} onAction={action => void gameAction(action)}
+        onLeave={() => { setLeaveError(""); setConfirmLeave(true); }} onRecover={() => void recoverResult()} />
+        : <section className={styles.scene} aria-label="오목 대기실">
         <Image
           src="/images/gomoku/waiting-room-background.webp"
           alt=""
@@ -417,15 +419,16 @@ function AuthenticatedWaitingRoom({
             나가기
           </button>
         </div>
-      </section>
+      </section>}
       <RoomChatPanel key={`${room.id}:${room.membershipId}`} room={room} />
       {confirmLeave && (
         <RoomDialog
-          title="대기실에서 나갈까요?"
+          title={room.game ? "방에서 나갈까요?" : "대기실에서 나갈까요?"}
           busy={pending === "leave"}
           showClose={false}
           onClose={() => setConfirmLeave(false)}
         >
+          {room.game && <p>{room.game.phase === "FINISHED" ? "방에서 나가면 상대가 새로운 참가자를 기다릴 수 있어요." : "대국 중에 나가면 기권 패배로 기록돼요."}</p>}
           {leaveError && (
             <p className={common.error} role="alert">
               {leaveError}

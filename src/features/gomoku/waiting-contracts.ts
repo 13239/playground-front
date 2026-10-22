@@ -8,6 +8,7 @@ import {
   type ForbiddenRule,
   type RoomVisibility,
 } from "./contracts";
+import { isMatchState, publicMatch, type MatchState } from "./game-contracts";
 
 /** 대기실에는 공개 좌석·프로필만 전달하고 내부 회원 ID와 비밀번호 해시는 받지 않는다. */
 export type WaitingParticipant = Readonly<{
@@ -31,6 +32,10 @@ export type WaitingRoom = Readonly<{
   membershipId: string;
   allReady: boolean;
   participants: readonly WaitingParticipant[];
+  // 진행 중인 판과 서버 시각을 같은 인증·참가 경계로 전달한다.
+  status: "WAITING" | "PLAYING";
+  serverTime: string;
+  game: MatchState | null;
 }>;
 export type JoinRoomInput =
   | Readonly<{ roomId: number; password?: string }>
@@ -39,6 +44,10 @@ export type JoinRoomInput =
 export function isWaitingRoom(value: unknown): value is WaitingRoom {
   if (
     !isObject(value) ||
+    !["WAITING", "PLAYING"].includes(value.status as string) ||
+    typeof value.serverTime !== "string" || !Number.isFinite(Date.parse(value.serverTime)) ||
+    !(value.game === null || isMatchState(value.game)) ||
+    (value.status === "PLAYING") !== (value.game !== null) ||
     !Number.isSafeInteger(value.id) ||
     (value.id as number) < 1 ||
     typeof value.title !== "string" ||
@@ -83,6 +92,8 @@ export function isWaitingRoom(value: unknown): value is WaitingRoom {
     new Set(members.map((p) => p.seat)).size === members.length &&
     members.filter((p) => p.self).length === 1 &&
     members.filter((p) => p.host).length === 1 &&
+    (value.game === null || members.length === 2 && (value.game as MatchState).undoOne <= (value.undoLimit as number)
+      && (value.game as MatchState).undoTwo <= (value.undoLimit as number)) &&
     value.allReady === (members.length === 2 && members.every((p) => p.ready))
   );
 }
@@ -111,5 +122,8 @@ export function publicWaitingRoom(room: WaitingRoom): WaitingRoom {
         ready,
       }),
     ),
+    status: room.status,
+    serverTime: room.serverTime,
+    game: room.game === null ? null : publicMatch(room.game),
   };
 }

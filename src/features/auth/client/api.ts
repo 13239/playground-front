@@ -14,7 +14,9 @@ export { AuthRequestError } from "./error";
 // 채팅의 일회용 접속 증명도 같은 로그인·토큰 갱신 경계를 통과한다.
 // 대기실도 공통 잠금·브라우저 증명·토큰 갱신을 재사용하고 별도 인증 쿠키를 만들지 않는다.
 type FeaturePath = "/api/auth/profile" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close"
-  | "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/leave" | "/api/chat/tickets";
+  | "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/leave" | "/api/chat/tickets"
+  // 대국 명령·이벤트 연결도 기존 잠금과 경로별 요청 증명을 재사용한다.
+  | "/api/gomoku/rooms/game" | "/api/gomoku/rooms/game/events" | "/api/gomoku/rooms/lifecycle";
 type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | FeaturePath;
 
 async function authRequest(path: AuthPath, input?: LoginInput | SessionMutationInput): Promise<Response> {

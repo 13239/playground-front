@@ -99,7 +99,7 @@ export function RoomChatPanel({ room }: { room: WaitingRoom }) {
     <aside className={styles.roomChat} aria-label="방 채팅">
       <div className={styles.chatHeader}>
         <h2>
-          <LobbyIcon name="chat" />방 채팅
+          <LobbyIcon name="chat" />{room.game ? "실시간 채팅" : "방 채팅"}
         </h2>
         <span
           className={styles.connectionDot}
@@ -130,7 +130,7 @@ export function RoomChatPanel({ room }: { room: WaitingRoom }) {
           <strong>
             Playground <small>시스템</small>
           </strong>
-          <p>준비하는 동안 이야기를 나눠보세요.</p>
+          <p>{room.game ? "서로를 존중하며 즐겁게 대국해요." : "준비하는 동안 이야기를 나눠보세요."}</p>
         </div>
         {events.map((event) => (
           <div className={styles.systemNotice} key={event.id}>

@@ -12,7 +12,9 @@ type BackendRequest = Readonly<{
   accessToken?: string;
   clientIp?: string;
   // 회원가입처럼 본문 없는 성공 응답을 JSON 오류로 오인하지 않도록 호출자가 명시한다.
-  responseType?: "json" | "empty";
+  responseType?: "json" | "empty" | "stream";
+  // 이벤트 프록시가 브라우저 취소를 상위 연결까지 전달한다.
+  signal?: AbortSignal;
   // BFF가 실제 요청에서 추출한 증명·본문 해시만 전달하며 브라우저 헤더 전체를 복사하지 않는다.
   proof?: BrowserRequestProof;
 }>;
@@ -28,7 +30,7 @@ export async function backendRequest(
   if (url.origin !== origin || !url.pathname.startsWith("/api/")) {
     throw new ApiError("INVALID_REQUEST_BODY");
   }
-  const headers = new Headers({ Accept: "application/json" });
+  const headers = new Headers({ Accept: options.responseType === "stream" ? "text/event-stream" : "application/json" });
   // Docker 내부 HTTP의 dev에서만 BFF 키를 전달한다. prod나 브라우저 응답에는 이 값을 전달하지 않는다.
   if (getAppEnvironment() === "dev" && url.protocol === "http:") headers.set("X-BFF-Dev-Secret", getDevBffSecret());
   if (options.body !== undefined) headers.set("Content-Type", "application/json");
@@ -43,7 +45,8 @@ export async function backendRequest(
     headers.set("X-Real-IP", options.clientIp);
   }
   const body = options.body === undefined ? undefined : JSON.stringify(options.body);
-  const deadline = AbortSignal.timeout(getBackendTimeout());
+  const timeout = AbortSignal.timeout(options.responseType === "stream" ? 25_000 : getBackendTimeout());
+  const deadline = options.signal ? AbortSignal.any([timeout, options.signal]) : timeout;
 
   // 토큰 회전·상태 변경 중복을 방지하기 위해 자동 재시도하지 않는다.
   try {
@@ -52,7 +55,12 @@ export async function backendRequest(
       headers,
       body,
       signal: deadline,
+      stream: options.responseType === "stream",
     });
+    if (response.ok && options.responseType === "stream") {
+      if (!response.body || !response.headers.get("Content-Type")?.startsWith("text/event-stream")) throw new ApiError("INVALID_BACKEND_RESPONSE");
+      return response;
+    }
     if (response.status === 204 || response.ok && options.responseType === "empty") return undefined;
 
     let data: unknown;

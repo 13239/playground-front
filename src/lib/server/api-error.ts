@@ -25,6 +25,12 @@ const errors = {
   ROOM_PASSWORD_REQUIRED: [400, "비공개 방 비밀번호를 입력해 주세요."],
   ROOM_PASSWORD_INVALID: [400, "방 비밀번호가 올바르지 않습니다."],
   ROOM_NOT_FULL: [409, "상대가 입장한 뒤 준비해 주세요."],
+  // 대국 상태 충돌은 최신 판을 다시 조회하고 금수·무르기는 구체적인 안내를 제공한다.
+  GAME_STATE_CHANGED: [409, "대국 상태가 변경되었습니다. 현재 판을 확인하고 다시 시도해 주세요."],
+  GAME_NOT_YOUR_TURN: [409, "상대의 차례입니다."],
+  GAME_POSITION_OCCUPIED: [409, "이미 돌이 놓인 위치입니다."],
+  GAME_FORBIDDEN_MOVE: [409, "흑돌의 3·3, 4·4, 장목 금수에는 착수할 수 없습니다."],
+  GAME_UNDO_UNAVAILABLE: [409, "현재 무르기를 요청하거나 응답할 수 없습니다."],
   // 채팅 연결 실패·재접속 제한은 로그인 실패나 계정 잠금으로 처리하지 않는다.
   CHAT_TICKET_RATE_LIMIT_EXCEEDED: [429, "채팅 접속 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   CHAT_SERVICE_UNAVAILABLE: [503, "채팅 서비스를 일시적으로 이용할 수 없습니다."],
