@@ -22,7 +22,7 @@ import { InviteRoomEntry, JoinRoomDialog, type JoinTarget } from "./join-room";
 import { RoomHero } from "./room-artwork";
 import styles from "./gomoku.module.css";
 
-/** 2단계의 초대 코드 입장은 실제 서버에 연결하고 아직 범위 밖인 빠른 매칭은 비활성 상태로 유지한다. */
+/** 초대 코드 입장은 실제 서버에 연결하고 준비 중인 AI 대전은 비활성 상태로 유지한다. */
 function RoomSidebar() {
   return (
     <aside className={styles.sidebar} aria-label="오목 시작과 규칙">
@@ -45,10 +45,10 @@ function RoomSidebar() {
           className={styles.secondaryButton}
           type="button"
           disabled
-          title="빠른 매칭을 준비하고 있어요"
+          title="AI 대전을 준비하고 있어요"
         >
-          <LobbyIcon name="lightning" />
-          빠른 매칭 <small>준비 중</small>
+          <LobbyIcon name="robot" />
+          혼자서(AI 대전) <small>준비 중</small>
         </button>
         <Link className={styles.primaryButton} href="/games/gomoku/create">
           <LobbyIcon name="plus" />방 만들기
@@ -115,9 +115,16 @@ export function RoomList() {
     <div className={styles.listLayout}>
       <div className={styles.listMain}>
         <RoomHero />
+        {/* 작은 화면에도 동일한 AI 대전 아이콘과 준비 상태를 표시한다. */}
         <div className={styles.mobileActions}>
-          <button type="button" className={styles.secondaryButton} disabled>
-            빠른 매칭 · 준비 중
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled
+            title="AI 대전을 준비하고 있어요"
+          >
+            <LobbyIcon name="robot" />
+            혼자서(AI 대전) <small>준비 중</small>
           </button>
           <Link className={styles.primaryButton} href="/games/gomoku/create">
             <LobbyIcon name="plus" />방 만들기

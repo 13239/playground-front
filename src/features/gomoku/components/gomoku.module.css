@@ -1081,6 +1081,8 @@
   }
   .mobileActions {
     display: flex;
+    /* AI 대전 문구가 길어져도 좁은 화면에서 버튼끼리 겹치지 않게 줄을 바꾼다. */
+    flex-wrap: wrap;
     justify-content: end;
     gap: 0.7em;
     margin-top: 0.8em;

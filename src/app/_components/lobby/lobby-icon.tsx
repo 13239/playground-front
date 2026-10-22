@@ -11,6 +11,15 @@ const paths = {
   gear: <><path d="m9 3-1 3-3 1-2 3 2 2-1 3 2 3 3-1 2 3h3l1-3 3-1 2-3-2-2 1-3-2-3-3 1-2-3Z" /><circle cx="11.5" cy="11.5" r="3" /></>,
   link: <><path d="m10 14 4-4M8 16l-1 1a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m0 12a4 4 0 0 0 6 0l5-5a4 4 0 0 0-6-6l-1 1" /></>,
   lightning: <path d="m13 2-9 12h7l-1 8 10-13h-7l1-7Z" />,
+  // AI 대전은 공통 SVG의 선 굵기와 좌표계를 공유하는 로봇 아이콘으로 표시한다.
+  robot: (
+    <>
+      <rect x="4" y="7" width="16" height="14" rx="3" />
+      <path d="M12 3v4M2 12v4m20-4v4M9 17h6" />
+      <circle cx="9" cy="12" r="1" />
+      <circle cx="15" cy="12" r="1" />
+    </>
+  ),
   book: <><path d="M12 5C9 2 4 3 2 4v16c3-2 7-2 10 0 3-2 7-2 10 0V4c-2-1-7-2-10 1Zm0 0v15" /></>,
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 6v6l4 2" /></>,
   copy: <><rect x="8" y="8" width="13" height="13" rx="2" /><path d="M16 8V3H3v13h5" /></>,
