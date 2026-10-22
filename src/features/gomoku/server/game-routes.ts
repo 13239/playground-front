@@ -16,12 +16,15 @@ export async function handleGameRequest(request: Request, stream = false): Promi
     assertSameOrigin(request);
     const proof = await readBrowserProof(request.clone());
     const input = await readJsonBody(request, 2048);
-    const allowed = stream ? ["sessionId", "roomId"] : ["sessionId", "roomId", "matchId", "revision", "requestId", "action", "x", "y", "card", "accept"];
+    const allowed = stream ? ["sessionId", "roomId", "pageId"] : ["sessionId", "roomId", "matchId", "revision", "requestId", "pageId", "action", "x", "y", "card", "accept"];
     if (!isObject(input) || !isSessionId(input.sessionId) || typeof input.roomId !== "number" || !Number.isSafeInteger(input.roomId)
       || input.roomId < 1 || Object.keys(input).some(key => !allowed.includes(key))) throw new ApiError("INVALID_REQUEST_BODY");
+    // SSE 구독 역시 현재 페이지 소유자만 개설할 수 있으며 BFF 서명 본문에 UUID를 묶는다.
+    if (stream && (typeof input.pageId !== "string" || !requestIdPattern.test(input.pageId))) throw new ApiError("INVALID_REQUEST_BODY");
     if (!stream && (typeof input.matchId !== "number" || !Number.isSafeInteger(input.matchId) || input.matchId < 1
       || typeof input.revision !== "number" || !Number.isSafeInteger(input.revision) || input.revision < 0
-      || typeof input.requestId !== "string" || !requestIdPattern.test(input.requestId) || !isGameAction(input))) {
+      || typeof input.requestId !== "string" || !requestIdPattern.test(input.requestId)
+      || typeof input.pageId !== "string" || !requestIdPattern.test(input.pageId) || !isGameAction(input))) {
       throw new ApiError("INVALID_REQUEST_BODY");
     }
     const { sessionId, ...body } = input;

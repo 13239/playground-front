@@ -32,10 +32,10 @@ const fields = {
   ],
   close: ["sessionId", "roomId"],
   join: ["sessionId", "roomId", "inviteCode", "password"],
-  state: ["sessionId", "roomId"],
-  ready: ["sessionId", "roomId", "ready"],
-  leave: ["sessionId", "roomId", "membershipId"],
-  lifecycle: ["sessionId", "roomId", "membershipId", "pageId", "action"],
+  state: ["sessionId", "roomId", "pageId"],
+  ready: ["sessionId", "roomId", "ready", "pageId"],
+  leave: ["sessionId", "roomId", "membershipId", "pageId"],
+  lifecycle: ["sessionId", "roomId", "membershipId", "pageId", "tabId", "action"],
 };
 
 /** 검색 조건도 서명 본문에 묶는다. 동일 Origin·화면의 세션을 확인하고 명시한 방 관리·대기실 경로만 호출한다. */
@@ -105,14 +105,21 @@ export async function handleRoomRequest(
       )
         throw new ApiError("INVALID_REQUEST_BODY");
       if (operation === "ready" && typeof input.ready !== "boolean") throw new ApiError("INVALID_REQUEST_BODY");
+      // 최초 상태 조회만 페이지 식별자가 없을 수 있다. 연결 후 조회는 UUID로 참가 소유권을 확인한다.
+      if (operation === "state" && input.pageId !== undefined
+        && (typeof input.pageId !== "string" || !requestIdPattern.test(input.pageId))) throw new ApiError("INVALID_REQUEST_BODY");
+      // 대국 상태를 변경하는 요청은 실제 페이지 식별자까지 브라우저 증명에 결합한다.
+      if (["ready", "leave", "lifecycle"].includes(operation)
+        && (typeof input.pageId !== "string" || !requestIdPattern.test(input.pageId))) throw new ApiError("INVALID_REQUEST_BODY");
       // 참가·페이지 범위를 본문 증명에 함께 결합해 이전 화면의 늦은 퇴장과 재입장을 구분한다.
       if ((operation === "leave" || operation === "lifecycle")
         && (typeof input.membershipId !== "string" || !requestIdPattern.test(input.membershipId))) throw new ApiError("INVALID_REQUEST_BODY");
-      if (operation === "lifecycle" && (typeof input.pageId !== "string" || !requestIdPattern.test(input.pageId)
+      if (operation === "lifecycle" && (typeof input.tabId !== "string" || !requestIdPattern.test(input.tabId)
         || !["OPEN", "CLOSE", "LEAVE"].includes(input.action as string))) throw new ApiError("INVALID_REQUEST_BODY");
       body = { roomId: input.roomId, ...(operation === "ready" ? { ready: input.ready } : {}),
         ...((operation === "leave" || operation === "lifecycle") ? { membershipId: input.membershipId } : {}),
-        ...(operation === "lifecycle" ? { pageId: input.pageId, action: input.action } : {}) };
+        ...(["ready", "leave", "lifecycle"].includes(operation) || operation === "state" && input.pageId !== undefined ? { pageId: input.pageId } : {}),
+        ...(operation === "lifecycle" ? { tabId: input.tabId, action: input.action } : {}) };
     }
     const path =
       operation === "create"

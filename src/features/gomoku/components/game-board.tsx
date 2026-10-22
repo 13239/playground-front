@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { MatchState } from "../game-contracts";
 import styles from "./game-room.module.css";
 
 /** 교차점 선택과 착수를 분리해 작은 터치 화면의 오착을 줄인다. 키보드는 방향키·Enter로 같은 흐름을 사용한다. */
-export function GameBoard({ game, selfSeat, disabled, onMove }: {
-  game: MatchState; selfSeat: number; disabled: boolean; onMove: (x: number, y: number) => void;
+export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, disabled, onMove }: {
+  game: MatchState; selfSeat: number; serverTime: string; disabled: boolean; onMove: (x: number, y: number) => void;
 }) {
   const [selection, setSelection] = useState<{ turn: number; point: number } | null>(null);
   // 턴이 바뀌면 선택만 무효화한다. 확대 배율·키보드 위치는 매 수마다 초기화하지 않는다.
@@ -14,9 +14,19 @@ export function GameBoard({ game, selfSeat, disabled, onMove }: {
   const [cursor, setCursor] = useState(210);
   const [zoom, setZoom] = useState(1);
   const grid = useRef<HTMLDivElement>(null);
-  const board = new Map(game.moves.map((move, index) => [move.y * 20 + move.x, { ...move, index }]));
+  const board = useMemo(() => new Map(game.moves.map((move, index) => [move.y * 20 + move.x, { ...move, index }])), [game.moves]);
+  const [expiredDeadline, setExpiredDeadline] = useState<string | null>(null);
+  useEffect(() => {
+    // 매초 상위 화면을 다시 그리지 않고 서버 턴 마감 시에만 착수 버튼을 한 번 비활성화한다.
+    if (game.phase !== "PLAYING" || !game.deadline) return;
+    const deadline = game.deadline;
+    const delay = Math.max(0, Date.parse(deadline) - Date.parse(serverTime));
+    const timer = setTimeout(() => setExpiredDeadline(deadline), delay);
+    return () => clearTimeout(timer);
+  }, [game.phase, game.deadline, serverTime]);
+  const expired = game.deadline !== null && (expiredDeadline === game.deadline || Date.parse(serverTime) >= Date.parse(game.deadline));
   const last = game.moves.at(-1);
-  const canMove = !disabled && game.phase === "PLAYING" && game.turnSeat === selfSeat;
+  const canMove = !disabled && !expired && game.phase === "PLAYING" && game.turnSeat === selfSeat;
   const selectionValid = selected !== null && !board.has(selected);
 
   function key(event: KeyboardEvent<HTMLButtonElement>, position: number) {
@@ -77,4 +87,12 @@ export function GameBoard({ game, selfSeat, disabled, onMove }: {
       </div>
     </section>
   );
-}
+}, (previous, next) => {
+  // 접속 확인 응답의 serverTime/connected 플래그만 달라졌다면 400개 교차점을 다시 그리지 않는다.
+  // 되돌리기·재착수는 turnNumber가 증가하므로 같은 개수의 돌이라도 반드시 다시 렌더링한다.
+  return previous.selfSeat === next.selfSeat && previous.disabled === next.disabled && previous.onMove === next.onMove
+    && previous.game.id === next.game.id && previous.game.phase === next.game.phase
+    && previous.game.blackSeat === next.game.blackSeat && previous.game.turnSeat === next.game.turnSeat
+    && previous.game.turnNumber === next.game.turnNumber && previous.game.deadline === next.game.deadline
+    && previous.game.moves.length === next.game.moves.length;
+});

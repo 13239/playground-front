@@ -22,7 +22,8 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  background: #a7d6ff;
+  /* 홈 배너와 같은 밝은 구름색을 이미지가 준비되기 전에도 유지한다. */
+  background: #eaf0ff;
 }
 
 .worldImage {
@@ -669,6 +670,33 @@
 
   .cardBrand {
     margin-bottom: calc(32 * var(--u));
+  }
+}
+
+/* 세로 화면에서는 전용 구도를 선택하고 폼 아래 여백을 확보해 캐릭터의 얼굴이 카드에 가려지지 않게 한다. */
+@media (width < 48rem), (max-aspect-ratio: 3/4) {
+  .backdrop {
+    /* 작은 화면의 폼이 길어지면 배경도 페이지 끝까지 이어지도록 한다. */
+    position: absolute;
+    background: linear-gradient(180deg, #9ac5ff, #dce5ff 65%, #f0eaff);
+  }
+
+  .backdrop picture {
+    /* 긴 가입 폼이 그림까지 확대하지 않게 세로 삽화를 하단에 고정하고 위쪽 경계를 구름색으로 부드럽게 연결한다. */
+    position: absolute;
+    inset: auto 0 0;
+    width: 100%;
+    max-height: 100%;
+    aspect-ratio: 9 / 16;
+    mask-image: linear-gradient(180deg, transparent, #000 18%);
+  }
+
+  .worldImage {
+    object-position: center bottom;
+  }
+
+  .main {
+    padding-bottom: max(19rem, 36svh, 65vw);
   }
 }
 

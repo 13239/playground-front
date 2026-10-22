@@ -11,7 +11,7 @@ import {
   useAuthSession,
 } from "@/features/auth/client/session-store";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
-import { leaveRoom, readWaitingRoom, readyRoom, sendGameAction } from "../client/api";
+import { leaveRoom, newRoomRequestId, readWaitingRoom, readyRoom, sendGameAction } from "../client/api";
 import { useRoomSync } from "../client/use-room-sync";
 import { useRoomDeparture } from "../client/use-room-departure";
 import type { GameAction } from "../game-contracts";
@@ -74,6 +74,7 @@ function AuthenticatedWaitingRoom({
   const [room, setRoom] = useState<WaitingRoom>();
   const [error, setError] = useState("");
   const [fatal, setFatal] = useState(false);
+  const [pageId, setPageId] = useState<string>();
   const [pending, setPending] = useState<"ready" | "leave" | "game" | null>(null);
   const [copied, setCopied] = useState(false);
   const [copyFallback, setCopyFallback] = useState(false);
@@ -93,7 +94,7 @@ function AuthenticatedWaitingRoom({
     // 첫 참가 정보가 도착하기 전에 뒤로간 경우에도 늦은 응답의 참가 식별자로 해당 입장만 정리한다.
     if (stopped.current) {
       if (window.location.pathname !== `/games/gomoku/rooms/${roomId}`) {
-        void leaveRoom(sessionId, roomId, next.membershipId).catch(() => {});
+        void leaveRoom(sessionId, roomId, next.membershipId, newRoomRequestId()).catch(() => {});
       }
       return;
     }
@@ -116,7 +117,7 @@ function AuthenticatedWaitingRoom({
         "대기실에 연결하지 못했습니다. 잠시 후 다시 확인해 주세요.",
     );
     if (
-      ["ROOM_NOT_FOUND", "ROOM_CLOSED", "ROOM_NOT_JOINED"].includes(
+      ["ROOM_NOT_FOUND", "ROOM_CLOSED", "ROOM_NOT_JOINED", "ROOM_PAGE_IN_USE"].includes(
         authError?.code ?? "",
       )
     )
@@ -133,27 +134,30 @@ function AuthenticatedWaitingRoom({
   // 중첩 요청 없이 동기화하고 숨겨진 대기 탭은 접속 리스만 유지하도록 조회 간격을 늘린다.
   // 대국에서는 이벤트 알림·5초 접속 확인·5회 재접속을 공통 훅에서 관리한다.
   const onRestore = useCallback(() => router.replace("/games/gomoku"), [router]);
-  const departure = useRoomDeparture({ sessionId, roomId, membershipId: room?.membershipId, stopped, onRestore });
-  const sync = useRoomSync({ sessionId, roomId, playing: room?.game != null, busy, stopped, accept, fail });
+  // 페이지 OPEN이 서버에서 확정되기 전에는 착수·준비·퇴장을 보내지 않는다.
+  const onOpened = useCallback((id: string) => { if (mounted.current) setPageId(id); }, []);
+  const onDenied = useCallback((reason: unknown) => { if (mounted.current) fail(reason); }, [fail]);
+  const departure = useRoomDeparture({ sessionId, roomId, membershipId: room?.membershipId, stopped, onRestore, onOpened, onDenied });
+  const sync = useRoomSync({ sessionId, roomId, pageId, playing: room?.game != null, busy, stopped, accept, fail });
 
   async function gameAction(action: GameAction) {
-    if (!room?.game || busy.current) return;
+    if (!room?.game || !pageId || busy.current) return;
     busy.current = true; setPending("game");
-    try { accept(await sendGameAction(sessionId, room, action)); }
+    try { accept(await sendGameAction(sessionId, room, action, pageId)); }
     catch (failure) {
       // 충돌·불명확한 전송 결과는 판을 복구하되 무르기·금수 안내는 조회 성공으로 지우지 않는다.
-      try { accept(await readWaitingRoom(sessionId, roomId)); } catch { /* 주기 조회가 복구를 이어간다. */ }
+      try { accept(await readWaitingRoom(sessionId, roomId, pageId)); } catch { /* 주기 조회가 복구를 이어간다. */ }
       fail(failure);
     } finally { busy.current = false; if (mounted.current) setPending(null); }
   }
 
   async function recoverResult() {
-    if (busy.current) return;
+    if (busy.current || !pageId) return;
     busy.current = true; setPending("game");
     try {
-      const current = await readWaitingRoom(sessionId, roomId);
+      const current = await readWaitingRoom(sessionId, roomId, pageId);
       // 재접속 예산을 소진한 당사자는 복구 뒤 새 착수를 하지 않고 본인의 연결 종료 결과만 확정한다.
-      accept(current.game && current.game.phase !== "FINISHED" ? await sendGameAction(sessionId, current, { action: "DISCONNECT" }) : current);
+      accept(current.game && current.game.phase !== "FINISHED" ? await sendGameAction(sessionId, current, { action: "DISCONNECT" }, pageId) : current);
       sync.restart();
     } catch (failure) { fail(failure); }
     finally { busy.current = false; if (mounted.current) setPending(null); }
@@ -161,11 +165,11 @@ function AuthenticatedWaitingRoom({
 
   async function changeReady() {
     const self = room?.participants.find((p) => p.self);
-    if (!self || busy.current) return;
+    if (!self || !pageId || busy.current) return;
     busy.current = true;
     setPending("ready");
     try {
-      accept(await readyRoom(sessionId, roomId, !self.ready));
+      accept(await readyRoom(sessionId, roomId, !self.ready, pageId));
     } catch (failure) {
       fail(failure);
     } finally {
@@ -174,12 +178,12 @@ function AuthenticatedWaitingRoom({
     }
   }
   async function leave() {
-    if (busy.current || !room) return;
+    if (busy.current || !room || !pageId) return;
     busy.current = true;
     setPending("leave");
     setLeaveError("");
     try {
-      await leaveRoom(sessionId, roomId, room.membershipId);
+      await leaveRoom(sessionId, roomId, room.membershipId, pageId);
       departure.complete();
       if (mounted.current) router.replace("/games/gomoku");
     } catch (failure) {
@@ -228,7 +232,7 @@ function AuthenticatedWaitingRoom({
               if (busy.current) return;
               busy.current = true;
               setPending("ready");
-              void readWaitingRoom(sessionId, roomId)
+              void readWaitingRoom(sessionId, roomId, pageId)
                 .then(accept)
                 .catch(fail)
                 .finally(() => {
@@ -272,7 +276,7 @@ function AuthenticatedWaitingRoom({
 
   return (
     <div className={room.game ? gameStyles.gameLayout : styles.waitingPage}>
-      {room.game ? <GameRoom key={room.game.id} room={{ ...room, game: room.game }} pending={pending !== null} error={error}
+      {room.game ? <GameRoom key={room.game.id} room={{ ...room, game: room.game }} pending={pending !== null || !pageId} error={error}
         reconnectAttempt={sync.attempt} connectionLost={sync.lost} onAction={action => void gameAction(action)}
         onLeave={() => { setLeaveError(""); setConfirmLeave(true); }} onRecover={() => void recoverResult()} />
         : <section className={styles.scene} aria-label="오목 대기실">
@@ -396,7 +400,7 @@ function AuthenticatedWaitingRoom({
             className={styles.readyButton}
             type="button"
             onClick={() => void changeReady()}
-            disabled={pending !== null || room.participants.length < 2}
+            disabled={!pageId || pending !== null || room.participants.length < 2}
             aria-pressed={self.ready}
           >
             <LobbyIcon name="check" />
@@ -444,7 +448,7 @@ function AuthenticatedWaitingRoom({
             </button>
             <button
               className={common.dangerButton}
-              disabled={pending !== null}
+              disabled={!pageId || pending !== null}
               onClick={() => void leave()}
             >
               {pending === "leave" ? "나가는 중…" : "나가기"}

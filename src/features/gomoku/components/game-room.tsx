@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import type { WaitingRoom } from "../waiting-contracts";
 import type { GameAction, MatchState } from "../game-contracts";
 import { RoomDialog } from "./room-dialog";
 import { GameBoard } from "./game-board";
+import { ActiveTurnCountdown, CountdownSeconds, PlayerTurnTimer } from "./game-clock";
 import { GameResultDialog } from "./game-result-dialog";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import styles from "./game-room.module.css";
@@ -20,19 +21,13 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
 }) {
   const game = room.game;
   const self = room.participants.find(player => player.self)!;
-  const [clock, setClock] = useState({ server: room.serverTime, elapsed: 0 });
   const [confirmResign, setConfirmResign] = useState(false);
   const [resultDismissed, setResultDismissed] = useState(false);
-  useEffect(() => {
-    const start = performance.now();
-    const timer = setInterval(() => setClock({ server: room.serverTime, elapsed: performance.now() - start }), 200);
-    return () => clearInterval(timer);
-  }, [room.serverTime]);
-  // 서버와 다른 PC 시계에서도 남은 시간은 수신한 서버 시각과 단조 시계의 경과 시간으로만 표시한다.
-  const now = Date.parse(room.serverTime) + (clock.server === room.serverTime ? clock.elapsed : 0);
-  const remaining = game.deadline ? Math.min(game.phase === "DRAWING" ? 20 : game.phase === "REVEAL" ? 3 : 30,
-    Math.max(0, Math.ceil((Date.parse(game.deadline) - now) / 1000))) : 0;
-  const undoRemaining = game.undoDeadline ? Math.max(0, Math.ceil((Date.parse(game.undoDeadline) - now) / 1000)) : 0;
+  // 최신 명령 콜백만 교체하고 판에는 안정적인 함수 참조를 내려 주기 조회 시 전체 셀 렌더링을 막는다.
+  const moveActionRef = useRef(onAction);
+  useEffect(() => { moveActionRef.current = onAction; }, [onAction]);
+  const move = useCallback((x: number, y: number) => moveActionRef.current({ action: "MOVE", x, y }), []);
+  // 현재 차례와 만료 여부는 서버에서 검증한다. UI 시계의 초 변화는 하위 컴포넌트 안에서만 일어난다.
   const disabled = pending || reconnectAttempt > 0 || connectionLost;
   const ownPick = self.seat === 1 ? game.pickOne : game.pickTwo;
   const otherPick = self.seat === 1 ? game.pickTwo : game.pickOne;
@@ -54,11 +49,8 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
                 {game.blackSeat === 0 ? "흑백 추첨 중" : <><i className={styles.colorStone} data-color={game.blackSeat === player.seat ? "black" : "white"} />{game.blackSeat === player.seat ? "흑돌" : "백돌"} ({player.self ? "나" : "상대"})</>}
               </span></div>
             </div>
-            <div className={styles.playerTimer} data-active={game.phase === "PLAYING" && game.turnSeat === player.seat}>
-              <div><LobbyIcon name="clock" /><strong>00:{String(game.phase === "PLAYING" ? game.turnSeat === player.seat ? remaining : 30 : 0).padStart(2, "0")}</strong></div>
-              <progress max={30} value={game.phase === "PLAYING" ? game.turnSeat === player.seat ? remaining : 30 : 0}
-                aria-label={`${player.nickname}님 남은 턴 시간`} />
-            </div>
+            <PlayerTurnTimer nickname={player.nickname} playing={game.phase === "PLAYING"} active={game.phase === "PLAYING" && game.turnSeat === player.seat}
+              serverTime={room.serverTime} deadline={game.deadline} />
             {!(player.seat === 1 ? game.connectedOne : game.connectedTwo) && <small className={styles.disconnectedPlayer}>재접속 대기 중</small>}
           </article>
         </div>)}
@@ -74,7 +66,7 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
       {game.phase === "DRAWING" || game.phase === "REVEAL" ? <div className={styles.lottery}>
         <span className={styles.eyebrow}>첫 수의 주인공은?</span>
         <h2>{game.phase === "DRAWING" ? "제비뽑기로 흑백을 정해요" : `${room.participants.find(player => player.seat === game.blackSeat)?.nickname}님이 흑돌이에요`}</h2>
-        <p>{game.phase === "DRAWING" ? ownPick >= 0 ? "상대가 카드를 고르고 있어요." : "마음에 드는 카드 한 장을 골라주세요." : `${remaining}초 후 대국을 시작해요.`}</p>
+        <p>{game.phase === "DRAWING" ? ownPick >= 0 ? "상대가 카드를 고르고 있어요." : "마음에 드는 카드 한 장을 골라주세요." : <><CountdownSeconds serverTime={room.serverTime} deadline={game.deadline} maximum={3} />초 후 대국을 시작해요.</>}</p>
         <div className={styles.cards}>
           {([0, 1] as const).map(card => {
             const chosenSeat = game.pickOne === card ? 1 : game.pickTwo === card ? 2 : 0;
@@ -88,12 +80,12 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
             </button>;
           })}
         </div>
-        <small>{game.phase === "DRAWING" ? `${remaining}초 안에 선택하지 않으면 자동으로 추첨해요.` : game.round > 1 ? "같은 상대와 재대국하면 직전 패자가 흑돌이에요." : "흑돌부터 한 수씩 번갈아 두세요."}</small>
+        <small>{game.phase === "DRAWING" ? <><CountdownSeconds serverTime={room.serverTime} deadline={game.deadline} maximum={20} />초 안에 선택하지 않으면 자동으로 추첨해요.</> : game.round > 1 ? "같은 상대와 재대국하면 직전 패자가 흑돌이에요." : "흑돌부터 한 수씩 번갈아 두세요."}</small>
       </div> : <>
         <div className={styles.turnBar} role="status" aria-live="polite">
           <strong>{game.phase === "FINISHED" ? game.winnerSeat === 0 ? "무승부" : winner?.self ? "승리했어요!" : `${winner?.nickname}님이 승리했어요`
             : game.turnSeat === self.seat ? "내 차례예요" : "상대의 차례예요"}</strong>
-          {game.phase === "PLAYING" && <span className={styles.timer} data-urgent={remaining <= 10} aria-live="off">{remaining}<small>초</small></span>}
+          {game.phase === "PLAYING" && <ActiveTurnCountdown serverTime={room.serverTime} deadline={game.deadline} />}
         </div>
         {game.phase === "PLAYING" && <p className={styles.ruleHint}>한 수 30초 · 시간 초과 시 상대 턴으로 넘어가요 · {room.forbiddenRule === "STANDARD" ? "흑 3·3 / 4·4 / 장목 금수" : "금수 없는 자유 룰"}</p>}
         {game.phase === "FINISHED" && <div className={styles.result}>
@@ -103,12 +95,12 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
           <button className={styles.secondaryButton} type="button" onClick={() => setResultDismissed(false)}>결과 보기</button></div>
           <small>{game.winnerSeat === 0 ? "무승부 다음 판은 다시 제비뽑기를 해요." : "다음 판은 진 사람이 흑돌이에요."}</small>
         </div>}
-        <GameBoard key={game.id} game={game} selfSeat={self.seat} disabled={disabled || remaining === 0} onMove={(x, y) => onAction({ action: "MOVE", x, y })} />
+        <GameBoard key={game.id} game={game} selfSeat={self.seat} serverTime={room.serverTime} disabled={disabled} onMove={move} />
         {game.phase === "PLAYING" && game.undoSeat > 0 && <div className={styles.undoNotice} role="status">
-          <p>{game.undoSeat === self.seat ? "상대에게 무르기를 요청했어요." : "상대가 무르기를 요청했어요."} <small>응답 대기 {undoRemaining}초</small></p>
+          <p>{game.undoSeat === self.seat ? "상대에게 무르기를 요청했어요." : "상대가 무르기를 요청했어요."} <small>응답 대기 <CountdownSeconds serverTime={room.serverTime} deadline={game.undoDeadline} maximum={10} />초</small></p>
           {game.undoSeat !== self.seat && <div className={styles.actions}>
-            <button className={styles.primaryButton} type="button" disabled={disabled || undoRemaining === 0} onClick={() => onAction({ action: "UNDO_REPLY", accept: true })}>수락</button>
-            <button className={styles.secondaryButton} type="button" disabled={disabled || undoRemaining === 0} onClick={() => onAction({ action: "UNDO_REPLY", accept: false })}>거절</button>
+            <button className={styles.primaryButton} type="button" disabled={disabled} onClick={() => onAction({ action: "UNDO_REPLY", accept: true })}>수락</button>
+            <button className={styles.secondaryButton} type="button" disabled={disabled} onClick={() => onAction({ action: "UNDO_REPLY", accept: false })}>거절</button>
           </div>}
           <small>수락하면 요청자의 직전 착수부터 되돌려요. 응답 중에도 턴 시간은 계속 흘러요.</small>
         </div>}

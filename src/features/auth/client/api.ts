@@ -19,8 +19,8 @@ type FeaturePath = "/api/auth/profile" | "/api/gomoku/rooms" | "/api/gomoku/room
   | "/api/gomoku/rooms/game" | "/api/gomoku/rooms/game/events" | "/api/gomoku/rooms/lifecycle";
 type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | FeaturePath;
 
-async function authRequest(path: AuthPath, input?: LoginInput | SessionMutationInput): Promise<Response> {
-  return signedAuthRequest(path, input);
+async function authRequest(path: AuthPath, input?: LoginInput | SessionMutationInput, signal?: AbortSignal): Promise<Response> {
+  return signedAuthRequest(path, input, true, signal);
 }
 
 async function authMutation(path: Exclude<AuthPath, "/api/auth/session" | "/api/auth/profile">, input?: LoginInput): Promise<void> {
@@ -30,12 +30,13 @@ async function authMutation(path: Exclude<AuthPath, "/api/auth/session" | "/api/
 }
 
 /** 지원 브라우저에서는 탭 사이의 로그인·갱신·로그아웃 쿠키 변경도 순서대로 처리한다. */
-async function withAuthLock<T>(operation: () => Promise<T>): Promise<T> {
+async function withAuthLock<T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  signal?.throwIfAborted();
   if (typeof navigator !== "undefined" && navigator.locks) {
-    return navigator.locks.request("playground:auth-mutation", operation);
+    return navigator.locks.request("playground:auth-mutation", { signal }, operation);
   }
   // 사용자가 승인한 dev HTTP만 브라우저 키 없이 동작하며 탭 사이 변경 순서는 IndexedDB로 유지한다.
-  if (isDevHttpAuth()) return withDevAuthLock(operation);
+  if (isDevHttpAuth()) return withDevAuthLock(async () => { signal?.throwIfAborted(); return operation(); });
   // Web Locks 미지원 환경은 쿠키 갱신·활동 연장의 순서를 보장할 수 없으므로 안전하게 로그인을 거절한다.
   throw new AuthRequestError("최신 브라우저에서 다시 로그인해 주세요.", 401, undefined, "BROWSER_KEY_REQUIRED");
 }
@@ -81,14 +82,17 @@ function requiresRefresh(error: unknown): boolean {
 }
 
 // 호출자는 이미 브라우저 잠금을 보유한다. 경로가 바뀔 때마다 새로운 증명으로 한 번만 복구한다.
-async function authenticatedRequest(path: AuthPath, retry = true, input?: SessionMutationInput): Promise<Response> {
-  try { return await authRequest(path, input); }
+async function authenticatedRequest(path: AuthPath, retry = true, input?: SessionMutationInput, signal?: AbortSignal): Promise<Response> {
+  signal?.throwIfAborted();
+  try { return await authRequest(path, input, signal); }
   catch (error) {
     // 이전 화면의 요청은 새 세션으로 재실행하지 않고 화면을 먼저 재검증한다.
     if (error instanceof AuthRequestError && error.code === "LOGIN_SESSION_CHANGED") { clearProofNonces(); notifyAuthChanged(); }
     if (!retry || !requiresRefresh(error)) throw error;
+    signal?.throwIfAborted();
     await authMutation("/api/auth/refresh");
-    return authenticatedRequest(path, false, input);
+    signal?.throwIfAborted();
+    return authenticatedRequest(path, false, input, signal);
   }
 }
 
@@ -108,8 +112,9 @@ export async function getSession(retry = true): Promise<CurrentSession> {
 export async function requestAuthenticatedApi(
   path: FeaturePath,
   input?: SessionMutationInput & Readonly<Record<string, unknown>>,
+  signal?: AbortSignal,
 ): Promise<Response> {
-  return withAuthLock(() => authenticatedRequest(path, true, input));
+  return withAuthLock(() => authenticatedRequest(path, true, input, signal), signal);
 }
 
 // 잠금 안에서 응답 검증까지 끝내므로 다른 탭의 쿠키 변경과 사용자 정보 복원이 뒤섞이지 않는다.

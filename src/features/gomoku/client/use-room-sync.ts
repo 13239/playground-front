@@ -8,8 +8,8 @@ import { readWaitingRoom, watchRoom } from "./api";
 const RETRY_DELAYS = [1000, 2000, 4000, 8000, 10_000] as const;
 
 /** 이벤트로 즉시 동기화하고 주기 조회로 접속·채팅 리스와 유실 알림을 복구한다. 대국 재접속은 5회로 제한한다. */
-export function useRoomSync({ sessionId, roomId, playing, busy, stopped, accept, fail }: {
-  sessionId: string; roomId: number; playing: boolean; busy: RefObject<boolean>;
+export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped, accept, fail }: {
+  sessionId: string; roomId: number; pageId?: string; playing: boolean; busy: RefObject<boolean>;
   stopped: RefObject<boolean>;
   accept: (room: WaitingRoom) => void; fail: (error: unknown) => void;
 }) {
@@ -29,16 +29,18 @@ export function useRoomSync({ sessionId, roomId, playing, busy, stopped, accept,
       if (busy.current) { schedule(300); return; }
       fetching = true;
       try {
-        const result = await readWaitingRoom(sessionId, roomId);
+        const result = await readWaitingRoom(sessionId, roomId, pageId);
         // 화면을 떠난 뒤 도착한 첫 참가 정보도 퇴장 정리에 전달하되 동기화는 다시 시작하지 않는다.
         if (disposed || stopped.current) { if (stopped.current) accept(result); return; }
         failures = 0; setAttempt(0); setLost(false); accept(result);
-        schedule(playing ? 5000 : document.hidden ? 10_000 : 2000);
+        // SSE가 빠른 변경 알림을 처리하고 조회는 접속·채팅 권한만 유지한다.
+        // 숨겨진 페이지는 15초 간격으로 제한하되 포그라운드 복귀는 즉시 확인한다.
+        schedule(document.hidden ? 15_000 : playing ? 10_000 : 5000);
       } catch (error) {
         if (disposed || stopped.current) return;
         fail(error);
         const problem = error instanceof AuthRequestError ? error : null;
-        if (problem?.status === 401 || ["LOGIN_SESSION_CHANGED", "ROOM_NOT_FOUND", "ROOM_CLOSED", "ROOM_NOT_JOINED"].includes(problem?.code ?? "")) {
+        if (problem?.status === 401 || ["LOGIN_SESSION_CHANGED", "ROOM_NOT_FOUND", "ROOM_CLOSED", "ROOM_NOT_JOINED", "ROOM_PAGE_IN_USE"].includes(problem?.code ?? "")) {
           terminal = true; stream.abort(); return;
         }
         if (playing && (!problem || problem.status === 0 || problem.status >= 500)) {
@@ -56,8 +58,17 @@ export function useRoomSync({ sessionId, roomId, playing, busy, stopped, accept,
       // 데이터 연결 복구 중에는 이벤트 연결을 반복해 재접속 예산·인증 잠금을 소모하지 않는다.
       if (disposed || terminal || stopped.current) return;
       if (failures > 0) { streamTimer = setTimeout(() => void listen(), 5000); return; }
-      try { await watchRoom(sessionId, roomId, stream.signal, () => { if (failures === 0) void refresh(); }); }
-      catch { /* 알림 장애 중에도 주기 조회가 판을 복구한다. */ }
+      try { await watchRoom(sessionId, roomId, pageId!, stream.signal, () => { if (failures === 0) void refresh(); }); }
+      catch (error) {
+        // 소유권을 잃은 탭은 SSE 구독을 1초마다 재시도하지 않고 즉시 접속을 종료한다.
+        const problem = error instanceof AuthRequestError ? error : null;
+        if (problem?.status === 401 || ["ROOM_PAGE_IN_USE", "ROOM_NOT_JOINED", "ROOM_CLOSED", "LOGIN_SESSION_CHANGED"].includes(problem?.code ?? "")) {
+          terminal = true;
+          if (!disposed) fail(error);
+          return;
+        }
+        // 나머지 알림 장애 중에도 주기 조회가 판을 복구한다.
+      }
       if (!disposed && !terminal && !stopped.current) streamTimer = setTimeout(() => void listen(), 1000);
     };
     const visible = () => { if (!document.hidden && failures === 0) void refresh(); };
@@ -65,11 +76,12 @@ export function useRoomSync({ sessionId, roomId, playing, busy, stopped, accept,
     document.addEventListener("visibilitychange", visible);
     window.addEventListener("online", online);
     void refresh();
-    if (playing) void listen();
+    // 최초 신원 확인 조회는 구독을 만들지 않고 OPEN 이후 현재 탭만 SSE에 연결한다.
+    if (playing && pageId) void listen();
     return () => {
       disposed = true; stream.abort(); clearTimeout(timer); clearTimeout(streamTimer);
       document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", online);
     };
-  }, [sessionId, roomId, playing, busy, stopped, accept, fail, epoch]);
+  }, [sessionId, roomId, pageId, playing, busy, stopped, accept, fail, epoch]);
   return { attempt, lost, restart: () => { setAttempt(0); setLost(false); setEpoch(value => value + 1); } };
 }

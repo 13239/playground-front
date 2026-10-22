@@ -96,22 +96,23 @@ async function waitingRequest(path: "/api/gomoku/rooms/join" | "/api/gomoku/room
   return publicWaitingRoom(value);
 }
 export const joinRoom = (sessionId: string, input: JoinRoomInput) => waitingRequest("/api/gomoku/rooms/join", sessionId, input);
-export const readWaitingRoom = (sessionId: string, roomId: number) => waitingRequest("/api/gomoku/rooms/state", sessionId, { roomId });
-export const readyRoom = (sessionId: string, roomId: number, ready: boolean) => waitingRequest("/api/gomoku/rooms/ready", sessionId, { roomId, ready });
+export const readWaitingRoom = (sessionId: string, roomId: number, pageId?: string) => waitingRequest("/api/gomoku/rooms/state", sessionId, { roomId, ...(pageId ? { pageId } : {}) });
+export const readyRoom = (sessionId: string, roomId: number, ready: boolean, pageId: string) => waitingRequest("/api/gomoku/rooms/ready", sessionId, { roomId, ready, pageId });
 
 /** 전송 UUID와 방 순서를 고정한다. 성공 여부가 불명확하면 최신 판을 조회하고 명령을 임의 재전송하지 않는다. */
-export async function sendGameAction(sessionId: string, room: WaitingRoom, action: GameAction): Promise<WaitingRoom> {
+export async function sendGameAction(sessionId: string, room: WaitingRoom, action: GameAction, pageId: string): Promise<WaitingRoom> {
   if (!room.game) throw new AuthRequestError("진행 중인 대국이 없습니다.", 409);
   const value = await readResponse(await requestAuthenticatedApi("/api/gomoku/rooms/game", {
-    sessionId, roomId: room.id, matchId: room.game.id, revision: room.revision, requestId: newRoomRequestId(), ...action,
+    sessionId, roomId: room.id, matchId: room.game.id, revision: room.revision, requestId: newRoomRequestId(), pageId, ...action,
   }), sessionId);
   if (!isWaitingRoom(value)) throw new AuthRequestError("대국 정보를 확인하지 못했습니다.", 502);
   return publicWaitingRoom(value);
 }
 
 /** 이벤트에는 데이터 대신 변경 알림만 있다. 현재 인증으로 판을 다시 읽고 끊긴 스트림은 취소한다. */
-export async function watchRoom(sessionId: string, roomId: number, signal: AbortSignal, changed: () => void): Promise<void> {
-  const response = await requestAuthenticatedApi("/api/gomoku/rooms/game/events", { sessionId, roomId });
+export async function watchRoom(sessionId: string, roomId: number, pageId: string, signal: AbortSignal, changed: () => void): Promise<void> {
+  signal.throwIfAborted();
+  const response = await requestAuthenticatedApi("/api/gomoku/rooms/game/events", { sessionId, roomId, pageId }, signal);
   if (!response.body || !response.headers.get("Content-Type")?.startsWith("text/event-stream")) throw new AuthRequestError("대국 알림에 연결하지 못했습니다.", 502);
   const reader = response.body.getReader();
   const cancel = () => { void reader.cancel().catch(() => {}); };
@@ -135,15 +136,15 @@ export async function watchRoom(sessionId: string, roomId: number, signal: Abort
     }
   } finally { signal.removeEventListener("abort", cancel); await reader.cancel().catch(() => {}); reader.releaseLock(); }
 }
-export async function leaveRoom(sessionId: string, roomId: number, membershipId: string): Promise<void> {
-  if ((await requestAuthenticatedApi("/api/gomoku/rooms/leave", { sessionId, roomId, membershipId })).status !== 204) {
+export async function leaveRoom(sessionId: string, roomId: number, membershipId: string, pageId: string): Promise<void> {
+  if ((await requestAuthenticatedApi("/api/gomoku/rooms/leave", { sessionId, roomId, membershipId, pageId })).status !== 204) {
     throw new AuthRequestError("방에서 나가지 못했습니다. 다시 시도해 주세요.", 502);
   }
 }
 
 /** 문서마다 다른 페이지 식별자로 참가를 이어받고 브라우저 닫기의 보류된 퇴장을 취소한다. */
-export async function openRoomPage(sessionId: string, roomId: number, membershipId: string, pageId: string): Promise<void> {
-  if ((await requestAuthenticatedApi("/api/gomoku/rooms/lifecycle", { sessionId, roomId, membershipId, pageId, action: "OPEN" })).status !== 204) {
+export async function openRoomPage(sessionId: string, roomId: number, membershipId: string, pageId: string, tabId: string): Promise<void> {
+  if ((await requestAuthenticatedApi("/api/gomoku/rooms/lifecycle", { sessionId, roomId, membershipId, pageId, tabId, action: "OPEN" })).status !== 204) {
     throw new AuthRequestError("방 접속을 확인하지 못했습니다.", 502);
   }
 }
