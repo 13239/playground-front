@@ -335,38 +335,47 @@
 }
 
 /* HTML 문구와 배너 삽화를 분리하고 폭에 따라 그라데이션을 조절하여 모바일에서도 제목 대비를 확보한다. */
+/* 배너 자체의 폭을 기준으로 글자를 조절해 채팅 열 유무와 초고해상도 화면에서도 원본 구도를 유지한다. */
 .hero {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: clamp(280px, 18.5vw, 450px);
+  /* 최소 높이와 가로세로 비율이 태블릿에서 부모보다 큰 자동 너비를 만들지 않도록 폭을 고정한다. */
+  width: 100%;
+  min-height: clamp(300px, 20vw, 535px);
+  aspect-ratio: 3.85;
+  container-type: inline-size;
   overflow: hidden;
   border: 1.5px solid #ffffffed;
   border-radius: 1.35em;
-  background: #e7e5ff;
+  background: #f0f1ff;
   box-shadow: 0 8px 26px #7b7ae31a;
+}
+.heroArtwork {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 .heroArt {
   object-fit: cover;
-  object-position: center;
+  object-position: center 54%;
 }
 .heroShade {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     90deg,
-    #eef0fff5,
-    #eef3ffbd 32%,
-    #eaf2ff26 52%,
-    transparent 65%
+    #f0f1ffb3,
+    #f0f1ff59 30%,
+    #f0f1ff00 48%
   );
   pointer-events: none;
 }
 .heroCopy {
   position: relative;
   z-index: 1;
-  max-width: 65%;
-  padding: 2em 3em;
+  max-width: 56%;
+  padding: clamp(28px, 2.6cqi, 56px) clamp(24px, 4cqi, 82px);
 }
 .heroEyebrow {
   display: flex;
@@ -374,7 +383,7 @@
   gap: 0.65em;
   margin: 0 0 0.8em;
   color: #6c53b9;
-  font-size: 0.62em;
+  font-size: clamp(10px, 0.74cqi, 15px);
   font-weight: 800;
   letter-spacing: 0.18em;
 }
@@ -388,11 +397,10 @@
 .hero h1 {
   margin: 0;
   color: #100b4d;
-  font-size: clamp(2.4em, 3.25vw, 4.4em);
-  font-style: italic;
-  font-weight: 950;
-  letter-spacing: -0.07em;
-  line-height: 1.1;
+  font-size: clamp(2rem, 4.05cqi, 5.2rem);
+  font-weight: 900;
+  letter-spacing: -0.065em;
+  line-height: 1.15;
 }
 .hero h1 > span {
   display: inline-block;
@@ -405,7 +413,7 @@
 .heroDescription {
   margin: 0.75em 0 1.1em;
   color: #55548e;
-  font-size: 1em;
+  font-size: clamp(14px, 1.22cqi, 23px);
   font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.65;
@@ -440,28 +448,8 @@
   width: 1.35em;
   height: 1.35em;
 }
-.bannerLabel {
-  position: absolute;
-  right: 1.5em;
-  bottom: 1.1em;
-  display: flex;
-  align-items: center;
-  gap: 0.7em;
-  padding: 0.5em 0.85em;
-  border: 1px solid #ffffff5c;
-  border-radius: 3em;
-  background: #4740ac30;
-  color: white;
-  font-size: 0.55em;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  backdrop-filter: blur(8px);
-}
-.bannerLabel > span {
-  width: 0.5em;
-  height: 0.5em;
-  border-radius: 50%;
-  background: #f5e3ff;
+.hero .primaryButton {
+  font-size: clamp(14px, 1.25cqi, 23px);
 }
 
 .categories {
@@ -1256,9 +1244,6 @@
 
 /* 5K까지 콘텐츠 최대 폭과 유동 크기를 사용하고, 중간 화면에서는 카드 열 수와 헤더 배치를 단계적으로 줄인다. */
 @media (min-width: 2200px) {
-  .heroCopy {
-    padding: 2.5em 3.5em;
-  }
   .gameGrid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
@@ -1276,9 +1261,6 @@
   }
   .gameGrid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-  .heroCopy {
-    padding-inline: 2em;
   }
   .category {
     flex-basis: 5.5em;
@@ -1302,15 +1284,6 @@
   .gameGrid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .hero h1 {
-    font-size: 2.8em;
-  }
-  .heroDescription {
-    font-size: 0.9em;
-  }
-  .heroCopy {
-    max-width: 80%;
-  }
 }
 
 @media (max-width: 1149px) {
@@ -1319,12 +1292,6 @@
   }
   .desktopChat {
     display: none;
-  }
-  .hero {
-    min-height: clamp(285px, 30vw, 360px);
-  }
-  .hero h1 {
-    font-size: clamp(2.6em, 4.8vw, 3.6em);
   }
   .gameGrid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1398,15 +1365,6 @@
     width: 2.7em;
     height: 2.7em;
   }
-  .hero {
-    min-height: 290px;
-  }
-  .heroCopy {
-    padding: 1.7em 2em;
-  }
-  .hero h1 {
-    font-size: clamp(2.65em, 5.4vw, 3.3em);
-  }
   .gameGrid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -1453,44 +1411,42 @@
     width: min(20em, calc(100vw - 28px));
   }
   .hero {
-    align-items: flex-end;
-    min-height: 355px;
+    /* 캐릭터는 위쪽 삽화에, 실제 문구와 버튼은 아래쪽 본문에 배치해 얼굴과 터치 영역을 함께 확보한다. */
+    display: block;
+    min-height: 0;
+    padding-top: clamp(230px, 62vw, 340px);
+    aspect-ratio: auto;
     border-radius: 1.25em;
   }
+  .heroArtwork {
+    bottom: auto;
+    height: clamp(260px, 70vw, 380px);
+  }
   .heroArt {
-    object-position: 66% center;
+    object-position: 95% center;
   }
   .heroShade {
-    background:
-      linear-gradient(90deg, #eef0ffb3, #eef0ff1a),
-      linear-gradient(0deg, #edf0fff5, #edf1ffc4 50%, #edf1ff00 90%);
+    background: linear-gradient(0deg, #f0f1ff 40%, #f0f1ff00 58%);
   }
   .heroCopy {
     max-width: 100%;
-    padding: 1.5em 1.4em;
+    padding: 24px 22px 28px;
   }
   .heroEyebrow {
     margin-bottom: 0.9em;
-    font-size: 0.55em;
+    font-size: 10px;
   }
   .hero h1 {
-    font-size: clamp(2.4em, 8.8vw, 3.3em);
+    font-size: clamp(2rem, 8.8cqi, 3.3rem);
   }
   .heroDescription {
     margin: 0.8em 0 1.25em;
-    font-size: max(12px, 0.78em);
+    font-size: clamp(14px, 3.6cqi, 18px);
     line-height: 1.8;
   }
   .primaryButton {
     min-height: 3.1em;
     font-size: 0.9em;
-  }
-  .bannerLabel {
-    top: 1em;
-    right: 1em;
-    bottom: auto;
-    max-width: calc(100% - 2em);
-    font-size: 0.46em;
   }
   .categories {
     gap: 0.35em;

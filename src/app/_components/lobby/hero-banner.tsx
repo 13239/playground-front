@@ -1,4 +1,5 @@
 import Image from "next/image";
+import bannerArtwork from "../../../../public/images/lobby/playground-banner.webp";
 import { LobbyIcon } from "./lobby-icon";
 import styles from "./lobby.module.css";
 
@@ -6,15 +7,19 @@ import styles from "./lobby.module.css";
 export function HeroBanner({ onBrowse }: { onBrowse: () => void }) {
   return (
     <section className={styles.hero} aria-labelledby="lobby-title">
-      <Image
-        className={styles.heroArt}
-        src="/images/lobby/playground-banner.webp"
-        alt="푸른 게임 도시에서 반갑게 손을 내미는 플레이그라운드 캐릭터들"
-        fill
-        sizes="(min-width: 2560px) 2060px, (min-width: 1150px) 76vw, 100vw"
-        preload
-      />
-      <div className={styles.heroShade} />
+      {/* 정적 이미지의 콘텐츠 해시로 교체 이력을 캐시에 반영하고, 모바일의 확대된 삽화에도 충분한 해상도를 제공한다. */}
+      <div className={styles.heroArtwork}>
+        <Image
+          className={styles.heroArt}
+          src={bannerArtwork}
+          alt="파스텔 구름 위에서 보라색 게임패드를 들고 손을 흔드는 하얀 캐릭터와 웃는 보라색 친구"
+          fill
+          sizes="(min-width: 2560px) 2060px, (min-width: 1150px) 76vw, (max-width: 600px) 1080px, 100vw"
+          quality={95}
+          preload
+        />
+      </div>
+      <div className={styles.heroShade} aria-hidden="true" />
       <div className={styles.heroCopy}>
         <p className={styles.heroEyebrow}>
           <span /> PLAY, CONNECT &amp; ENJOY
@@ -39,9 +44,6 @@ export function HeroBanner({ onBrowse }: { onBrowse: () => void }) {
           게임 둘러보기
           <LobbyIcon name="arrow" />
         </button>
-      </div>
-      <div className={styles.bannerLabel}>
-        <span /> OUR PLAYGROUND, YOUR PLAYTIME
       </div>
     </section>
   );
