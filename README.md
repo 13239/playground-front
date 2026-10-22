@@ -27,7 +27,7 @@ npm run dev
 
 ## 개발 서버의 원격 HTTP
 
-개발 배포는 `APP_ENV=dev`, `APP_ORIGIN=http://123.234.123.222:9081`, `BACKEND_ORIGIN=http://backend:9080`으로 설정하고 Spring에도 `SPRING_PROFILES_ACTIVE=dev`와 같은 공개 Origin을 지정한다. 제공한 Compose는 호스트 9081 → Nginx → 프론트/BFF 3000으로 연결하고 실제 접속 IP를 덮어써 전달한다. Spring의 9080은 내부 전용이며 사용자에게 직접 노출하지 않는다. Next는 `next build`의 standalone 서버를 실행하고 `NODE_ENV`를 임의 값 `dev`로 바꾸지 않는다. 기존 개발 서버 MySQL·Redis를 사용하는 이미지 묶음 생성과 서버 직접 실행 순서는 [Linux 직접 배포 안내](../deploy/README.md)를 따른다.
+개발 배포는 `APP_ENV=dev`, `APP_ORIGIN=http://121.182.203.136:9081`, `BACKEND_ORIGIN=http://backend:9080`으로 설정하고 Spring에도 `SPRING_PROFILES_ACTIVE=dev`와 같은 공개 Origin을 지정한다. 제공한 Compose는 호스트 9081 → Nginx → 프론트/BFF 3000으로 연결하고 실제 접속 IP를 덮어써 전달한다. Spring의 9080은 내부 전용이며 사용자에게 직접 노출하지 않는다. Next는 `next build`의 standalone 서버를 실행하고 `NODE_ENV`를 임의 값 `dev`로 바꾸지 않는다. 기존 개발 서버 MySQL·Redis를 사용하는 이미지 묶음 생성과 서버 직접 실행 순서는 [Linux 직접 배포 안내](../deploy/README.md)를 따른다.
 
 원격 HTTP 브라우저에서는 개인키 API를 사용할 수 없어 dev만 일반 BFF+JWT로 동작한다. 서버 설정이 dev일 때만 키 검증을 생략하고 HTTP 쿠키를 발급하며 CSP의 HTTPS 강제와 HSTS만 끈다. 스크립트 nonce·안전한 출력·Origin·JWT·Redis 세션 검증은 유지한다. 탭 사이 변경은 HTTP에서도 쓸 수 있는 IndexedDB 임대로 직렬화한다. dev HTTP는 전송 암호화와 쿠키 탈취에 대한 개인키 방어를 제공하지 않는다.
 
