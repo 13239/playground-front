@@ -24,7 +24,7 @@ import common from "./gomoku.module.css";
 import styles from "./waiting-room.module.css";
 
 // 인증 재확인으로 화면을 숨겨도 같은 문서·참가의 점유권은 유지하고, 새 로그인에는 이전 점유권을 넘기지 않는다.
-type RoomConnection = Readonly<{ roomId: number; sessionId: string; membershipId: string; pageId?: string; denial?: string; error?: string }>;
+type RoomConnection = Readonly<{ roomId: number; sessionId: string; membershipId: string; pageId?: string; denial?: string; denialCode?: string; error?: string }>;
 
 /** 계정·방 경계가 바뀌면 준비 상태와 방 채팅도 새로 만들어 이전 사용자의 정보를 숨긴다. */
 export function WaitingRoomScreen({ roomId }: { roomId: number }) {
@@ -43,11 +43,13 @@ export function WaitingRoomScreen({ roomId }: { roomId: number }) {
   const onRestore = useCallback(() => router.replace("/games/gomoku"), [router]);
   const onOpened = useCallback((pageId: string) => {
     setConnection(current => current?.roomId === roomId && current.sessionId === sessionId && current.membershipId === membershipId
-      && (current.pageId !== pageId || current.error) ? { ...current, pageId, error: undefined } : current);
+      && (current.pageId !== pageId || current.error || current.denial)
+      ? { ...current, pageId, denial: undefined, denialCode: undefined, error: undefined } : current);
   }, [roomId, sessionId, membershipId]);
   const onDenied = useCallback((error: unknown) => {
     setConnection(current => current?.roomId === roomId && current.sessionId === sessionId && current.membershipId === membershipId
-      ? { ...current, denial: error instanceof AuthRequestError ? error.message : "방 접속을 확인하지 못했습니다." } : current);
+      ? { ...current, denial: error instanceof AuthRequestError ? error.message : "방 접속을 확인하지 못했습니다.",
+        denialCode: error instanceof AuthRequestError ? error.code : undefined } : current);
   }, [roomId, sessionId, membershipId]);
   const onError = useCallback((error: unknown) => {
     // 입장 실패를 준비 버튼만 꺼진 상태로 감추지 않고, 현재 참가에 해당하는 공개 오류만 표시한다.
@@ -64,7 +66,15 @@ export function WaitingRoomScreen({ roomId }: { roomId: number }) {
         <LobbyIcon name="board" />
         <h1>대기실을 확인해 주세요</h1>
         <p>{current.denial}</p>
-        <Link className={common.primaryButton} href="/games/gomoku">방 목록으로</Link>
+        {/* 실제 다른 탭의 점유가 해제되면 화면을 떠나지 않고 서버 검증부터 다시 진행한다. */}
+        {current.denialCode === "ROOM_PAGE_IN_USE" && (
+          <button type="button" className={common.primaryButton} onClick={() => {
+            setConnection(previous => previous === current
+              ? { ...previous, pageId: undefined, denial: undefined, denialCode: undefined, error: undefined } : previous);
+            departure.retry();
+          }}>다시 연결</button>
+        )}
+        <Link className={current.denialCode === "ROOM_PAGE_IN_USE" ? common.secondaryButton : common.primaryButton} href="/games/gomoku">방 목록으로</Link>
       </div>
     );
     return (
@@ -129,7 +139,9 @@ function AuthenticatedWaitingRoom({
   onComplete: (sessionId: string, membershipId: string) => void;
 }) {
   const router = useRouter();
-  const [room, setRoom] = useState<WaitingRoom>();
+  // 서버 응답과 수신 시각을 함께 보관해 팝업 이동으로 시계가 다시 만들어져도 경과 시간을 유지한다.
+  const [snapshot, setSnapshot] = useState<{ room: WaitingRoom; receivedAt: number }>();
+  const room = snapshot?.room;
   const [error, setError] = useState("");
   const [fatal, setFatal] = useState(false);
   const [pending, setPending] = useState<"ready" | "leave" | "game" | null>(null);
@@ -158,7 +170,7 @@ function AuthenticatedWaitingRoom({
     revision.current = next.revision;
     // 인증 재확인 뒤에도 바깥 수명 관리자가 같은 참가·pageId를 재사용하도록 본인의 참가 정보만 전달한다.
     onMembership(sessionId, next.membershipId);
-    setRoom(next);
+    setSnapshot({ room: next, receivedAt: performance.now() });
     setError("");
   }, [sessionId, roomId, stoppedRef, onMembership]);
 
@@ -273,7 +285,7 @@ function AuthenticatedWaitingRoom({
     }
   }
 
-  if (fatal || !room)
+  if (fatal || !room || !snapshot)
     return (
       <div className={styles.fallback} role="status">
         <LobbyIcon name="board" />
@@ -333,7 +345,8 @@ function AuthenticatedWaitingRoom({
 
   return (
     <div className={room.game ? gameStyles.gameLayout : styles.waitingPage}>
-      {room.game ? <GameRoom key={room.game.id} room={{ ...room, game: room.game }} pending={pending !== null || !pageId} error={error}
+      {/* 같은 방의 재대국에서도 대국 컨트롤러를 유지해 열린 팝업와 기존 연결을 재사용한다. */}
+      {room.game ? <GameRoom room={{ ...room, game: room.game }} receivedAt={snapshot.receivedAt} pending={pending !== null || !pageId} error={error}
         reconnectAttempt={sync.attempt} connectionLost={sync.lost} onAction={action => void gameAction(action)}
         onLeave={() => { setLeaveError(""); setConfirmLeave(true); }} onRecover={() => void recoverResult()} />
         : <section className={styles.scene} aria-label="오목 대기실">

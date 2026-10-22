@@ -115,8 +115,9 @@ export function LoginForm({ ready }: { ready: boolean }) {
         aria-busy={pending || !ready}
         aria-describedby="login-status"
       >
+        {/* 아이콘과 비밀번호 표시 버튼까지 같은 포커스 프레임을 공유한다. */}
         <div className={styles.fields}>
-          <div className={styles.field}>
+          <div data-focus-frame className={styles.field}>
             {/* 아이디는 가입 화면과 동일한 사용자 아이콘으로 표시한다. */}
             <Icon name="user" className={styles.fieldIcon} />
             <label className={styles.srOnly} htmlFor="login-identifier">
@@ -136,7 +137,7 @@ export function LoginForm({ ready }: { ready: boolean }) {
             />
           </div>
 
-          <div className={styles.field}>
+          <div data-focus-frame className={styles.field}>
             <Icon name="lock" className={styles.fieldIcon} />
             <label className={styles.srOnly} htmlFor="login-password">
               비밀번호

@@ -25,8 +25,9 @@
 .dialog button {
   touch-action: manipulation;
 }
-.screen :is(button, a, input, select):focus-visible,
-.dialog :is(button, input):focus-visible {
+/* 입력창·콤보박스는 전역 정책을 따르고 버튼과 링크에만 키보드 외곽선을 표시한다. */
+.screen :is(button, a):focus-visible,
+.dialog button:focus-visible {
   outline: 3px solid #8553fa;
   outline-offset: 3px;
 }
@@ -52,13 +53,9 @@
   border-radius: 0;
   background: transparent;
 }
-.screen header input:focus-visible,
-.screen .roomSearch input:focus-visible {
-  outline: none;
-}
 .roomSearch:focus-within {
-  outline: 3px solid #8553fa;
-  outline-offset: 3px;
+  /* 검색창은 공통 프레임의 1px 테두리와 밝은 배경을 함께 사용한다. */
+  background: #ffffffd4;
 }
 .screen :is(input, select):disabled {
   background: #eceff58c;

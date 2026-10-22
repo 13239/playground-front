@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { authRetryDelay } from "@/features/auth/client/request-cooldown";
 import { newRoomRequestId } from "./api";
 import { RoomDeparture } from "./room-departure";
@@ -13,6 +13,8 @@ export function useRoomDeparture({ sessionId, roomId, membershipId, stopped: sto
 }) {
   const current = useRef<{ sessionId: string; roomId: number; membershipId: string; controller: RoomDeparture } | undefined>(undefined);
   const retryRef = useRef<(() => void) | undefined>(undefined);
+  // 점유 거절로 종료된 컨트롤러는 새 문서 식별자와 Web Lock 요청으로 다시 연결한다.
+  const [retryVersion, setRetryVersion] = useState(0);
   useEffect(() => {
     if (current.current && (current.current.sessionId !== sessionId || current.current.roomId !== roomId
       || membershipId !== undefined && current.current.membershipId !== membershipId)) {
@@ -104,9 +106,15 @@ export function useRoomDeparture({ sessionId, roomId, membershipId, stopped: sto
       // Link·router 이동도 처리하되 개발 Strict Mode, 새로고침 중 같은 경로의 효과 정리는 퇴장시키지 않는다.
       if (window.location.pathname !== roomPath) exit(false);
     };
-  }, [sessionId, roomId, membershipId, stoppedRef, onRestore, onOpened, onDenied, onError]);
+  }, [sessionId, roomId, membershipId, stoppedRef, onRestore, onOpened, onDenied, onError, retryVersion]);
   // 늦은 이전 화면의 나가기 성공이 현재 계정·참가의 잠금을 풀지 않도록 호출 당시 신원도 대조한다.
-  return { retry: () => retryRef.current?.(), complete: (sessionId: string, membershipId: string) => {
+  return { retry: () => {
+    if (current.current?.controller.hasDeparted) {
+      // 완료된 OPEN과 실패한 잠금 Promise를 재사용하면 상대 탭이 닫힌 뒤에도 복구할 수 없다.
+      current.current = undefined;
+      setRetryVersion(version => version + 1);
+    } else retryRef.current?.();
+  }, complete: (sessionId: string, membershipId: string) => {
     if (current.current?.sessionId !== sessionId || current.current.roomId !== roomId || current.current.membershipId !== membershipId) return;
     stoppedRef.current = true;
     current.current.controller.complete();

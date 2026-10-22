@@ -113,7 +113,8 @@ export function SignUpForm({ ready }: { ready: boolean }) {
           return (
             <div key={field}>
               <label htmlFor={`sign-up-${field}`} className={signUpStyles.label}>{rule.label}</label>
-              <div className={`${styles.field} ${errors[field] ? signUpStyles.invalid : ""}`}>
+              {/* 오류 색을 유지하면서 입력 영역 전체에 공통 얇은 테두리를 표시한다. */}
+              <div data-focus-frame className={`${styles.field} ${errors[field] ? signUpStyles.invalid : ""}`}>
                 {/* 닉네임은 이름표, 로그인 아이디는 사용자 아이콘으로 구분한다. */}
                 <Icon name={password ? "lock" : field === "nickname" ? "badge" : "user"} className={styles.fieldIcon} />
                 <input

@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { AuthRequestError } from "@/features/auth/client/api";
 import {
@@ -11,21 +17,34 @@ import { joinRoom } from "../client/api";
 import { inviteCodePattern } from "../contracts";
 import type { WaitingRoom } from "../waiting-contracts";
 import { RoomDialog } from "./room-dialog";
+import { RoomToast } from "./room-toast";
 import styles from "./gomoku.module.css";
 
 export type JoinTarget =
   | Readonly<{ roomId: number; title: string; privateRoom: boolean }>
   | Readonly<{ inviteCode: string }>;
 
-/** 공개 입장은 즉시 처리하고 비공개 코드 입장도 서버가 비밀번호를 요구하면 같은 대화상자에서 검증한다. */
+// 닫혀서 입장할 수 없는 코드도 없는 방과 같은 짧은 안내로 처리하고 코드·재시도 버튼을 반복 표시하지 않는다.
+const roomNotFoundMessage = "방을 찾을 수 없습니다.";
+function joinFailureMessage(failure: unknown): string {
+  if (!(failure instanceof AuthRequestError))
+    return "방에 입장하지 못했습니다.";
+  return ["ROOM_NOT_FOUND", "ROOM_CLOSED"].includes(failure.code ?? "")
+    ? roomNotFoundMessage
+    : failure.message;
+}
+
+/** 공개 입장은 확인창 없이 즉시 처리하고 비공개 코드 입장도 서버가 비밀번호를 요구하면 같은 대화상자에서 검증한다. */
 export function JoinRoomDialog({
   sessionId,
   target,
   onClose,
+  onFailure,
 }: {
   sessionId: string;
   target: JoinTarget;
   onClose: () => void;
+  onFailure?: (message: string) => void;
 }) {
   const router = useRouter();
   const privateRoom = "privateRoom" in target && target.privateRoom;
@@ -63,12 +82,8 @@ export function JoinRoomDialog({
             failure.code === "ROOM_PASSWORD_REQUIRED"
           )
             setNeedsPassword(true);
-          else
-            setError(
-              failure instanceof AuthRequestError
-                ? failure.message
-                : "방에 입장하지 못했습니다.",
-            );
+          else if (onFailure) onFailure(joinFailureMessage(failure));
+          else setError(joinFailureMessage(failure));
           if (
             failure instanceof AuthRequestError &&
             (failure.status === 401 || failure.code === "LOGIN_SESSION_CHANGED")
@@ -84,7 +99,7 @@ export function JoinRoomDialog({
       alive.current = false;
     };
     // 한 대화상자는 생성 시의 방·세션에만 묶이고 다른 대상은 부모의 key로 새로 만든다.
-  }, [sessionId, privateRoom, router, target]);
+  }, [sessionId, privateRoom, router, target, onFailure]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -112,11 +127,9 @@ export function JoinRoomDialog({
         failure.code === "ROOM_PASSWORD_REQUIRED"
       )
         setNeedsPassword(true);
-      setError(
-        failure instanceof AuthRequestError
-          ? failure.message
-          : "방에 입장하지 못했습니다.",
-      );
+      const message = joinFailureMessage(failure);
+      if (message === roomNotFoundMessage && onFailure) onFailure(message);
+      else setError(message);
       if (
         failure instanceof AuthRequestError &&
         (failure.status === 401 || failure.code === "LOGIN_SESSION_CHANGED")
@@ -128,28 +141,33 @@ export function JoinRoomDialog({
     }
   }
 
+  // 공개 입장 중에는 기존 확인창을 띄우지 않고, 실패한 경우에만 2초짜리 상단 토스트를 표시한다.
+  // 비밀번호 입력 사이 방이 닫혀도 기존 입장 폼 대신 동일한 토스트로 전환한다.
+  if (error === roomNotFoundMessage || (!needsPassword && error))
+    return <RoomToast message={error} onDismiss={onClose} />;
+  if (!needsPassword)
+    return pending ? (
+      <p className={styles.muted} role="status">
+        대기실에 입장하고 있어요.
+      </p>
+    ) : null;
+
   return (
-    <RoomDialog
-      title={needsPassword ? "비공개 방 입장" : "대기실 입장"}
-      busy={pending}
-      onClose={onClose}
-    >
+    <RoomDialog title="비공개 방 입장" busy={pending} onClose={onClose}>
       <p>{"title" in target ? target.title : `방 코드 ${target.inviteCode}`}</p>
       <form onSubmit={(event) => void submit(event)}>
         {needsPassword && (
-          <label className={styles.codeLabel}>
-            방 비밀번호
-            <input
-              type="password"
-              aria-label="방 비밀번호"
-              value={password}
-              maxLength={8}
-              autoComplete="off"
-              autoFocus
-              disabled={pending}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
+          <input
+            type="password"
+            aria-label="방 비밀번호"
+            placeholder="방 비밀번호"
+            value={password}
+            maxLength={8}
+            autoComplete="off"
+            autoFocus
+            disabled={pending}
+            onChange={(event) => setPassword(event.target.value)}
+          />
         )}
         {pending && <p role="status">대기실에 입장하고 있어요.</p>}
         {error && (
@@ -180,26 +198,68 @@ export function JoinRoomDialog({
 export function InviteRoomEntry() {
   const auth = useAuthSession();
   const [code, setCode] = useState("");
-  const [target, setTarget] = useState<JoinTarget>();
+  // 진행 중인 코드를 입력값·새 로그인과 분리해 타이핑이나 인증 변경이 같은 입장을 다시 실행하지 않게 한다.
+  const [attempt, setAttempt] =
+    useState<
+      Readonly<{ sessionId: string; target: Readonly<{ inviteCode: string }> }>
+    >();
   const [error, setError] = useState("");
+  const codeInput = useRef<HTMLInputElement>(null);
+  const [notice, setNotice] =
+    useState<Readonly<{ id: number; sessionId: string; message: string }>>();
+  const noticeSequence = useRef(0);
+  const currentAttempt =
+    auth.status === "authenticated" &&
+    attempt?.sessionId === auth.session.sessionId
+      ? attempt
+      : undefined;
+  const currentNotice =
+    auth.status === "authenticated" &&
+    notice?.sessionId === auth.session.sessionId
+      ? notice
+      : undefined;
+  const onFailure = useCallback(
+    (message: string) => {
+      if (!currentAttempt) return;
+      // 실패 요청과 토스트 수명을 분리해 알림이 표시되는 2초 동안에도 코드를 바로 고치거나 다시 제출할 수 있다.
+      setAttempt((previous) =>
+        previous === currentAttempt ? undefined : previous,
+      );
+      setNotice({
+        id: ++noticeSequence.current,
+        sessionId: currentAttempt.sessionId,
+        message,
+      });
+    },
+    [currentAttempt],
+  );
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (currentAttempt) return;
     if (!inviteCodePattern.test(code)) {
       setError("6자리 영문·숫자 방 코드를 확인해 주세요.");
       return;
     }
     if (auth.status === "authenticated") {
-      setTarget({ inviteCode: code });
+      setAttempt({
+        sessionId: auth.session.sessionId,
+        target: { inviteCode: code },
+      });
       setError("");
     }
   }
   return (
     <>
-      <form className={styles.inviteRow} onSubmit={submit}>
+      <form
+        className={styles.inviteRow}
+        onSubmit={submit}
+        aria-busy={Boolean(currentAttempt)}
+      >
         <label className={styles.srOnly} htmlFor="invite-code">
           초대 코드
         </label>
         <input
+          ref={codeInput}
           id="invite-code"
           aria-label="초대 코드"
           placeholder="예) ABC234"
@@ -207,7 +267,7 @@ export function InviteRoomEntry() {
           maxLength={6}
           autoComplete="off"
           spellCheck={false}
-          disabled={auth.status !== "authenticated"}
+          disabled={auth.status !== "authenticated" || Boolean(currentAttempt)}
           onChange={(event) => {
             setCode(
               event.target.value
@@ -221,9 +281,13 @@ export function InviteRoomEntry() {
         <button
           className={styles.primaryButton}
           type="submit"
-          disabled={auth.status !== "authenticated" || code.length !== 6}
+          disabled={
+            auth.status !== "authenticated" ||
+            code.length !== 6 ||
+            Boolean(currentAttempt)
+          }
         >
-          입장
+          {currentAttempt ? "확인 중…" : "입장"}
         </button>
       </form>
       {error && (
@@ -231,12 +295,28 @@ export function InviteRoomEntry() {
           {error}
         </p>
       )}
-      {target && auth.status === "authenticated" && (
+      {currentNotice && (
+        <RoomToast
+          key={currentNotice.id}
+          message={currentNotice.message}
+          onDismiss={() =>
+            setNotice((previous) =>
+              previous?.id === currentNotice.id ? undefined : previous,
+            )
+          }
+        />
+      )}
+      {currentAttempt && (
         <JoinRoomDialog
-          key={auth.session.sessionId + code}
-          sessionId={auth.session.sessionId}
-          target={target}
-          onClose={() => setTarget(undefined)}
+          key={currentAttempt.sessionId + currentAttempt.target.inviteCode}
+          sessionId={currentAttempt.sessionId}
+          target={currentAttempt.target}
+          onFailure={onFailure}
+          onClose={() => {
+            setAttempt(undefined);
+            // 비밀번호 확인창을 직접 취소한 경우에만 입력으로 복귀한다. 토스트 만료는 포커스를 옮기지 않는다.
+            requestAnimationFrame(() => codeInput.current?.focus());
+          }}
         />
       )}
     </>

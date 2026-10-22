@@ -607,11 +607,25 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* 수신이 확인된 본인 메시지와 전송 중인 메시지 모두 홈 채팅처럼 오른쪽에 모은다. */
+.message[data-own="true"] {
+  justify-content: flex-end;
+}
+.message[data-own="true"] > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 88%;
+}
+.message[data-own="true"] .messageMeta {
+  justify-content: flex-end;
+}
 .message[data-own="true"] p {
-  background: #e6edff;
+  border: 1px solid #ded2fc;
+  border-radius: 0.85em 0.15em 0.85em 0.85em;
+  background: #eee6ff;
 }
 .pendingMessage {
-  padding-left: 3em;
   opacity: 0.72;
 }
 .chatFooter {
@@ -628,6 +642,7 @@
   color: #9d90b9;
   text-align: center;
 }
+/* 대기실·대국 공용 입력창은 공통 프레임으로 바깥의 얇은 테두리 하나만 강조한다. */
 .composer {
   display: flex;
   align-items: center;

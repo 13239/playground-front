@@ -5,8 +5,8 @@ import type { MatchState } from "../game-contracts";
 import styles from "./game-room.module.css";
 
 /** 마우스는 미리보기 후 클릭, 터치는 같은 교차점을 두 번 눌러 착수한다. 키보드는 방향키·Enter/Space를 사용한다. */
-export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, disabled, onMove }: {
-  game: MatchState; selfSeat: number; serverTime: string; disabled: boolean; onMove: (x: number, y: number) => void;
+export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, receivedAt, disabled, onMove }: {
+  game: MatchState; selfSeat: number; serverTime: string; receivedAt: number; disabled: boolean; onMove: (x: number, y: number) => void;
 }) {
   const [selection, setSelection] = useState<{ gameId: number; turn: number; point: number; input: "mouse" | "touch" | "keyboard" } | null>(null);
   // 턴·대국이 바뀌면 선택만 무효화한다. 키보드 위치는 매 수마다 초기화하지 않는다.
@@ -20,21 +20,28 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, d
     // 매초 상위 화면을 다시 그리지 않고 서버 턴 마감 시에만 판의 착수 입력을 비활성화한다.
     if (game.phase !== "PLAYING" || !game.deadline) return;
     const deadline = game.deadline;
-    const delay = Math.max(0, Date.parse(deadline) - Date.parse(serverTime));
-    const timer = setTimeout(() => setExpiredDeadline(deadline), delay);
-    return () => clearTimeout(timer);
-  }, [game.phase, game.deadline, serverTime]);
+    // 창 전환 후에도 마지막 서버 응답부터 경과한 시간을 차감해 만료된 차례를 다시 열지 않는다.
+    const elapsed = performance.now() - receivedAt;
+    const delay = Math.max(0, Date.parse(deadline) - Date.parse(serverTime) - elapsed);
+    // 팝업에서는 실제 판을 표시하는 창의 타이머를 사용해 원본 탭의 백그라운드 제한을 피한다.
+    const ownerWindow = grid.current?.ownerDocument.defaultView ?? window;
+    const timer = ownerWindow.setTimeout(() => setExpiredDeadline(deadline), delay);
+    return () => ownerWindow.clearTimeout(timer);
+  }, [game.phase, game.deadline, serverTime, receivedAt]);
   useEffect(() => {
     // React가 pending을 반영하기 전의 연속 클릭도 한 번만 전송하고, 실패 복구·다음 턴에는 다시 입력을 허용한다.
     if (!disabled) submitted.current = false;
   }, [disabled, game.id, game.turnNumber]);
   useEffect(() => {
     // 다른 창·탭에서 돌아온 뒤 오래된 터치 선택이 두 번째 탭으로 처리되지 않게 미리보기만 지운다.
+    // 팝업로 판을 옮겼다면 원본 탭이 아닌 실제 입력 문서의 포커스·표시 상태를 확인한다.
+    const ownerDocument = grid.current?.ownerDocument ?? document;
+    const ownerWindow = ownerDocument.defaultView ?? window;
     const clear = () => setSelection(null);
-    const visible = () => { if (document.visibilityState !== "visible") clear(); };
-    window.addEventListener("blur", clear);
-    document.addEventListener("visibilitychange", visible);
-    return () => { window.removeEventListener("blur", clear); document.removeEventListener("visibilitychange", visible); };
+    const visible = () => { if (ownerDocument.visibilityState !== "visible") clear(); };
+    ownerWindow.addEventListener("blur", clear);
+    ownerDocument.addEventListener("visibilitychange", visible);
+    return () => { ownerWindow.removeEventListener("blur", clear); ownerDocument.removeEventListener("visibilitychange", visible); };
   }, []);
   const expired = game.deadline !== null && (expiredDeadline === game.deadline || Date.parse(serverTime) >= Date.parse(game.deadline));
   const last = game.moves.at(-1);
@@ -117,6 +124,7 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, d
   );
 }, (previous, next) => {
   // 접속 확인 응답의 serverTime/connected 플래그만 달라졌다면 400개 교차점을 다시 그리지 않는다.
+  // 수신 시각도 props로 전달해 시계 Context 갱신이 동일한 판의 렌더링을 우회하지 않게 한다.
   // 되돌리기·재착수는 turnNumber가 증가하므로 같은 개수의 돌이라도 반드시 다시 렌더링한다.
   return previous.selfSeat === next.selfSeat && previous.disabled === next.disabled && previous.onMove === next.onMove
     && previous.game.id === next.game.id && previous.game.phase === next.game.phase

@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import type { WaitingRoom } from "../waiting-contracts";
 import type { GameAction, MatchState } from "../game-contracts";
 import { RoomDialog } from "./room-dialog";
 import { GameBoard } from "./game-board";
-import { ActiveTurnCountdown, CountdownSeconds, PlayerTurnTimer } from "./game-clock";
+import { ActiveTurnCountdown, CountdownSeconds, GameClockProvider, PopupTurn, PlayerTurnTimer } from "./game-clock";
+import { useGamePopup } from "../client/use-game-popup";
 import { GameResultDialog } from "./game-result-dialog";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import styles from "./game-room.module.css";
@@ -15,14 +17,18 @@ const reasons = { FIVE: "다섯 돌을 완성했어요.", BOARD_FULL: "판이 �
   DISCONNECT: "연결을 복구하지 못해 대국이 끝났어요.", INTERRUPTED: "양쪽 연결이 끊겨 대국을 중단했어요." } as const;
 
 /** 같은 방 안에서 추첨·판·결과·재대국을 표시한다. 모든 변경은 서버 응답을 확인한 뒤 반영한다. */
-export function GameRoom({ room, pending, error, reconnectAttempt, connectionLost, onAction, onLeave, onRecover }: {
-  room: WaitingRoom & { game: MatchState }; pending: boolean; error: string; reconnectAttempt: number; connectionLost: boolean;
+export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, connectionLost, onAction, onLeave, onRecover }: {
+  room: WaitingRoom & { game: MatchState }; receivedAt: number; pending: boolean; error: string; reconnectAttempt: number; connectionLost: boolean;
   onAction: (action: GameAction) => void; onLeave: () => void; onRecover: () => void;
 }) {
   const game = room.game;
   const self = room.participants.find(player => player.self)!;
-  const [confirmResign, setConfirmResign] = useState(false);
-  const [resultDismissed, setResultDismissed] = useState(false);
+  // 재대국은 팝업을 유지하고 확인·결과 창의 선택만 해당 대국 식별자에 묶는다.
+  const [resignMatchId, setResignMatchId] = useState<number>();
+  const [dismissedResultId, setDismissedResultId] = useState<number>();
+  const confirmResign = resignMatchId === game.id;
+  const resultDismissed = dismissedResultId === game.id;
+  const popup = useGamePopup(styles.popupDocument);
   // 최신 명령 콜백만 교체하고 판에는 안정적인 함수 참조를 내려 주기 조회 시 전체 셀 렌더링을 막는다.
   const moveActionRef = useRef(onAction);
   useEffect(() => { moveActionRef.current = onAction; }, [onAction]);
@@ -34,8 +40,16 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
   const usedUndo = self.seat === 1 ? game.undoOne : game.undoTwo;
   const requestedRematch = self.seat === 1 ? game.rematchOne : game.rematchTwo;
   const winner = room.participants.find(player => player.seat === game.winnerSeat);
-  return (
-    <section className={styles.gameScene} aria-label="오목 대국">
+  // 퇴장 확인은 방 화면에서 처리하므로 팝업을 먼저 복원해 확인창이 뒤에 숨지 않게 한다.
+  function leaveFromGame() {
+    if (popup.container) popup.close();
+    onLeave();
+  }
+  const scene = (
+    <section className={`${styles.gameScene}${popup.container ? ` ${styles.popupScene}` : ""}`} aria-label="오목 대국">
+      {popup.container && <header className={styles.popupHeading}>
+        <strong><LobbyIcon name="board" />오목</strong><span><i />대국 중</span>
+      </header>}
       <aside className={styles.players} aria-label="대국 참가자">
         {[self, ...room.participants.filter(player => !player.self)].map((player, index) => <div key={player.seat} className={styles.playerSlot}>
           {index === 1 && <div className={styles.versus} aria-hidden="true"><span />VS<span /></div>}
@@ -49,14 +63,15 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
                 {game.blackSeat === 0 ? "흑백 추첨 중" : <><i className={styles.colorStone} data-color={game.blackSeat === player.seat ? "black" : "white"} />{game.blackSeat === player.seat ? "흑돌" : "백돌"} ({player.self ? "나" : "상대"})</>}
               </span></div>
             </div>
-            <PlayerTurnTimer nickname={player.nickname} playing={game.phase === "PLAYING"} active={game.phase === "PLAYING" && game.turnSeat === player.seat}
-              serverTime={room.serverTime} deadline={game.deadline} />
+            {!popup.container && <PlayerTurnTimer nickname={player.nickname} playing={game.phase === "PLAYING"} active={game.phase === "PLAYING" && game.turnSeat === player.seat}
+              serverTime={room.serverTime} deadline={game.deadline} />}
             {!(player.seat === 1 ? game.connectedOne : game.connectedTwo) && <small className={styles.disconnectedPlayer}>재접속 대기 중</small>}
           </article>
         </div>)}
       </aside>
       <div className={styles.playArea}>
       {/* 대국 중에는 방 제목·코드·규칙 문구를 반복하지 않고 참가자 정보와 판에 집중한다. */}
+      {popup.container && game.phase === "PLAYING" && <PopupTurn ownTurn={game.turnSeat === self.seat} serverTime={room.serverTime} deadline={game.deadline} />}
       {(reconnectAttempt > 0 || connectionLost) && <div className={styles.connectionNotice} role="alert">
         <strong>{connectionLost ? "5회 재접속을 마쳤지만 연결하지 못했어요." : `대국 연결을 복구하고 있어요. 재접속 ${reconnectAttempt}/5`}</strong>
         <p>연결 복구 중에도 턴 시간은 계속 흘러요.{connectionLost && " 서버에서 연결 종료 결과를 확인해 주세요."}</p>
@@ -86,14 +101,9 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
             : game.turnSeat === self.seat ? "내 차례예요" : "상대의 차례예요"}</strong>
           {game.phase === "PLAYING" && <ActiveTurnCountdown serverTime={room.serverTime} deadline={game.deadline} />}
         </div>
-        {game.phase === "FINISHED" && <div className={styles.result}>
-          <p>{game.finishReason && reasons[game.finishReason]}</p>
-          <div className={styles.actions}><button className={styles.primaryButton} type="button" disabled={disabled || requestedRematch} onClick={() => onAction({ action: "REMATCH" })}>
-            {requestedRematch ? "상대의 재대국을 기다리고 있어요" : "한 판 더 하기"}</button>
-          <button className={styles.secondaryButton} type="button" onClick={() => setResultDismissed(false)}>결과 보기</button></div>
-          <small>{game.winnerSeat === 0 ? "무승부 다음 판은 다시 제비뽑기를 해요." : "다음 판은 진 사람이 흑돌이에요."}</small>
-        </div>}
-        <GameBoard key={game.id} game={game} selfSeat={self.seat} serverTime={room.serverTime} disabled={disabled} onMove={move} />
+        {/* 종료 안내는 결과 대화상자에서 확인하고 판 위에는 안내·재대국 버튼을 반복하지 않는다. */}
+        <GameBoard key={game.id} game={game} selfSeat={self.seat} serverTime={room.serverTime} receivedAt={receivedAt} disabled={disabled} onMove={move} />
+        {popup.container && game.phase === "PLAYING" && <p className={styles.popupHint}>빈 교차점을 클릭하여 착수하세요</p>}
         {game.phase === "PLAYING" && game.undoSeat > 0 && <div className={styles.undoNotice} role="status">
           <p>{game.undoSeat === self.seat ? "상대에게 무르기를 요청했어요." : "상대가 무르기를 요청했어요."} <small>응답 대기 <CountdownSeconds serverTime={room.serverTime} deadline={game.undoDeadline} maximum={10} />초</small></p>
           {game.undoSeat !== self.seat && <div className={styles.actions}>
@@ -104,25 +114,58 @@ export function GameRoom({ room, pending, error, reconnectAttempt, connectionLos
         </div>}
       </>}
       {error && <p className={styles.error} role="alert">{error}</p>}
-      <footer className={styles.actions}>
+      {/* 종료 후에는 일반 화면·팝업 모두 판 아래에서 재대국 신청·대기와 나가기를 바로 선택한다. */}
+      <footer className={styles.actions} data-finished={game.phase === "FINISHED"}>
+        {game.phase === "FINISHED" && <button type="button" className={styles.primaryButton}
+          disabled={disabled || requestedRematch} onClick={() => onAction({ action: "REMATCH" })}>
+          {requestedRematch ? "상대의 재대국을 기다리고 있어요" : "한 판 더 하기"}
+        </button>}
         {game.phase === "PLAYING" && <>
           <button type="button" className={styles.secondaryButton} disabled={disabled || game.undoSeat !== 0 || usedUndo >= room.undoLimit || !game.moves.some(move => move.seat === self.seat)}
             onClick={() => onAction({ action: "UNDO_REQUEST" })}><LobbyIcon name="undo" />무르기 ({room.undoLimit - usedUndo}/{room.undoLimit})</button>
-          <button type="button" className={styles.secondaryButton} disabled={disabled} onClick={() => setConfirmResign(true)}><LobbyIcon name="flag" />기권하기</button>
+          {!popup.container && <button type="button" className={styles.secondaryButton} disabled={disabled} onClick={() => setResignMatchId(game.id)}><LobbyIcon name="flag" />기권하기</button>}
         </>}
-        <button type="button" className={styles.dangerButton} disabled={pending} onClick={onLeave}><LobbyIcon name="exit" />나가기</button>
+        {popup.container && game.phase !== "FINISHED" ? <>
+          <button type="button" className={styles.secondaryButton} onClick={popup.close}><LobbyIcon name="expand" />원래 화면</button>
+          <details className={styles.popupMenu}>
+            <summary aria-label="대국 메뉴"><span aria-hidden="true">•••</span></summary>
+            <div>
+              {game.phase === "PLAYING" && <button type="button" disabled={disabled} onClick={event => {
+                event.currentTarget.closest("details")?.removeAttribute("open");
+                setResignMatchId(game.id);
+              }}><LobbyIcon name="flag" />기권하기</button>}
+              <button type="button" disabled={pending} onClick={leaveFromGame}><LobbyIcon name="exit" />나가기</button>
+            </div>
+          </details>
+        </> : <button type="button" className={styles.dangerButton} disabled={pending} onClick={leaveFromGame}><LobbyIcon name="exit" />나가기</button>}
       </footer>
       </div>
       {game.phase === "FINISHED" && !resultDismissed && <GameResultDialog
         result={game.winnerSeat === 0 ? "draw" : game.winnerSeat === self.seat ? "victory" : "defeat"}
         reason={game.finishReason ? reasons[game.finishReason] : ""} rematchRequested={requestedRematch} pending={disabled}
-        onDismiss={() => setResultDismissed(true)} onRematch={() => onAction({ action: "REMATCH" })}
-        onLeave={() => { setResultDismissed(true); onLeave(); }} />}
-      {confirmResign && <RoomDialog title="기권할까요?" busy={pending} onClose={() => setConfirmResign(false)}>
+        onDismiss={() => setDismissedResultId(game.id)} onRematch={() => onAction({ action: "REMATCH" })}
+        onLeave={() => { setDismissedResultId(game.id); leaveFromGame(); }} />}
+      {confirmResign && <RoomDialog title="기권할까요?" busy={pending} onClose={() => setResignMatchId(undefined)}>
         <p>기권하면 이번 대국은 패배로 기록돼요.</p><div className={styles.actions}>
-          <button className={styles.secondaryButton} disabled={pending} onClick={() => setConfirmResign(false)}>계속 두기</button>
-          <button className={styles.dangerButton} disabled={disabled} onClick={() => { setConfirmResign(false); onAction({ action: "RESIGN" }); }}>기권하기</button>
+          <button className={styles.secondaryButton} disabled={pending} onClick={() => setResignMatchId(undefined)}>계속 두기</button>
+          <button className={styles.dangerButton} disabled={disabled} onClick={() => { setResignMatchId(undefined); onAction({ action: "RESIGN" }); }}>기권하기</button>
         </div></RoomDialog>}
     </section>
   );
+  return <GameClockProvider serverTime={room.serverTime} receivedAt={receivedAt}><div className={styles.gameContainer}>
+    {popup.container ? <section className={styles.popupPlaceholder} aria-label="팝업 대국 안내">
+      <LobbyIcon name="popup" /><h2>팝업 모드로 대국 중이에요</h2>
+      <p>팝업 창 상단의 최소화 버튼으로 창을 내릴 수 있어요. 이 탭은 열어 두세요.</p>
+      <div className={styles.actions}>
+        <button type="button" className={styles.primaryButton} onClick={popup.focus}>팝업 창 보기</button>
+        <button type="button" className={styles.secondaryButton} onClick={popup.close}>원래 화면으로</button>
+      </div>
+    </section> : popup.supported && <div className={styles.displayActions}>
+      <button type="button" className={styles.secondaryButton} disabled={disabled || game.phase !== "PLAYING"}
+        onClick={popup.open}><LobbyIcon name="popup" />팝업 모드</button>
+    </div>}
+    {popup.error && <p className={styles.error} role="alert">{popup.error}</p>}
+    {/* 같은 React 대국을 이동하므로 원본과 팝업에 착수 가능한 판이 동시에 존재하지 않는다. */}
+    {popup.container ? createPortal(scene, popup.container) : scene}
+  </div></GameClockProvider>;
 }

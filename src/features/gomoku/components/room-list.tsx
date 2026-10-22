@@ -249,7 +249,8 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
         >
           대기 중인 방만 보기
         </button>
-        <label className={styles.roomSearch}>
+        {/* 방 검색 아이콘과 입력을 감싼 프레임 하나에만 얇은 테두리를 표시한다. */}
+        <label data-focus-frame className={styles.roomSearch}>
           <LobbyIcon name="search" />
           <span className={styles.srOnly}>방 제목 또는 초대 코드 검색</span>
           <input
@@ -393,7 +394,8 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
                 <button
                   type="button"
                   className={styles.entryButton}
-                  disabled={room.status !== "WAITING" || room.playerCount === 2 && data.joinedRoom?.id !== room.id}
+                  // 확인창 없는 공개 입장 중에도 다른 방의 중복 입장을 시작하지 않는다.
+                  disabled={joining !== undefined || room.status !== "WAITING" || room.playerCount === 2 && data.joinedRoom?.id !== room.id}
                   onClick={() => setJoining({ roomId: room.id, title: room.title, privateRoom: room.visibility === "PRIVATE" && data.joinedRoom?.id !== room.id })}
                   title={
                     room.owned

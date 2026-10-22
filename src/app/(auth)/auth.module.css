@@ -180,14 +180,12 @@
   border-radius: calc(15 * var(--u));
   background: #ffffffa3;
   box-shadow: inset 0 1px 3px #fff9;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
+  transition: background-color 160ms ease;
 }
 
 .field:focus-within {
-  border-color: #7351ff;
-  box-shadow: 0 0 0 3px #8054ff1f;
+  /* 로그인·회원가입은 공통 1px 테두리와 밝은 배경으로 포커스를 구분한다. */
+  background-color: #ffffffd4;
 }
 
 .fieldIcon {
@@ -313,8 +311,9 @@
 }
 
 .checkboxInput:focus-visible + .checkboxMark {
-  outline: 3px solid #7142f2;
-  outline-offset: 4px;
+  /* 실제 입력이 투명한 체크박스도 표시 영역 가장자리에 같은 1px 테두리를 사용한다. */
+  outline: var(--control-focus-width) solid var(--control-focus-color);
+  outline-offset: var(--control-focus-offset);
 }
 
 .recoveryLink {

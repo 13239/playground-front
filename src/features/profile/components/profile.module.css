@@ -229,8 +229,9 @@
 }
 
 .choiceInput:focus-visible + .choiceCard {
-  outline: 3px solid #7547d8;
-  outline-offset: 3px;
+  /* 숨겨진 라디오 입력은 실제 카드 가장자리에 공통 1px 포커스를 표시한다. */
+  outline: var(--control-focus-width) solid var(--control-focus-color);
+  outline-offset: var(--control-focus-offset);
 }
 
 .choicePortrait {

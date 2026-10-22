@@ -169,10 +169,11 @@ export function RoomChatPanel({ room }: { room: WaitingRoom }) {
               className={styles.message}
               data-own={message.ownMessage}
             >
-              <ProfileAvatar avatarId={message.avatarId} size={44} />
+              {/* 홈 채팅처럼 서버에서 본인으로 확인한 메시지는 아바타를 생략하고 이름을 '나'로 표시한다. */}
+              {!message.ownMessage && <ProfileAvatar avatarId={message.avatarId} size={44} />}
               <div>
                 <div className={styles.messageMeta}>
-                  <strong>{message.nickname}</strong>
+                  <strong>{message.ownMessage ? "나" : message.nickname}</strong>
                   <time dateTime={message.createdAt}>
                     {time.format(new Date(message.createdAt))}
                   </time>
@@ -185,6 +186,7 @@ export function RoomChatPanel({ room }: { room: WaitingRoom }) {
             <li
               key={message.clientMessageId}
               className={`${styles.message} ${styles.pendingMessage}`}
+              data-own="true"
             >
               <div>
                 <div className={styles.messageMeta}>
@@ -246,7 +248,8 @@ export function RoomChatPanel({ room }: { room: WaitingRoom }) {
             ))}
           </div>
         )}
-        <form className={styles.composer} onSubmit={send}>
+        {/* 대기실·대국·팝업에서 같은 채팅 프레임의 1px 테두리를 공유한다. */}
+        <form data-focus-frame className={styles.composer} onSubmit={send}>
           <button
             type="button"
             aria-label="이모지 선택"

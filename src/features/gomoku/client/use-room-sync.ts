@@ -5,6 +5,7 @@ import { AuthRequestError } from "@/features/auth/client/api";
 import { authRetryDelay } from "@/features/auth/client/request-cooldown";
 import type { WaitingRoom } from "../waiting-contracts";
 import { readWaitingRoom, watchRoom } from "./api";
+import { getGameDisplayWindow, getGamePopup, subscribeToGamePopup } from "./game-popup";
 
 const RETRY_DELAYS = [1000, 2000, 4000, 8000, 10_000] as const;
 
@@ -22,10 +23,26 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
     let failures = 0;
     let retryAt = 0;
     let requestedAt = Number.NEGATIVE_INFINITY;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let streamTimer: ReturnType<typeof setTimeout> | undefined;
+    let timer: number | undefined;
+    let timerWindow: Window = window;
+    let timerAt = 0;
+    let streamTimer: number | undefined;
+    let streamWindow: Window = window;
+    let streamAt = 0;
     const stream = new AbortController();
-    const schedule = (delay: number) => { clearTimeout(timer); timer = setTimeout(() => void refresh(), delay); };
+    // 팝업의 열기·닫기는 동기화 훅을 다시 만들지 않는다. 기존 연결과 재접속 예산을 유지한다.
+    const schedule = (delay: number) => {
+      timerWindow.clearTimeout(timer);
+      timerWindow = getGameDisplayWindow();
+      timerAt = Date.now() + delay;
+      timer = timerWindow.setTimeout(() => { timer = undefined; void refresh(); }, delay);
+    };
+    const scheduleStream = (delay: number) => {
+      streamWindow.clearTimeout(streamTimer);
+      streamWindow = getGameDisplayWindow();
+      streamAt = Date.now() + delay;
+      streamTimer = streamWindow.setTimeout(() => { streamTimer = undefined; void listen(); }, delay);
+    };
     const refresh = async () => {
       if (disposed || terminal || stopped.current) return;
       // 데이터 조회·SSE·복귀 이벤트도 같은 429 대기 시간을 지켜 로컬 재시도 루프를 만들지 않는다.
@@ -41,7 +58,8 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
         failures = 0; setAttempt(0); setLost(false); accept(result);
         // SSE가 빠른 변경 알림을 처리하고 조회는 접속·채팅 권한만 유지한다.
         // 숨겨진 페이지는 15초 간격으로 제한하되 포그라운드 복귀는 즉시 확인한다.
-        schedule(document.hidden ? 15_000 : playing ? 10_000 : 5000);
+        // 원본 탭을 숨겨도 팝업이 보이면 활성 대국의 접속 확인 간격을 유지한다.
+        schedule(document.hidden && getGameDisplayWindow().document.hidden ? 15_000 : playing ? 10_000 : 5000);
       } catch (error) {
         if (disposed || stopped.current) return;
         fail(error);
@@ -66,8 +84,8 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
     const listen = async () => {
       // 데이터 연결 복구 중에는 이벤트 연결을 반복해 재접속 예산·인증 잠금을 소모하지 않는다.
       if (disposed || terminal || stopped.current) return;
-      if (Date.now() < retryAt) { streamTimer = setTimeout(() => void listen(), retryAt - Date.now()); return; }
-      if (failures > 0) { streamTimer = setTimeout(() => void listen(), 5000); return; }
+      if (Date.now() < retryAt) { scheduleStream(retryAt - Date.now()); return; }
+      if (failures > 0) { scheduleStream(5000); return; }
       try { await watchRoom(sessionId, roomId, pageId!, stream.signal, () => { if (failures === 0) void refresh(); }); }
       catch (error) {
         // 소유권을 잃은 탭은 SSE 구독을 1초마다 재시도하지 않고 즉시 접속을 종료한다.
@@ -80,19 +98,48 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
         }
         // 나머지 알림 장애 중에도 주기 조회가 판을 복구한다.
       }
-      if (!disposed && !terminal && !stopped.current) streamTimer = setTimeout(() => void listen(), Math.max(1000, retryAt - Date.now()));
+      if (!disposed && !terminal && !stopped.current) scheduleStream(Math.max(1000, retryAt - Date.now()));
     };
     // 짧은 연속 탭 전환은 정상 조회를 중복시키지 않는다. 실제 대국 변경 이벤트의 후속 조회는 유지한다.
     const resume = () => { if (failures === 0 && !fetching && Date.now() - requestedAt >= 1000) void refresh(); };
     const visible = () => { if (!document.hidden) resume(); };
     const online = resume;
+    // 팝업 창의 타이머는 창을 닫으면 사라진다. 닫히기 전에 원본 타이머로 예약을 인계한다.
+    let displayedPopup: Window | null = null;
+    const changeDisplay = (refreshOnOpen: boolean) => {
+      const nextPopup = getGamePopup();
+      if (displayedPopup === nextPopup) return;
+      displayedPopup?.removeEventListener("focus", resume);
+      displayedPopup?.document.removeEventListener("visibilitychange", resume);
+      // 팝업 등록 해제 후 호출되므로 예약이 닫히는 창에 다시 만들어지지 않는다.
+      if (displayedPopup && !disposed && !terminal && !stopped.current) {
+        if (timer !== undefined && timerWindow === displayedPopup) {
+          timerWindow.clearTimeout(timer); timerWindow = window;
+          // 재접속·429 대기 시간도 창 전환으로 앞당기지 않는다.
+          timer = window.setTimeout(() => { timer = undefined; void refresh(); }, Math.max(0, timerAt - Date.now(), retryAt - Date.now()));
+        }
+        if (streamTimer !== undefined && streamWindow === displayedPopup) {
+          streamWindow.clearTimeout(streamTimer); streamWindow = window;
+          streamTimer = window.setTimeout(() => { streamTimer = undefined; void listen(); }, Math.max(0, streamAt - Date.now(), retryAt - Date.now()));
+        }
+      }
+      displayedPopup = nextPopup;
+      displayedPopup?.addEventListener("focus", resume);
+      displayedPopup?.document.addEventListener("visibilitychange", resume);
+      if (displayedPopup && refreshOnOpen) resume();
+    };
+    const unsubscribePopup = subscribeToGamePopup(() => changeDisplay(true));
+    changeDisplay(false);
     document.addEventListener("visibilitychange", visible);
     window.addEventListener("online", online);
     void refresh();
     // 최초 신원 확인 조회는 구독을 만들지 않고 OPEN 이후 현재 탭만 SSE에 연결한다.
     if (playing && pageId) void listen();
     return () => {
-      disposed = true; stream.abort(); clearTimeout(timer); clearTimeout(streamTimer);
+      disposed = true; stream.abort(); timerWindow.clearTimeout(timer); streamWindow.clearTimeout(streamTimer);
+      unsubscribePopup();
+      displayedPopup?.removeEventListener("focus", resume);
+      displayedPopup?.document.removeEventListener("visibilitychange", resume);
       document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", online);
     };
   }, [sessionId, roomId, pageId, playing, busy, stopped, accept, fail, epoch]);

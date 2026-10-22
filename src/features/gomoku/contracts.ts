@@ -59,7 +59,8 @@ export const requestIdPattern =
 // 참가 ID는 서버 발급값이다. 기존 MySQL UUID(v1)와 신규 Java UUID(v4)를 조회·입장·퇴장에서 동일하게 허용한다.
 export const membershipIdPattern =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
-export const inviteCodePattern = /^[A-HJ-NP-Z2-9]{6}$/;
+// 생성 시 혼동 문자를 피하는 규칙과 입력 검증을 구분한다. 입력·서버 응답에는 0·1·I·O도 허용한다.
+export const inviteCodePattern = /^[A-Z0-9]{6}$/;
 export const ruleLabel = (rule: ForbiddenRule) =>
   rule === "NONE" ? "금수 없음" : "금수 적용";
 

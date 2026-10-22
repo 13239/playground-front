@@ -32,7 +32,9 @@ export function SiteHeader({
         </span>
         <span>Playground</span>
       </Link>
+      {/* 검색 아이콘을 포함한 전체 입력 영역에 공통 1px 포커스 테두리를 표시한다. */}
       <form
+        data-focus-frame
         className={styles.search}
         role="search"
         onSubmit={(event) => {

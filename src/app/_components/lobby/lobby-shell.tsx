@@ -117,7 +117,13 @@ export function LobbyShell({ account }: { account: ReactNode }) {
       <a className={styles.skipLink} href="#game-catalog">
         게임 목록으로 건너뛰기
       </a>
-      <SiteHeader account={account} query={query} onQueryChange={setQuery} onSearch={browseGames} onNotice={setNotice} />
+      <SiteHeader
+        account={account}
+        query={query}
+        onQueryChange={setQuery}
+        onSearch={browseGames}
+        onNotice={setNotice}
+      />
       <div className={styles.layout}>
         <main className={styles.main}>
           <HeroBanner onBrowse={browseGames} />
@@ -170,9 +176,6 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                 {catalogTitle}
                 <span>{games.length}</span>
               </h2>
-              <span className={styles.catalogHint}>
-                가볍게 한 판, 즐거움은 가득
-              </span>
             </div>
             <div className={styles.srOnly} role="status" aria-atomic="true">
               {categoryLabel} 카테고리, {games.length}개의 게임
@@ -181,8 +184,17 @@ export function LobbyShell({ account }: { account: ReactNode }) {
             {games.length > 0 ? (
               <div className={styles.gameGrid}>
                 {games.map((game) => (
-                  <article className={styles.gameCard} key={game.id}>
-                    <Link className={styles.gameCardButton} href="/games/gomoku" aria-label={`${game.title} 방 목록 보기`}>
+                  // 새 게임 카드도 공통 호버·키보드 포커스 테두리를 그대로 사용한다.
+                  <article
+                    data-hover-frame
+                    className={styles.gameCard}
+                    key={game.id}
+                  >
+                    <Link
+                      className={styles.gameCardButton}
+                      href="/games/gomoku"
+                      aria-label={`${game.title} 방 목록 보기`}
+                    >
                       <div className={styles.gameCover}>
                         <GomokuCover />
                         <span className={styles.comingSoon}>방 둘러보기</span>
@@ -239,7 +251,10 @@ export function LobbyShell({ account }: { account: ReactNode }) {
         className={styles.mobileChatToggle}
         type="button"
         aria-label="실시간 채팅 열기"
-        onClick={() => { mobileChatRef.current?.showModal(); setMobileChatOpen(true); }}
+        onClick={() => {
+          mobileChatRef.current?.showModal();
+          setMobileChatOpen(true);
+        }}
       >
         <LobbyIcon name="chat" />
         <span>채팅</span>
@@ -250,7 +265,10 @@ export function LobbyShell({ account }: { account: ReactNode }) {
         aria-label="실시간 채팅"
         onClose={() => setMobileChatOpen(false)}
       >
-        <ChatPanel active={mobileChatOpen} onClose={() => mobileChatRef.current?.close()} />
+        <ChatPanel
+          active={mobileChatOpen}
+          onClose={() => mobileChatRef.current?.close()}
+        />
       </dialog>
       {notice && (
         <NoticeDialog notice={notice} onClose={() => setNotice(undefined)} />

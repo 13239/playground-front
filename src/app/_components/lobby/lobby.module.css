@@ -39,10 +39,9 @@
 .screen button {
   font: inherit;
 }
+/* 입력 요소는 전역 포커스 정책을 사용하고 탐색 요소의 키보드 포커스는 유지한다. */
 .screen button:focus-visible,
 .screen a:focus-visible,
-.screen input:focus-visible,
-.screen select:focus-visible,
 .screen summary:focus-visible {
   outline: 3px solid #8051f6;
   outline-offset: 4px;
@@ -135,23 +134,19 @@
   height: 1.35em;
 }
 .search:focus-within {
-  border-color: #a68af9;
+  /* 공통 프레임의 얇은 테두리와 함께 검색창 배경을 밝게 표시한다. */
   background: #ffffffd4;
 }
 .search input {
   min-width: 0;
   width: 100%;
   border: 0;
-  outline: 0;
   background: transparent;
   color: var(--ink);
   font-size: 0.9em;
 }
 .search input::placeholder {
   color: #939ac6;
-}
-.search input:focus-visible {
-  outline: none;
 }
 .iconButton {
   display: inline-grid;
@@ -329,6 +324,8 @@
   grid-template-columns: minmax(0, 1fr) clamp(285px, 21vw, 420px);
   align-items: start;
   gap: var(--gap);
+  /* 빈 게임 안내와 채팅 패널 모두 푸터 위에 같은 여백을 확보한다. */
+  padding-bottom: 0.9em;
 }
 .main {
   min-width: 0;
@@ -612,12 +609,9 @@
   color: inherit;
   text-align: left;
 }
-.gameCard:focus-within {
-  outline: 3px solid #8051f6;
-  outline-offset: 4px;
-}
-.gameCardButton:focus-visible {
-  outline: none !important;
+/* 카드 전체가 공통 1px 테두리를 표시하므로 내부 링크에는 테두리를 중복하지 않는다. */
+.screen .gameCardButton:focus-visible {
+  outline: none;
 }
 .gameCover {
   position: relative;
@@ -837,7 +831,7 @@
   height: 1.2em;
 }
 /* 게임 목록과 채팅에 공통인 푸터의 구분선을 콘텐츠 전체 폭으로 연결한다. */
-/* 데스크톱 채팅은 푸터와 살짝 띄우고, 모바일 푸터의 위쪽 여백은 해당 미디어 쿼리에서 유지한다. */
+/* 데스크톱의 푸터 간격은 본문 공통 여백으로 맞추고, 모바일의 위쪽 여백은 해당 미디어 쿼리에서 유지한다. */
 .footer {
   display: flex;
   align-items: center;
@@ -869,7 +863,6 @@
   display: flex;
   align-self: stretch;
   min-height: 35em;
-  margin-bottom: 0.9em;
 }
 .chatPanel {
   display: flex;
@@ -1131,9 +1124,6 @@
 .chatComposer input::placeholder {
   color: #a0a6cb;
 }
-.screen .chatComposer input:focus-visible {
-  outline: none;
-}
 .chatComposer > button {
   display: grid;
   flex: 0 0 auto;
@@ -1289,6 +1279,8 @@
 @media (max-width: 1149px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
+    /* 채팅이 별도 창으로 바뀌는 화면은 기존 모바일 푸터 여백을 사용한다. */
+    padding-bottom: 0;
   }
   .desktopChat {
     display: none;

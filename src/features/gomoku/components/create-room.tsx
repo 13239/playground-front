@@ -136,7 +136,8 @@ function AuthenticatedCreateRoom({ sessionId }: { sessionId: string }) {
               </span>
             </label>
             <div className={styles.field}>
-              <div className={styles.titleInput}>
+              {/* 글자 수 표시까지 포함한 방 이름 입력 영역의 테두리를 함께 강조한다. */}
+              <div data-focus-frame className={styles.titleInput}>
                 <input
                   id="room-title"
                   name="title"

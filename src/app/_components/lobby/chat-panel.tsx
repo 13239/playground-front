@@ -353,7 +353,9 @@ export function ChatPanel({
         <p id={statusId} role="status">
           {composerError || status}
         </p>
+        {/* 채팅 입력은 아이콘·전송 버튼을 감싼 테두리 하나만 강조한다. */}
         <form
+          data-focus-frame
           className={styles.chatComposer}
           aria-describedby={statusId}
           onSubmit={send}

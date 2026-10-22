@@ -275,7 +275,7 @@
   margin-top: 1rem;
 }
 
-.connectionNotice, .undoNotice, .result {
+.connectionNotice, .undoNotice {
   padding: 1rem;
   margin: 1rem 0;
   border-radius: .9rem;
@@ -283,23 +283,14 @@
   line-height: 1.6;
 }
 
-.connectionNotice p, .undoNotice p, .result p {
+.connectionNotice p, .undoNotice p {
   margin: 0 0 .6rem;
 }
 
-.undoNotice small, .result small {
+.undoNotice small {
   display: block;
   color: #76634b;
   font-size: .8rem;
-}
-
-.result {
-  background: #e9f3ee;
-}
-
-.result small {
-  margin-top: .6rem;
-  color: #4d6c5b;
 }
 
 .error {
@@ -609,6 +600,20 @@
   flex: 1 1 auto;
 }
 
+/* 종료 후 긴 재대국 대기 문구도 모바일·작은 팝업 안에서 줄바꿈하고 나가기와 같은 행에 배치한다. */
+.playArea > .actions[data-finished="true"] {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(5.5rem, 1fr);
+  align-items: stretch;
+}
+
+.playArea > .actions[data-finished="true"] > button {
+  min-width: 0;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .gameLayout > aside {
   height: min(1000px, calc(100svh - 9rem));
   min-height: 520px;
@@ -910,3 +915,144 @@
     scroll-behavior: auto;
   }
 }
+
+/* 팝업은 데스크톱 기기에서만 열며, 작은 창의 너비는 모바일 기기 판정에 사용하지 않는다. */
+.gameContainer { min-width: 0; }
+
+.displayActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: .75rem;
+}
+
+.displayActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 42px;
+}
+
+.popupPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 32rem;
+  padding: 2rem;
+  border: 1px solid #e4d8ff;
+  border-radius: 1.5rem;
+  background: #ffffffc9;
+  color: #51406c;
+  text-align: center;
+}
+
+.popupPlaceholder > svg {
+  width: 4rem;
+  height: 4rem;
+  color: #8553fa;
+}
+
+.popupPlaceholder h2 {
+  margin: 1.2rem 0 .5rem;
+  color: #231b4b;
+  font-size: clamp(1.2rem, 2vw, 1.7rem);
+}
+
+.popupPlaceholder p { margin: 0; line-height: 1.7; }
+.popupPlaceholder .actions { justify-content: center; }
+
+/* 원래 페이지의 CSS·로컬 폰트를 공유하고 브라우저가 허용하는 창 크기 안에서 판을 정사각형으로 유지한다. */
+.popupDocument {
+  margin: 0;
+  background: #f5f1ff;
+  color: #231b4b;
+}
+
+.gameScene.popupScene {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .65rem;
+  width: 100%;
+  padding: .8rem;
+  font-size: .875rem;
+}
+
+.popupHeading, .popupHeading > strong, .popupHeading > span {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.popupHeading { justify-content: space-between; }
+.popupHeading > strong { font-size: 1.1rem; color: #231b4b; }
+.popupHeading svg { width: 1.2rem; height: 1.2rem; }
+.popupHeading > span { font-size: .75rem; color: #625b7a; }
+.popupHeading i { width: .5rem; height: .5rem; border-radius: 50%; background: #00a875; }
+
+.popupScene .players {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .6rem;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.popupScene .player { height: 100%; padding: .55rem; gap: .35rem; border-radius: .8rem; }
+.popupScene .playerBadge, .popupScene .versus { display: none; }
+.popupScene .playerIdentity { gap: .45rem; flex-wrap: nowrap; }
+.popupScene .playerIdentity > div:last-child { gap: .2rem; }
+.popupScene .playerIdentity strong { font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.popupScene .avatarWrap > :first-child { width: 36px; }
+.popupScene .onlineDot { width: 10px; height: 10px; border-width: 2px; }
+.popupScene .playerColor { font-size: .65rem; gap: .25rem; }
+.popupScene .colorStone { width: .85rem; }
+.popupScene .disconnectedPlayer { font-size: .65rem; }
+.popupScene .playArea { min-width: 0; }
+
+.popupTurn { margin: 0 0 .65rem; color: #7140cf; }
+.popupTurn > div { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.popupClock { font-size: 1.3rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+.popupTurn[data-urgent="true"] .popupClock { color: #b3384d; }
+.popupTurn progress { display: block; width: 100%; height: 5px; margin-top: .4rem; border: 0; border-radius: 1rem; overflow: hidden; appearance: none; }
+.popupTurn progress::-webkit-progress-bar { background: #e1d9f7; }
+.popupTurn progress::-webkit-progress-value { background: #8553fa; border-radius: 1rem; }
+.popupTurn progress::-moz-progress-bar { background: #8553fa; }
+
+.popupScene .boardSection { width: min(100%, max(220px, calc(100dvh - 275px))); margin-inline: auto; }
+.popupScene .boardFrame { padding: .3rem; }
+.popupScene .boardInner { grid-template-columns: 1rem minmax(0, 1fr) 1rem; }
+.popupScene .columnLabels { padding: .3rem 1rem; }
+.popupScene .columnLabels, .popupScene .rowLabels { font-size: .55rem; }
+.popupScene .boardScroll { border-radius: .8rem; }
+.popupHint { margin: .35rem 0 0; text-align: center; font-size: .65rem; color: #75658d; }
+.popupScene .actions { flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
+.popupScene .actions > button { min-width: 0; min-height: 38px; padding: .45rem .6rem; font-size: .75rem; border-radius: .6rem; }
+.popupScene .actions > button svg { width: 1rem; height: 1rem; }
+.popupScene .connectionNotice, .popupScene .undoNotice, .popupScene .error { margin-block: .6rem; padding: .7rem; font-size: .8rem; }
+.popupScene .lottery { min-height: 20rem; padding: 1rem 0; }
+.popupScene .lottery h2 { font-size: 1.2rem; }
+.popupScene .cards { gap: .6rem; }
+.popupScene .drawCard { min-height: 10rem; padding: 1rem .5rem; }
+
+/* 진행 중 기권·퇴장은 메뉴로 모아 착수·복귀와 구분하고 종료 후에는 하단에 나가기를 바로 표시한다. 기존 확인 대화상자는 유지한다. */
+.popupMenu { position: relative; flex: 0 0 auto; }
+.popupMenu summary { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #d9d0e9; border-radius: .6rem; background: #fff; cursor: pointer; list-style: none; }
+.popupMenu summary::-webkit-details-marker { display: none; }
+.popupMenu > div { position: absolute; right: 0; bottom: calc(100% + .4rem); z-index: 5; width: 9rem; padding: .3rem; border: 1px solid #e4d8ff; border-radius: .65rem; background: #fff; box-shadow: 0 5px 20px #231b4b22; }
+.popupMenu button { display: flex; align-items: center; gap: .5rem; width: 100%; min-height: 40px; padding: .5rem; border: 0; border-radius: .4rem; background: #fff; color: #a02e45; font: inherit; }
+.popupMenu button:hover:not(:disabled) { background: #fff3f5; }
+.popupMenu button:disabled { opacity: .5; }
+.popupMenu button svg { width: 1rem; height: 1rem; }
+.popupMenu summary:focus-visible, .popupMenu button:focus-visible { outline: 3px solid #8553fa; outline-offset: 2px; }
+
+/* 같은 문서 안의 dialog가 팝업의 작은 뷰포트에 맞게 스크롤되며 기본 포커스 보호를 유지한다. */
+.popupDocument dialog { max-width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); overflow: auto; }
+.popupDocument .resultDialog { padding: 1rem; }
+.popupDocument .resultMascot { max-height: 25dvh; object-fit: contain; margin-block: .5rem; }
+.popupDocument .resultDialog h2 { font-size: 2.2rem; }
+.popupDocument .resultDialog p { font-size: .85rem; }
+.popupDocument .resultActions { margin-top: 1rem; }
+.popupDocument .resultActions button { min-height: 42px; font-size: .8rem; }

@@ -1,0 +1,57 @@
+/* 오목 화면의 흰색·라벤더 색상을 공유하고 단일 메시지를 화면 상단 중앙의 작은 토스트로 표시한다. */
+.toast {
+  position: fixed;
+  top: max(1.25rem, env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: .7em;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  padding: .85em 1.15em;
+  border: 1px solid #e5d9ff;
+  border-radius: 1rem;
+  background: linear-gradient(115deg, #fff, #f8f4ff);
+  color: #30215d;
+  box-shadow: 0 8px 30px #39246a24, 0 2px 8px #8454c412;
+  font: inherit;
+  font-size: clamp(14px, .9vw, 20px);
+  transform: translateX(-50%);
+  animation: appear .18s ease-out both;
+  /* 알림 위를 클릭하더라도 검색·입력 등 원래 화면의 조작을 가로막지 않는다. */
+  pointer-events: none;
+}
+
+.symbol {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2em;
+  height: 2em;
+  border-radius: .7em;
+  background: #eee5ff;
+  color: #8b41f7;
+}
+
+.symbol > svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.toast > p {
+  min-width: 0;
+  margin: 0;
+  font-weight: 750;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+@keyframes appear {
+  from { opacity: 0; transform: translate(-50%, -.4rem); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
