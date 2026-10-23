@@ -11,6 +11,7 @@ import {
   useAuthSession,
 } from "@/features/auth/client/session-store";
 import { createRoom, newRoomRequestId } from "../client/api";
+import { GameEntryGate } from "@/features/games/components/game-entry-gate";
 import {
   defaultRoomDraft,
   ruleLabel,
@@ -28,10 +29,12 @@ export function CreateRoom() {
     <div className={styles.createPage}>
       <RoomHero create />
       {auth.status === "authenticated" ? (
+        <GameEntryGate key={auth.session.sessionId} game="GOMOKU" mode="ONLINE" sessionId={auth.session.sessionId}>
         <AuthenticatedCreateRoom
           key={auth.session.sessionId}
           sessionId={auth.session.sessionId}
         />
+        </GameEntryGate>
       ) : (
         <div className={styles.empty} role="status">
           <h2>로그인 상태 확인 중</h2>

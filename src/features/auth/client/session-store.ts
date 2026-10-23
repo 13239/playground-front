@@ -6,10 +6,11 @@ import { AuthRequestError, getSession } from "./api";
 import { clearProofNonces } from "./browser-proof";
 import { readAuthRevision, subscribeAuthChanges } from "./session-events";
 import { authRetryDelay } from "./request-cooldown";
+import { accessNoticeEvent, clearAccessNotice, readAccessNotice } from "./access-notice";
 
 type SessionState = Readonly<
   | { status: "checking" }
-  | { status: "anonymous" }
+  | { status: "anonymous"; message?: string }
   | { status: "authenticated"; session: CurrentSession; verificationError?: string }
   | { status: "error"; message: string }
 >;
@@ -88,12 +89,13 @@ async function drainChecks(): Promise<void> {
     nextCheckAt = lastVerifiedAt + checkInterval;
     retryNotBefore = 0;
     failures = 0;
+    clearAccessNotice();
     update({ status: "authenticated", session });
   } catch (error) {
     if (current !== revision) return;
     if (error instanceof AuthRequestError && error.status === 401) {
       clearProofNonces();
-      update({ status: "anonymous" });
+      update({ status: "anonymous", message: readAccessNotice() });
       nextCheckAt = Date.now() + checkInterval;
       retryNotBefore = 0;
       failures = 0;
@@ -116,6 +118,14 @@ async function drainChecks(): Promise<void> {
 }
 
 function observe(): () => void {
+  const onRestricted = () => {
+    // 뒤늦은 진행 중 조회 응답으로 제한된 계정 표시가 다시 살아나지 않게 한다.
+    revision++;
+    queued = false;
+    clearProofNonces();
+    update({ status: "anonymous", message: readAccessNotice() });
+  };
+  window.addEventListener(accessNoticeEvent, onRestricted);
   let observedRevision = readAuthRevision();
   const unsubscribe = subscribeAuthChanges(() => {
     observedRevision = readAuthRevision();
@@ -143,6 +153,7 @@ function observe(): () => void {
   document.addEventListener("visibilitychange", onVisibility);
   return () => {
     unsubscribe();
+    window.removeEventListener(accessNoticeEvent, onRestricted);
     window.removeEventListener("focus", onResume);
     window.removeEventListener("pageshow", onPageShow);
     window.removeEventListener("pagehide", onSuspend);

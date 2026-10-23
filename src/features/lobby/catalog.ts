@@ -1,4 +1,7 @@
+import type { CatalogGame, CatalogGenre } from "@/features/games/contracts";
+
 /** 공개 로비의 표시용 계약이다. 게임 실행·접속자 수는 실제 서비스가 연결된 뒤 별도 API로 제공한다. */
+// 게임 정보와 장르는 DB API에서 읽고 이 파일은 표시 방식과 파생 배지만 관리한다.
 export type GameCategoryId =
   | "all"
   | "popular"
@@ -7,12 +10,9 @@ export type GameCategoryId =
   | "3d"
   | "multiplayer"
   | "singleplayer"
-  | "puzzle"
-  | "racing"
-  | "action"
-  | "board"
-  | "simulation"
-  | "casual";
+  | "twoplayer"
+  | "group"
+  | `genre:${string}`;
 
 export const gameCategories = [
   { id: "all", label: "전체", icon: "grid", color: "purple" },
@@ -22,12 +22,8 @@ export const gameCategories = [
   { id: "3d", label: "3D 게임", icon: "cube", color: "cyan" },
   { id: "multiplayer", label: "멀티플레이", icon: "users", color: "purple" },
   { id: "singleplayer", label: "싱글플레이", icon: "user", color: "green" },
-  { id: "puzzle", label: "퍼즐", icon: "puzzle", color: "blue" },
-  { id: "racing", label: "레이싱", icon: "car", color: "purple" },
-  { id: "action", label: "액션", icon: "swords", color: "red" },
-  { id: "board", label: "보드", icon: "board", color: "blue" },
-  { id: "simulation", label: "시뮬레이션", icon: "city", color: "blue" },
-  { id: "casual", label: "캐주얼", icon: "gamepad", color: "purple" },
+  { id: "twoplayer", label: "2인 플레이", icon: "users", color: "purple" },
+  { id: "group", label: "3인 이상", icon: "users", color: "blue" },
 ] as const satisfies readonly {
   id: GameCategoryId;
   label: string;
@@ -36,14 +32,25 @@ export const gameCategories = [
 }[];
 
 /** 오목 한 개로 시작하며 이후 게임도 같은 카드 계약을 사용한다. 출시 전 수치나 순위는 표시하지 않는다. */
-export const lobbyGames = [
-  {
-    id: "gomoku",
-    title: "오목",
-    description: "한 수 한 수, 함께 즐기는 두뇌 대결",
-    categories: ["2d", "board", "multiplayer", "casual"],
-    tags: ["2D", "보드", "멀티"],
-  },
-] as const;
+export type LobbyGame = Readonly<{
+  id: string; title: string; description: string; tags: readonly string[]; thumbnailKey: string;
+  availability: CatalogGame["availability"]; available: boolean; unavailableMessage: string;
+}>;
 
-export type LobbyGame = (typeof lobbyGames)[number];
+export function lobbyGame(game: CatalogGame): LobbyGame {
+  const modes = game.modes.filter(mode => mode.published && mode.supported);
+  const graphics = [...new Set(modes.map(mode => mode.graphicsType === "TWO_D" ? "2D" : "3D"))];
+  const playerTags = [...new Set(modes.map(mode => mode.maxHumanPlayers === 1 ? "1인" : mode.minHumanPlayers === mode.maxHumanPlayers
+    ? `${mode.maxHumanPlayers}인` : `${mode.minHumanPlayers}~${mode.maxHumanPlayers}인`))];
+  return { id: game.code, title: game.name, description: game.summary, thumbnailKey: game.thumbnailKey,
+    availability: game.availability, available: game.availability === "AVAILABLE" && modes.some(mode => mode.availability === "AVAILABLE"),
+    unavailableMessage: game.unavailableMessage,
+    tags: [...graphics, ...game.genres.map(genre => genre.name), ...playerTags] };
+}
+
+/** 익숙한 장르만 기존 아이콘을 사용하며 새 장르도 DB 이름과 공통 아이콘으로 바로 표시한다. */
+type GenreIcon = "puzzle" | "car" | "swords" | "board" | "city" | "gamepad";
+export function genreCategory(genre: CatalogGenre): { id: GameCategoryId; label: string; icon: GenreIcon; color: string } {
+  const icons: Readonly<Record<string, GenreIcon>> = { PUZZLE: "puzzle", RACING: "car", ACTION: "swords", BOARD: "board", SIMULATION: "city", CASUAL: "gamepad" };
+  return { id: `genre:${genre.code}`, label: genre.name, icon: icons[genre.code] ?? "gamepad", color: "blue" };
+}

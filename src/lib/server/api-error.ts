@@ -1,6 +1,7 @@
 import "server-only";
 
 import { unstable_rethrow } from "next/navigation";
+import { parseOperationalNotice } from "@/lib/operational-notice";
 
 // 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
 const errors = {
@@ -33,6 +34,12 @@ const errors = {
   GAME_POSITION_OCCUPIED: [409, "이미 돌이 놓인 위치입니다."],
   GAME_FORBIDDEN_MOVE: [409, "흑돌의 3·3, 4·4, 장목 금수에는 착수할 수 없습니다."],
   GAME_UNDO_UNAVAILABLE: [409, "현재 무르기를 요청하거나 응답할 수 없습니다."],
+  // 게임 점검과 숨김은 계정 인증 실패로 처리하지 않는다.
+  CATALOG_GAME_NOT_FOUND: [404, "이용할 수 있는 게임을 찾을 수 없습니다."],
+  CATALOG_MODE_NOT_FOUND: [404, "이용할 수 있는 게임 모드를 찾을 수 없습니다."],
+  GAME_IMPLEMENTATION_UNAVAILABLE: [409, "현재 지원하지 않는 게임 구현 또는 모드입니다."],
+  GAME_CATALOG_UNAVAILABLE: [503, "게임 목록을 일시적으로 확인할 수 없습니다."],
+  GAME_UNAVAILABLE: [409, "현재 이 게임을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요."],
   // 채팅 연결 실패·재접속 제한은 로그인 실패나 계정 잠금으로 처리하지 않는다.
   CHAT_TICKET_RATE_LIMIT_EXCEEDED: [429, "채팅 접속 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   CHAT_SERVICE_UNAVAILABLE: [503, "채팅 서비스를 일시적으로 이용할 수 없습니다."],
@@ -41,6 +48,9 @@ const errors = {
   SIGN_UP_SERVICE_UNAVAILABLE: [503, "회원가입 서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해 주세요."],
   USER_NOT_FOUND: [404, "사용자를 찾을 수 없습니다."],
   INVALID_CREDENTIALS: [401, "아이디 또는 비밀번호가 올바르지 않습니다."],
+  // 접속 제한과 게임 점검 코드에만 검증된 관리자 안내를 허용하며 내부 예외 메시지의 허용 목록은 유지한다.
+  ACCESS_RESTRICTED: [401, "서버 점검 중입니다. 잠시 후 다시 로그인해 주세요."],
+  ACCESS_POLICY_UNAVAILABLE: [503, "접속 설정을 반영하고 있습니다. 잠시 후 다시 시도해 주세요."],
   INVALID_REFRESH_TOKEN: [401, "로그인이 만료되었습니다. 다시 로그인해 주세요."],
   // 서버에서 해당 세션을 폐기했음을 전달하며 지연 응답으로 다른 요청의 새 쿠키를 삭제하지 않는다.
   REFRESH_TOKEN_REUSED: [401, "인증 정보 재사용이 감지되어 로그인 세션을 종료했습니다. 다시 로그인해 주세요."],
@@ -71,6 +81,8 @@ const errors = {
 } as const;
 
 type ErrorDetails = Readonly<{
+  accessNotice?: string;
+  gameNotice?: string;
   fieldErrors?: Readonly<Record<string, string>>;
   retryAfterSeconds?: number;
 }>;
@@ -84,7 +96,8 @@ export class ApiError extends Error {
 
   constructor(code: keyof typeof errors, details: ErrorDetails = {}) {
     const [status, message] = errors[code];
-    super(message);
+    super(code === "ACCESS_RESTRICTED" ? parseOperationalNotice(details.accessNotice) ?? message
+      : code === "GAME_UNAVAILABLE" ? parseOperationalNotice(details.gameNotice) ?? message : message);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
@@ -121,6 +134,8 @@ export function parseBackendError(
       const fieldErrors = code === "VALIDATION_FAILED" ? parseFieldErrors(fields) : undefined;
       const seconds = retryAfter && /^\d{1,5}$/.test(retryAfter) ? Number(retryAfter) : undefined;
       return new ApiError(code, {
+        accessNotice: code === "ACCESS_RESTRICTED" && "detail" in body ? parseOperationalNotice(body.detail) : undefined,
+        gameNotice: code === "GAME_UNAVAILABLE" && "detail" in body ? parseOperationalNotice(body.detail) : undefined,
         fieldErrors,
         retryAfterSeconds: status === 429 && seconds && seconds <= 86_400 ? seconds : undefined,
       });

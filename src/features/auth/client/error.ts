@@ -1,3 +1,5 @@
+import { rememberAccessNotice } from "./access-notice";
+
 /** BFF가 공개한 오류만 화면에 표시하고 네트워크 장애에는 고정 안내를 제공한다. */
 export class AuthRequestError extends Error {
   readonly status: number;
@@ -34,6 +36,8 @@ export async function requireSuccess(response: Response): Promise<Response> {
       retryAfterSeconds = Math.max(retryAfterSeconds ?? 0, seconds);
     }
     const code = "code" in problem && typeof problem.code === "string" && /^[A-Z_]{1,64}$/.test(problem.code) ? problem.code : undefined;
+    // 제한으로 끝난 세션의 안내는 페이지 이동 후에도 보존하며 토큰 갱신을 재시도하지 않는다.
+    if (code === "ACCESS_RESTRICTED" && response.status === 401) rememberAccessNotice(problem.detail);
     const fieldErrors: Record<string, string> = {};
     if (code === "VALIDATION_FAILED" && "errors" in problem && typeof problem.errors === "object" && problem.errors !== null && !Array.isArray(problem.errors)) {
       for (const [field, message] of Object.entries(problem.errors).slice(0, 20)) {

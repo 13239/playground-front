@@ -13,6 +13,8 @@ export function GuestFormGate({ children }: { children: (ready: boolean) => Reac
 
   return (
     <>
+      {/* 긴 운영 안내도 기존 반응형 문구 스타일로 표시하며 HTML로 해석하지 않는다. */}
+      {state.status === "anonymous" && state.message && <p role="status" className={styles.formStatus}>{state.message}</p>}
       {state.status !== "anonymous" && (
         <div aria-busy={state.status === "checking"}>
           <p role="status" className={styles.formStatus}>{state.status === "error" ? state.message : "로그인 상태를 확인하고 있어요…"}</p>

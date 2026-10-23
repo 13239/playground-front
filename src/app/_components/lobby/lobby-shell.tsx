@@ -4,11 +4,14 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   gameCategories,
-  lobbyGames,
+  genreCategory,
+  lobbyGame,
   type GameCategoryId,
   type LobbyGame,
 } from "@/features/lobby/catalog";
 import { showModalWithoutCloseFocus } from "@/lib/client/show-modal";
+import { useGameCatalog, useGameGenres } from "@/features/games/client/use-game-catalog";
+import { gameHref } from "@/features/games/implementations";
 import { ChatPanel } from "./chat-panel";
 import { SiteHeader } from "./site-header";
 import { GomokuCover } from "./gomoku-cover";
@@ -80,17 +83,13 @@ export function LobbyShell({ account }: { account: ReactNode }) {
   const gamesRef = useRef<HTMLElement>(null);
   const mobileChatRef = useRef<HTMLDialogElement>(null);
   const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
-  const games = lobbyGames.filter((game) => {
-    const matchesCategory =
-      category === "all" || game.categories.some((value) => value === category);
-    const searchText =
-      `${game.title} ${game.description} ${game.tags.join(" ")}`.toLocaleLowerCase(
-        "ko-KR",
-      );
-    return matchesCategory && searchText.includes(normalizedQuery);
-  });
+  // 조건은 서버의 같은 모드 EXISTS 검색에 전달하고 정적 게임 목록을 중복 유지하지 않는다.
+  const catalog = useGameCatalog(category, query);
+  const genres = useGameGenres();
+  const categories = [...gameCategories, ...genres.items.map(genreCategory)];
+  const games = catalog.items.map(lobbyGame);
   const categoryLabel =
-    gameCategories.find((value) => value.id === category)?.label ?? "전체";
+    categories.find((value) => value.id === category)?.label ?? "전체";
   const catalogTitle = normalizedQuery
     ? "검색 결과"
     : category === "all"
@@ -132,7 +131,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
           <HeroBanner onBrowse={browseGames} />
           <section className={styles.categories} aria-label="게임 카테고리">
             <div ref={categoryListRef} className={styles.categoryList}>
-              {gameCategories.map((item) => (
+              {categories.map((item) => (
                 <button
                   key={item.id}
                   type="button"
@@ -148,6 +147,9 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                   <span>{item.label}</span>
                 </button>
               ))}
+              {genres.hasMore && <button type="button" className={styles.category} disabled={genres.pending} onClick={() => void genres.loadMore()}>
+                <span className={`${styles.categoryIcon} ${styles.purple}`}><LobbyIcon name="plus" /></span><span>장르 더 보기</span>
+              </button>}
             </div>
             <button
               className={styles.categoryNext}
@@ -167,24 +169,26 @@ export function LobbyShell({ account }: { account: ReactNode }) {
               <LobbyIcon name="chevron" />
             </button>
           </section>
+          {genres.error && <p className={styles.catalogStatus} role="status">{genres.error} <button type="button" onClick={genres.retry}>다시 확인</button></p>}
           <section
             id="game-catalog"
             ref={gamesRef}
             className={styles.catalog}
             tabIndex={-1}
             aria-labelledby="catalog-title"
+            aria-busy={catalog.loading}
           >
             <div className={styles.catalogHeading}>
               <h2 id="catalog-title">
                 {catalogTitle}
-                <span>{games.length}</span>
+                <span>{catalog.loading ? "…" : `${games.length}${catalog.hasMore ? "+" : ""}`}</span>
               </h2>
             </div>
             <div className={styles.srOnly} role="status" aria-atomic="true">
               {categoryLabel} 카테고리, {games.length}개의 게임
               {normalizedQuery && `, 검색어 ${query}`}
             </div>
-            {games.length > 0 ? (
+            {catalog.loading ? <div className={styles.emptyResults} role="status"><p>게임 목록을 불러오고 있어요…</p></div> : games.length > 0 ? (
               <div className={styles.gameGrid}>
                 {games.map((game) => (
                   // 새 게임 카드도 공통 호버·키보드 포커스 테두리를 그대로 사용한다.
@@ -195,12 +199,15 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                   >
                     <Link
                       className={styles.gameCardButton}
-                      href="/games/gomoku"
-                      aria-label={`${game.title} 방 목록 보기`}
+                      // 경로는 배포된 프론트 등록 목록에서만 결정한다. 아직 연결되지 않은 구현은 이동하지 않는다.
+                      href={gameHref(game.id) ?? "/"}
+                      aria-disabled={!gameHref(game.id)}
+                      onClick={event => { if (!gameHref(game.id)) event.preventDefault(); }}
+                      aria-label={`${game.title} 게임 보기`}
                     >
                       <div className={styles.gameCover}>
-                        <GomokuCover />
-                        <span className={styles.comingSoon}>방 둘러보기</span>
+                        {game.thumbnailKey === "GOMOKU" ? <GomokuCover /> : <div className={styles.genericCover}><LobbyIcon name="gamepad" /></div>}
+                        <span className={styles.comingSoon}>{!gameHref(game.id) ? "준비 중" : game.available ? "게임 보기" : "이용 안내"}</span>
                         <span className={styles.gameHover}>
                           <LobbyIcon name="arrow" />
                         </span>
@@ -209,7 +216,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                         <h3>{game.title}</h3>
                         <p>
                           <LobbyIcon name="users" />
-                          함께 즐기는 한 수의 승부
+                          {game.description}
                         </p>
                         <div className={styles.gameTags}>
                           {game.tags.map((tag) => (
@@ -227,17 +234,21 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                   <LobbyIcon name="search" />
                 </span>
                 <h3>
-                  {normalizedQuery
+                  {catalog.error ? "게임 목록을 확인하지 못했어요" : normalizedQuery
                     ? "찾으시는 게임이 아직 없어요"
                     : "새로운 게임을 준비하고 있어요"}
                 </h3>
-                <p>다른 카테고리를 둘러보거나 검색어를 바꿔보세요.</p>
-                <button type="button" onClick={resetFilters}>
-                  전체 게임 보기
+                <p>{catalog.error ?? "다른 카테고리를 둘러보거나 검색어를 바꿔보세요."}</p>
+                <button type="button" onClick={catalog.error ? catalog.retry : resetFilters}>
+                  {catalog.error ? "다시 확인" : "전체 게임 보기"}
                   <LobbyIcon name="arrow" />
                 </button>
               </div>
             )}
+            {!catalog.loading && games.length > 0 && catalog.error && <p className={styles.catalogStatus} role="status">{catalog.error}</p>}
+            {!catalog.loading && catalog.hasMore && <button type="button" className={styles.loadMoreGames} disabled={catalog.morePending} onClick={() => void catalog.loadMore()}>
+              {catalog.morePending ? "불러오는 중…" : "게임 더 보기"}
+            </button>}
           </section>
         </main>
         <aside className={styles.desktopChat}>

@@ -5,6 +5,7 @@ import { isDevHttpAuth } from "./environment";
 import { withDevAuthLock } from "./dev-auth-lock";
 import { notifyAuthChanged } from "./session-events";
 import { isSessionId } from "../session-id";
+import { clearAccessNotice } from "./access-notice";
 export { AuthRequestError } from "./error";
 
 /** BFF가 공개한 오류만 화면에 표시하고 네트워크 장애에는 고정 안내를 제공한다. */
@@ -16,7 +17,9 @@ export { AuthRequestError } from "./error";
 type FeaturePath = "/api/auth/profile" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close"
   | "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/leave" | "/api/chat/tickets"
   // 대국 명령·이벤트 연결도 기존 잠금과 경로별 요청 증명을 재사용한다.
-  | "/api/gomoku/rooms/game" | "/api/gomoku/rooms/game/events" | "/api/gomoku/rooms/lifecycle";
+  | "/api/gomoku/rooms/game" | "/api/gomoku/rooms/game/events" | "/api/gomoku/rooms/lifecycle"
+  // 공통 게임 시작도 별도 토큰 없이 기존 잠금·갱신·브라우저 키로 확인한다.
+  | `/api/games/${string}/modes/${string}/admission`;
 type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | FeaturePath;
 
 async function authRequest(path: AuthPath, input?: LoginInput | SessionMutationInput, signal?: AbortSignal): Promise<Response> {
@@ -61,6 +64,8 @@ export async function login(input: LoginInput): Promise<void> {
     try { await readSession(); return; }
     catch (error) { if (!(error instanceof AuthRequestError && error.status === 401 && !requiresRefresh(error))) throw error; }
     await authMutation("/api/auth/login", input);
+    // 새 인증 성공은 이전에 종료된 세션의 운영 안내를 해제한다.
+    clearAccessNotice();
     clearProofNonces();
     notifyAuthChanged();
   });

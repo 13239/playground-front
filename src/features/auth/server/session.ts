@@ -18,7 +18,8 @@ export async function getCurrentSession(proof: BrowserRequestProof): Promise<Cur
     if (error instanceof ApiError && error.code === "INVALID_ACCESS_TOKEN") {
       throw new ApiError("SESSION_REFRESH_REQUIRED");
     }
-    if (error instanceof ApiError && error.status === 401) return null;
+    // 운영 안내는 익명 상태로 축약하지 않고 로그인 화면까지 고유 오류와 문구를 전달한다.
+    if (error instanceof ApiError && error.status === 401 && error.code !== "ACCESS_RESTRICTED") return null;
     // Redis 장애·시간 초과를 로그아웃으로 오인하지 않도록 호출자에게 구분해 전달한다.
     throw error;
   }
