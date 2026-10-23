@@ -119,6 +119,8 @@ export function LobbyShell({ account }: { account: ReactNode }) {
       </a>
       <SiteHeader
         account={account}
+        // 검색은 홈의 게임 목록에서만 제공한다.
+        showSearch
         query={query}
         onQueryChange={setQuery}
         onSearch={browseGames}

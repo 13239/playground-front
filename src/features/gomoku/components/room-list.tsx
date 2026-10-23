@@ -20,10 +20,11 @@ import {
 import { HostedRoomDialog } from "./room-dialog";
 import { InviteRoomEntry, JoinRoomDialog, type JoinTarget } from "./join-room";
 import { RoomHero } from "./room-artwork";
+import { AiDifficultyDialog } from "./ai-difficulty-dialog";
 import styles from "./gomoku.module.css";
 
-/** 초대 코드 입장은 실제 서버에 연결하고 준비 중인 AI 대전은 비활성 상태로 유지한다. */
-function RoomSidebar() {
+/** 초대 코드 입장은 실제 서버에 연결하고 AI 대전은 난이도 선택 후 로컬 대국으로 시작한다. */
+function RoomSidebar({ onAi }: { onAi: () => void }) {
   return (
     <aside className={styles.sidebar} aria-label="오목 시작과 규칙">
       <section className={`${styles.panel} ${styles.startCard}`}>
@@ -44,11 +45,10 @@ function RoomSidebar() {
         <button
           className={styles.secondaryButton}
           type="button"
-          disabled
-          title="AI 대전을 준비하고 있어요"
+          onClick={onAi}
         >
           <LobbyIcon name="robot" />
-          혼자서(AI 대전) <small>준비 중</small>
+          혼자서(AI 대전)
         </button>
         <Link className={styles.primaryButton} href="/games/gomoku/create">
           <LobbyIcon name="plus" />방 만들기
@@ -111,20 +111,20 @@ function RoomSidebar() {
 /** 인증 상태가 바뀌면 이전 계정의 목록·본인 방 코드를 즉시 화면에서 분리한다. */
 export function RoomList() {
   const auth = useAuthSession();
+  const [choosingAi, setChoosingAi] = useState(false);
   return (
     <div className={styles.listLayout}>
       <div className={styles.listMain}>
         <RoomHero />
-        {/* 작은 화면에도 동일한 AI 대전 아이콘과 준비 상태를 표시한다. */}
+        {/* 작은 화면에도 동일한 AI 대전 아이콘과 난이도 선택 팝업을 제공한다. */}
         <div className={styles.mobileActions}>
           <button
             type="button"
             className={styles.secondaryButton}
-            disabled
-            title="AI 대전을 준비하고 있어요"
+            onClick={() => setChoosingAi(true)}
           >
             <LobbyIcon name="robot" />
-            혼자서(AI 대전) <small>준비 중</small>
+            혼자서(AI 대전)
           </button>
           <Link className={styles.primaryButton} href="/games/gomoku/create">
             <LobbyIcon name="plus" />방 만들기
@@ -154,7 +154,8 @@ export function RoomList() {
           </div>
         )}
       </div>
-      <RoomSidebar />
+      <RoomSidebar onAi={() => setChoosingAi(true)} />
+      {choosingAi && <AiDifficultyDialog onClose={() => setChoosingAi(false)} />}
     </div>
   );
 }

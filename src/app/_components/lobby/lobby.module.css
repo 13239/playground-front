@@ -85,6 +85,11 @@
   gap: clamp(16px, 2vw, 48px);
   min-height: 5.3em;
 }
+/* 검색이 없는 게임 화면은 브랜드·알림·계정만 배치해 빈 검색 열이나 모바일의 두 번째 행을 만들지 않는다. */
+.header[data-search="false"] { grid-template-columns: minmax(0, 1fr) auto auto; }
+.header[data-search="false"] .brand { grid-column: 1; grid-row: 1; }
+.header[data-search="false"] .notifications { grid-column: 2; grid-row: 1; }
+.header[data-search="false"] .accountSlot { grid-column: 3; grid-row: 1; }
 .brand {
   display: inline-flex;
   align-items: center;

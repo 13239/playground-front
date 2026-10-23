@@ -344,7 +344,7 @@ function AuthenticatedWaitingRoom({
             : ["함께 대국을 준비해요", "준비가 되면 준비하기를 눌러주세요."];
 
   return (
-    <div className={room.game ? gameStyles.gameLayout : styles.waitingPage}>
+    <div className={room.game ? gameStyles.gameLayout : styles.waitingPage} data-gomoku-game={room.game ? "multiplayer" : undefined}>
       {/* 같은 방의 재대국에서도 대국 컨트롤러를 유지해 열린 팝업와 기존 연결을 재사용한다. */}
       {room.game ? <GameRoom room={{ ...room, game: room.game }} receivedAt={snapshot.receivedAt} pending={pending !== null || !pageId} error={error}
         reconnectAttempt={sync.attempt} connectionLost={sync.lost} onAction={action => void gameAction(action)}

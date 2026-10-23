@@ -4,9 +4,12 @@ import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent, type Mo
 import type { MatchState } from "../game-contracts";
 import styles from "./game-room.module.css";
 
+// 사람 대전의 서버 계약과 AI 대전의 로컬 상태가 판에 필요한 필드만 공유한다.
+type BoardState = Pick<MatchState, "id" | "phase" | "blackSeat" | "turnSeat" | "turnNumber" | "deadline" | "moves">;
+
 /** 마우스는 미리보기 후 클릭, 터치는 같은 교차점을 두 번 눌러 착수한다. 키보드는 방향키·Enter/Space를 사용한다. */
-export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, receivedAt, disabled, onMove }: {
-  game: MatchState; selfSeat: number; serverTime: string; receivedAt: number; disabled: boolean; onMove: (x: number, y: number) => void;
+export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, receivedAt = 0, disabled, onMove }: {
+  game: BoardState; selfSeat: number; serverTime?: string; receivedAt?: number; disabled: boolean; onMove: (x: number, y: number) => void;
 }) {
   const [selection, setSelection] = useState<{ gameId: number; turn: number; point: number; input: "mouse" | "touch" | "keyboard" } | null>(null);
   // 턴·대국이 바뀌면 선택만 무효화한다. 키보드 위치는 매 수마다 초기화하지 않는다.
@@ -18,7 +21,8 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
   const [expiredDeadline, setExpiredDeadline] = useState<string | null>(null);
   useEffect(() => {
     // 매초 상위 화면을 다시 그리지 않고 서버 턴 마감 시에만 판의 착수 입력을 비활성화한다.
-    if (game.phase !== "PLAYING" || !game.deadline) return;
+    // 시간 제한이 없는 AI 대국에는 서버 시각이나 만료 타이머를 만들지 않는다.
+    if (game.phase !== "PLAYING" || !game.deadline || !serverTime) return;
     const deadline = game.deadline;
     // 창 전환 후에도 마지막 서버 응답부터 경과한 시간을 차감해 만료된 차례를 다시 열지 않는다.
     const elapsed = performance.now() - receivedAt;
@@ -43,7 +47,7 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
     ownerDocument.addEventListener("visibilitychange", visible);
     return () => { ownerWindow.removeEventListener("blur", clear); ownerDocument.removeEventListener("visibilitychange", visible); };
   }, []);
-  const expired = game.deadline !== null && (expiredDeadline === game.deadline || Date.parse(serverTime) >= Date.parse(game.deadline));
+  const expired = game.deadline !== null && (expiredDeadline === game.deadline || serverTime !== undefined && Date.parse(serverTime) >= Date.parse(game.deadline));
   const last = game.moves.at(-1);
   const canMove = !disabled && !expired && game.phase === "PLAYING" && game.turnSeat === selfSeat;
   const selected = canMove && selection?.gameId === game.id && selection.turn === game.turnNumber && !board.has(selection.point)

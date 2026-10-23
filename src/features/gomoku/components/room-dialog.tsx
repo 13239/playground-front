@@ -17,12 +17,15 @@ export function RoomDialog({
   onClose,
   busy = false,
   showClose = true,
+  className,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   busy?: boolean;
   showClose?: boolean;
+  // 새 팝업이 공통 동작을 유지하면서 자신에게 필요한 반응형 배치만 보완할 수 있다.
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -32,7 +35,7 @@ export function RoomDialog({
   return (
     <dialog
       ref={ref}
-      className={styles.dialog}
+      className={[styles.dialog, className].filter(Boolean).join(" ")}
       aria-labelledby={titleId}
       aria-busy={busy}
       onClose={onClose}

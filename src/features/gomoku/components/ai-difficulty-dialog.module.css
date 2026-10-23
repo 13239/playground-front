@@ -1,0 +1,40 @@
+/* 기존 RoomDialog와 같은 색상·간격을 사용하고 선택 카드만 이 컴포넌트에 격리한다. */
+.options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1em; min-width: 0; margin: 1.55em 0 0; padding: 0; border: 0; }
+.option { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .95em; min-width: 0; min-height: 174px; padding: 1.7em 1em 1.5em; border: 1px solid #dbdef7; border-radius: 1em; background: #fff; cursor: pointer; touch-action: manipulation; }
+.option[data-selected="true"] { border-color: var(--control-focus-color); background: #f3eaff; }
+/* 네이티브 라디오와 카드가 중복 포커스 테두리를 만들지 않게 공통 프레임을 사용한다. */
+.option input { position: absolute; top: 15px; right: 15px; width: 17px; height: 17px; min-height: 0; padding: 0; margin: 0; accent-color: #7a2efa; outline: none; }
+.symbol { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 19px; background: #f1eaff; color: #8651df; }
+.option .symbol svg { width: 35px; height: 35px; }
+.option[data-selected="true"] .symbol[data-difficulty="normal"] { color: #7a2efa; background: #e9dcff; }
+.symbol[data-difficulty="hard"] { color: #e6943e; background: #fff2db; }
+.name { color: #30205f; font-size: 1.1em; font-weight: 750; }
+.options:disabled .option { cursor: wait; opacity: .7; }
+/* 규칙은 설명을 이름 아래에 읽을 수 있도록 가로형 카드를 세로로 쌓는다. */
+.ruleOptions { grid-template-columns: minmax(0, 1fr); }
+.ruleOptions .ruleOption { flex-direction: row; justify-content: flex-start; min-height: 100px; gap: 1em; padding: 1.2em 2.8em 1.2em 1.2em; }
+.ruleOption .symbol { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 15px; }
+.ruleOption .symbol svg { width: 28px; height: 28px; }
+.ruleContent { display: flex; flex-direction: column; gap: .5em; min-width: 0; }
+/* 명시한 문장 줄바꿈은 유지하고 좁은 화면에서는 문장 안에서도 자연스럽게 줄을 바꾼다. */
+.description { color: #79708f; font-size: .82em; line-height: 1.75; white-space: pre-line; word-break: keep-all; overflow-wrap: anywhere; }
+/* 두 선택지를 모바일에서도 나란히 유지하고 터치 영역을 넉넉하게 확보한다. */
+@media (max-width: 480px) {
+  .dialog { padding: 22px; }
+  .dialog > div:first-child { gap: 10px; }
+  .dialog > div:first-child h2 { font-size: 20px; }
+  .dialog > div:first-child button { width: 44px; height: 44px; }
+  .actions { gap: 12px; }
+  .actions button { flex: 1; padding-inline: 12px; font-size: 15px; white-space: nowrap; }
+  .options { gap: 12px; margin-top: 22px; }
+  .option { min-height: 156px; gap: 12px; padding: 26px 12px 19px; }
+  .symbol { width: 52px; height: 52px; border-radius: 16px; }
+  .option .symbol svg { width: 31px; height: 31px; }
+  .option input { top: 12px; right: 12px; }
+  /* 좁은 화면에서는 설명이 아이콘 옆의 작은 열에 갇히지 않고 카드 너비를 사용한다. */
+  .ruleOptions .ruleOption { display: grid; grid-template-columns: auto minmax(0, 1fr); padding: 18px; gap: 12px; }
+  .ruleOption .ruleContent { display: contents; }
+  .ruleOption .name { align-self: center; padding-right: 20px; }
+  .ruleOption .description { grid-column: 1 / -1; }
+}
+@media (max-width: 370px) { .dialog > div:first-child h2 { font-size: 18px; } }

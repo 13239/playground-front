@@ -10,12 +10,14 @@ import styles from "./lobby.module.css";
 /** 홈과 게임 화면이 같은 탐색·계정 경계를 사용한다. 홈 검색의 상태와 스크롤 동작도 그대로 전달한다. */
 export function SiteHeader({
   account,
+  showSearch = false,
   query,
   onQueryChange,
   onSearch,
   onNotice,
 }: {
   account: ReactNode;
+  showSearch?: boolean;
   query?: string;
   onQueryChange?: (value: string) => void;
   onSearch?: () => void;
@@ -25,15 +27,15 @@ export function SiteHeader({
   const [localQuery, setLocalQuery] = useState("");
   const search = query ?? localQuery;
   return (
-    <header className={styles.header}>
+    <header className={styles.header} data-search={showSearch}>
       <Link href="/" className={styles.brand} aria-label="Playground 홈">
         <span className={styles.brandMark}>
           <LobbyIcon name="gamepad" />
         </span>
         <span>Playground</span>
       </Link>
-      {/* 검색 아이콘을 포함한 전체 입력 영역에 공통 1px 포커스 테두리를 표시한다. */}
-      <form
+      {/* 홈에서만 검색을 렌더링하고, 검색 아이콘을 포함한 전체 입력 영역에 공통 1px 포커스 테두리를 표시한다. */}
+      {showSearch && <form
         data-focus-frame
         className={styles.search}
         role="search"
@@ -65,7 +67,7 @@ export function SiteHeader({
               : setLocalQuery(event.target.value)
           }
         />
-      </form>
+      </form>}
       <DismissibleDetails className={styles.notifications}>
         <summary className={styles.iconButton} aria-label="알림">
           <LobbyIcon name="bell" />

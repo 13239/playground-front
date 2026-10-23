@@ -975,6 +975,24 @@
   margin-left: auto;
   font-size: inherit;
 }
+/* 데스크톱 대국은 실제 표시 높이를 헤더·본문·푸터로 나눈다. 본문 컨테이너의 cqh로 판 크기를 계산한다.
+   목록·대기실·작은 터치 화면은 기존 문서 흐름을 유지하고 확대·키보드 탐색을 제한하지 않는다. */
+@media (min-width: 1101px) and (min-height: 600px) {
+  .screen:has([data-gomoku-game]) {
+    height: 100dvh;
+    min-height: 100dvh;
+    font-size: clamp(14px, .88vw, 18px);
+  }
+  .screen:has([data-gomoku-game]) > header,
+  .screen:has([data-gomoku-game]) > .footer { flex: 0 0 auto; }
+  .screen:has([data-gomoku-game]) > .main {
+    flex: 1 1 0%;
+    min-height: 0;
+    padding-block: .25em .5em;
+    container-type: size;
+  }
+  .screen:has([data-gomoku-game]) > .footer { padding-block: .8em; }
+}
 .dialog {
   position: fixed;
   inset: 0;

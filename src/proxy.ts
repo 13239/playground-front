@@ -15,6 +15,8 @@ export function proxy(request: NextRequest) {
     // next/image의 위치·크기 스타일 속성만 허용한다. 스크립트의 inline 실행은 별도로 금지한다.
     "style-src-attr 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self'", "object-src 'none'",
     "base-uri 'none'", "form-action 'self'", "frame-ancestors 'none'",
+    // AI 탐색 워커는 번들된 같은 출처 파일만 실행하며 blob·외부 워커는 허용하지 않는다.
+    "worker-src 'self'",
     `connect-src 'self' ${socketSources}`,
     ...(https && !development ? ["upgrade-insecure-requests"] : []),
   ].join("; ");

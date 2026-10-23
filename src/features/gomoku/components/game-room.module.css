@@ -919,6 +919,58 @@
 /* 팝업은 데스크톱 기기에서만 열며, 작은 창의 너비는 모바일 기기 판정에 사용하지 않는다. */
 .gameContainer { min-width: 0; }
 
+/* 가용 높이는 오목 셸이 계산한다. 상단 전환 버튼·하단 대국 동작을 먼저 확보하고 나머지를 판에 할당한다. */
+@media (min-width: 1101px) and (min-height: 600px) {
+  .gameLayout[data-gomoku-game] {
+    width: min(100%, 2400px);
+    height: 100%;
+    min-height: 0;
+    margin-inline: auto;
+    grid-template-columns: minmax(0, 1fr) clamp(260px, 22vw, 380px);
+    gap: clamp(.75rem, 1vw, 1.25rem);
+    padding: .5rem;
+    align-items: stretch;
+  }
+  .gameLayout .gameContainer { display: flex; flex-direction: column; min-height: 0; }
+  .gameLayout .displayActions { flex: 0 0 auto; }
+  .gameLayout .gameScene {
+    flex: 1 1 0%;
+    min-height: 0;
+    grid-template-columns: clamp(180px, 18vw, 280px) minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .gameLayout .playArea { display: flex; flex-direction: column; min-height: 0; }
+  .gameLayout > aside { height: 100%; min-height: 0; max-height: 100%; }
+  .gameLayout .players { min-height: 0; padding: clamp(.5rem, 1cqh, 1.2rem); overflow-y: auto; }
+  .gameLayout .player { padding: clamp(.5rem, 1cqh, 1rem) .65rem; gap: clamp(.4rem, .8cqh, 1rem); }
+  .gameLayout .playerIdentity { flex-wrap: nowrap; }
+  .gameLayout .playerIdentity strong { font-size: clamp(.95rem, 1vw, 1.2rem); }
+  .gameLayout .avatarWrap > :first-child { width: clamp(40px, 8cqh, 88px); }
+  .gameLayout .playerTimer { padding: .5rem; }
+  .gameLayout .playerTimer strong { font-size: clamp(1.5rem, 4cqh, 2.5rem); }
+  .gameLayout .versus { margin-block: clamp(.6rem, 1.3cqh, 1.25rem); font-size: 1.15rem; }
+  .gameLayout .playArea > .actions { flex: 0 0 auto; width: min(100%, 36rem); margin-inline: auto; }
+  .gameLayout .lottery { flex: 1 1 0%; min-height: 0; padding: 1rem 0; overflow-y: auto; }
+  .gameLayout .drawCard { width: min(42%, 200px, 18cqh); gap: clamp(.4rem, 1cqh, 1rem); }
+  .gameLayout .cardSymbol { font-size: clamp(1.8rem, 5cqh, 3rem); }
+
+  /* 두 대국이 같은 좌표판을 공유한다. 좌표 글자·위아래 패딩과 좌우 좌표 폭의 차이까지 빼서 실제 높이가 넘치지 않는다. */
+  [data-gomoku-game] .boardSection {
+    --board-label-size: clamp(.5rem, 1.2cqh, .75rem);
+    flex: 1 1 0%;
+    min-height: 0;
+    /* 판의 최대 크기에 도달한 뒤에는 동작 버튼과 판 사이에 빈 높이를 늘리지 않는다. */
+    max-height: 1170px;
+    container-type: size;
+  }
+  [data-gomoku-game] .boardScroll {
+    width: min(100cqw, calc(100cqh - var(--board-label-size) * 3 + 1.1rem), 1150px);
+    margin-inline: auto;
+  }
+  [data-gomoku-game] .columnLabels,
+  [data-gomoku-game] .rowLabels { font-size: var(--board-label-size); line-height: 1.5; }
+}
+
 .displayActions {
   display: flex;
   justify-content: flex-end;
