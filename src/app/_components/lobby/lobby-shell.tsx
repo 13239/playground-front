@@ -255,8 +255,18 @@ export function LobbyShell({ account }: { account: ReactNode }) {
         type="button"
         aria-label="실시간 채팅 열기"
         onClick={() => {
-          showModalWithoutCloseFocus(mobileChatRef.current);
+          const dialog = mobileChatRef.current;
+          showModalWithoutCloseFocus(dialog);
           setMobileChatOpen(true);
+          if (!dialog) return;
+          const focusSurface = () => {
+            const view = dialog.ownerDocument.defaultView;
+            if (!dialog.isConnected || !view?.matchMedia("(hover: none) and (pointer: coarse)").matches) return;
+            if (!dialog.hasAttribute("tabindex")) dialog.tabIndex = -1;
+            dialog.focus({ preventScroll: true });
+          };
+          focusSurface();
+          dialog.ownerDocument.defaultView?.requestAnimationFrame(focusSurface);
         }}
       >
         <LobbyIcon name="chat" />

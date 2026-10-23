@@ -47,7 +47,8 @@
   outline-offset: 4px;
 }
 @media (hover: none) and (pointer: coarse) {
-  .screen button[aria-label$="닫기"]:is(:focus, :focus-visible) {
+  .screen button[aria-label$="닫기"]:is(:focus, :focus-visible),
+  .screen .onlineCountButton:is(:focus, :focus-visible) {
     outline: none;
   }
 }
