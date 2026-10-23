@@ -1,16 +1,15 @@
-/* 기존 대국판·참가자·결과 디자인을 공유하고 혼자 하는 대국의 두 열 배치만 추가한다. */
+/* 기존 대국판·참가자·결과 디자인을 공유하고 좌우에 같은 공간을 확보해 AI 판을 화면 중앙에 배치한다. */
 .page { width: min(100%, 1700px); margin-inline: auto; padding: clamp(12px, 1.5vw, 32px); color: #30205f; }
 .heading, .heading > div, .heading button, .difficulty { display: flex; align-items: center; gap: .6em; }
-.heading { display: grid; grid-template-columns: clamp(220px, 19vw, 330px) minmax(0, 1fr) auto; gap: clamp(16px, 1.5vw, 32px); margin-bottom: 1.2em; }
+.heading { justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 1.2em; }
 .heading > div { flex-wrap: wrap; }
-/* 제목·차례·화면 버튼을 한 행에 두어 아래 판과 참가자 패널이 같은 높이에서 시작하게 한다. */
-.heading > .status { min-width: 0; margin: 0; }
+/* 제목과 화면 버튼만 상단에 두고 차례 안내는 판과 같은 중앙 열에서 표시한다. */
 .heading h1 { display: inline-flex; align-items: center; gap: .45em; margin: 0; font-size: clamp(1.2rem, 1.6vw, 2rem); font-weight: 850; }
 .heading h1 svg { color: #e6943e; }
 .difficulty { padding: .45em .8em; border-radius: .7em; color: #7047c7; background: #f1eaff; font-size: .8em; font-weight: 750; }
 .ruleBadge { color: #79708f; font-size: .8em; font-weight: 650; }
 .heading .displayActions { gap: .6rem; }
-.scene { display: grid; grid-template-columns: clamp(220px, 19vw, 330px) minmax(0, 1fr); align-items: start; gap: clamp(16px, 1.5vw, 32px); }
+.scene { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(0, 1150px) minmax(180px, 1fr); align-items: start; gap: clamp(16px, 1.5vw, 32px); }
 .players { gap: 1rem; }
 .avatar { display: grid; place-items: center; flex: 0 0 auto; width: clamp(50px, 5vw, 88px); aspect-ratio: 1; border-radius: 1.2rem; background: #f1eaff; color: #8051d1; }
 .avatar[data-ai="true"] { color: #e6943e; background: #fff2db; }
@@ -18,18 +17,20 @@
 .rules { margin: .3rem .5rem 0; color: #79739e; font-size: .8em; line-height: 1.9; }
 /* 채팅이 없는 AI 화면에서는 데스크톱의 가용 높이에 맞춰 판과 아래 동작을 함께 볼 수 있게 한다. */
 .playArea { min-width: 0; width: 100%; max-width: clamp(320px, calc(100svh - 18rem), 1150px); justify-self: center; }
-.status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .7rem; min-height: 46px; margin-bottom: .7rem; padding: .6rem; border-radius: .9rem; background: #ffffffb0; color: #7047c7; font-size: .9em; }
+/* 긴 AI 계산 안내도 줄바꿈하며 차례 배경은 판 너비보다 짧게 가운데에 표시한다. */
+.status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .7rem; width: fit-content; max-width: calc(100% - 2rem); min-height: 46px; margin: 0 auto .7rem; padding: .6rem 1.2rem; border-radius: .9rem; background: #ffffffb0; color: #7047c7; font-size: .9em; text-align: center; overflow-wrap: anywhere; }
 .thinking { display: inline-flex; align-items: center; gap: 4px; }
 .thinking i { width: 5px; height: 5px; border-radius: 50%; background: #a78bfa; animation: pulse 1.2s ease-in-out infinite; }
 .thinking i:nth-child(2) { animation-delay: .15s; }
 .thinking i:nth-child(3) { animation-delay: .3s; }
-.actions { gap: .7rem; }
-.actions button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
+/* 모바일은 판 폭에 맞추고 PC는 두 버튼이 과도하게 늘어나지 않도록 최대 너비를 제한한다. */
+.playArea > .actions { width: min(100%, 22rem); margin-inline: auto; gap: .7rem; }
+.actions > button { display: inline-flex; align-items: center; justify-content: center; flex: 1 1 0; min-width: 0; gap: .5rem; white-space: normal; overflow-wrap: anywhere; }
 .failure { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .8rem; margin-top: 1rem; padding: 1rem; border-radius: .9rem; background: #fff2db; font-size: .85em; }
 .forbidden { margin: .7rem 0 0; padding: .7rem .9rem; border-radius: .7rem; background: #fff2db; color: #855018; font-size: .8em; line-height: 1.7; }
 @keyframes pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
 /* 태블릿·모바일은 참가자를 가로로 배치하고 판이 화면 너비를 모두 사용한다. */
-@media (max-width: 800px) {
+@media (max-width: 1100px) {
   .scene { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .playArea { max-width: 720px; }
   /* 공통 참가자 패널의 flex 배치보다 우선해 두 카드와 규칙 안내가 세 칸으로 찌그러지지 않게 한다. */
@@ -37,9 +38,9 @@
   .rules { grid-column: 1 / -1; text-align: center; font-size: 12px; }
   .rules br { display: none; }
   .avatar { width: 42px; border-radius: 12px; }
-  .heading { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; margin-bottom: 14px; }
-  .heading > .status { grid-column: 1 / -1; grid-row: 2; }
-  .heading .displayActions { grid-column: 2; grid-row: 1; justify-content: flex-end; }
+  .heading { margin-bottom: 14px; }
+  .heading .displayActions { margin-left: auto; justify-content: flex-end; }
+  .playArea > .actions { width: 100%; }
 }
 @media (max-width: 420px) {
   .page { padding: 8px 0; }
@@ -48,10 +49,8 @@
   .avatar { width: 34px; }
   .players article > div { gap: 7px; }
   .status { font-size: 13px; }
-  /* 아주 좁은 화면은 제목과 버튼을 순서대로 쌓아 긴 차례 문구도 잘리지 않게 한다. */
-  .heading { grid-template-columns: minmax(0, 1fr); }
-  .heading .displayActions { grid-column: 1; grid-row: 2; justify-content: flex-start; }
-  .heading > .status { grid-row: 3; }
+  /* 아주 좁은 화면은 제목·화면 버튼이 필요할 때만 줄바꿈하고 차례 문구는 판 위에서 줄바꿈한다. */
+  .heading { column-gap: 8px; }
 }
 /* 헤더·푸터를 제외한 셸의 본문 높이를 사용한다. 제목과 차례를 고정하고 판·동작은 남은 높이를 나눠 쓴다. */
 @media (min-width: 1101px) and (min-height: 600px) {
@@ -59,11 +58,21 @@
   .page[data-gomoku-game="ai"] .heading { flex: 0 0 auto; }
   .page[data-gomoku-game="ai"] .scene { flex: 1 1 0%; min-height: 0; align-items: stretch; }
   .page[data-gomoku-game="ai"] .scene .players { align-self: start; max-height: 100%; padding: clamp(.5rem, 1cqh, 1.2rem); overflow-y: auto; }
-  .page[data-gomoku-game="ai"] .playArea { display: flex; flex-direction: column; min-height: 0; max-width: none; }
+  .page[data-gomoku-game="ai"] .playArea { display: flex; flex-direction: column; min-height: 0; max-width: none; container-type: inline-size; }
+  .page[data-gomoku-game="ai"] .status { flex: 0 0 auto; }
+  /* 공통 좌표판의 높이 계산을 너비 상한에도 적용해 큰 화면에서 판과 버튼 사이에 빈 높이가 남지 않게 한다. */
+  .page[data-gomoku-game="ai"] .boardSection { max-height: min(1170px, calc(100cqw + var(--board-label-size) * 3 - 1.1rem)); }
   .page[data-gomoku-game="ai"] .avatar { width: clamp(40px, 8cqh, 80px); }
   .page[data-gomoku-game="ai"] .playArea > .actions { flex: 0 0 auto; justify-content: center; }
   .page[data-gomoku-game="ai"] .failure,
   .page[data-gomoku-game="ai"] .forbidden { flex: 0 0 auto; }
+}
+/* 높이가 낮은 PC 창에서는 작아진 판 안에 재대국·나가기와 진행 중 동작을 함께 담는다. */
+@media (min-width: 1101px) and (min-height: 600px) and (max-height: 700px) {
+  .page[data-gomoku-game="ai"] .playArea > .actions { width: min(100%, 16rem); }
+  /* 오류·금수 안내가 더해지면 판을 지나치게 줄이지 않고 대국 영역 안에서 스크롤한다. 양쪽 여백은 대칭으로 유지한다. */
+  .page[data-gomoku-game="ai"] .scene:has(.failure, .forbidden) { overflow-y: auto; scrollbar-gutter: stable both-edges; }
+  .page[data-gomoku-game="ai"] .playArea:has(.failure, .forbidden) { height: 36rem; }
 }
 /* 사람 대전과 같은 팝업 스타일을 공유하되 AI의 상태·아바타는 작은 창 높이에 맞춘다. */
 .popupPage { width: 100%; padding: .8rem; font-size: .875rem; }

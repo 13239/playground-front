@@ -44,13 +44,12 @@ function AiGame({ difficulty, rule }: { difficulty: AiDifficulty; rule: AiRule }
       router.push("/games/gomoku");
     } else setConfirmation("leave");
   };
-  // 일반 화면은 상단 버튼과 같은 행에, 팝업은 기존처럼 판 바로 위에 차례를 한 번만 표시한다.
+  // 일반 화면·팝업 모두 판 바로 위에 차례를 한 번만 표시하고 모바일에서는 참가자 정보 다음에 읽힌다.
   const turnStatus = <div className={styles.status} role="status" aria-live="polite"><strong>{status}</strong>{thinking && <span className={styles.thinking} aria-hidden="true"><i /><i /><i /></span>}</div>;
 
   const scene = <div className={`${styles.page}${popup.container ? ` ${boardStyles.popupScene} ${styles.popupPage}` : ""}`} data-gomoku-game={popup.container ? undefined : "ai"}>
     <header className={styles.heading}>
       <div><h1><LobbyIcon name="robot" />AI 대전</h1><span className={styles.difficulty}><LobbyIcon name={difficulty === "normal" ? "swords" : "flame"} />{aiDifficulties[difficulty].label}</span><span className={styles.ruleBadge}>{aiRules[rule].label}</span></div>
-      {!popup.container && turnStatus}
       {!popup.container && <div className={styles.displayActions}>
         {popup.supported && <button type="button" className={boardStyles.secondaryButton} onClick={popup.open}><LobbyIcon name="popup" />팝업 모드</button>}
         <button type="button" className={boardStyles.secondaryButton} onClick={leave}><LobbyIcon name="exit" />나가기</button>
@@ -70,11 +69,12 @@ function AiGame({ difficulty, rule }: { difficulty: AiDifficulty; rule: AiRule }
         <p className={styles.rules}>20×20 · {aiRules[rule].label}<br /> 시간 제한 없이 즐겨요.</p>
       </aside>
       <div className={styles.playArea}>
-        {popup.container && turnStatus}
-        <GameBoard key={game.id} game={game} selfSeat={1} disabled={thinking || game.error || confirmation !== undefined} onMove={move} />
+        {turnStatus}
+        <GameBoard key={game.id} className={styles.boardSection} game={game} selfSeat={1} disabled={thinking || game.error || confirmation !== undefined} onMove={move} />
         {game.forbidden && <p className={styles.forbidden} role="alert">렌주 룰의 금수예요. 흑돌은 3·3, 4·4, 장목을 둘 수 없어요. 다른 곳을 선택해 주세요.</p>}
         {game.error && <div className={styles.failure} role="alert"><span>AI 계산을 완료하지 못했어요. 다시 시도해 주세요.</span><button type="button" className={boardStyles.secondaryButton} onClick={() => dispatch({ type: "RETRY" })}>다시 시도</button></div>}
-        <footer className={`${boardStyles.actions} ${styles.actions}`}>
+        {/* 종료 후에도 두 동작을 판 안쪽의 짧은 버튼 행에 함께 표시한다. */}
+        <footer className={`${boardStyles.actions} ${styles.actions}`} data-finished={finished}>
           {finished ? <>
             <button type="button" className={boardStyles.primaryButton} onClick={() => dispatch({ type: "REMATCH" })}><LobbyIcon name="undo" />한 판 더 하기</button>
             <button type="button" className={boardStyles.secondaryButton} onClick={leave}><LobbyIcon name="exit" />나가기</button>

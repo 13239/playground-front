@@ -8,8 +8,8 @@ import styles from "./game-room.module.css";
 type BoardState = Pick<MatchState, "id" | "phase" | "blackSeat" | "turnSeat" | "turnNumber" | "deadline" | "moves">;
 
 /** 마우스는 미리보기 후 클릭, 터치는 같은 교차점을 두 번 눌러 착수한다. 키보드는 방향키·Enter/Space를 사용한다. */
-export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, receivedAt = 0, disabled, onMove }: {
-  game: BoardState; selfSeat: number; serverTime?: string; receivedAt?: number; disabled: boolean; onMove: (x: number, y: number) => void;
+export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, receivedAt = 0, disabled, onMove, className }: {
+  game: BoardState; selfSeat: number; serverTime?: string; receivedAt?: number; disabled: boolean; onMove: (x: number, y: number) => void; className?: string;
 }) {
   const [selection, setSelection] = useState<{ gameId: number; turn: number; point: number; input: "mouse" | "touch" | "keyboard" } | null>(null);
   // 턴·대국이 바뀌면 선택만 무효화한다. 키보드 위치는 매 수마다 초기화하지 않는다.
@@ -89,7 +89,8 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
     if (event.repeat && (event.key === "Enter" || event.key === " ")) event.preventDefault();
   }
   return (
-    <section className={styles.boardSection} aria-label="오목판">
+    // 화면별 크기 제한만 외부 클래스로 확장하고 공통 판의 좌표·입력 스타일은 유지한다.
+    <section className={`${styles.boardSection}${className ? ` ${className}` : ""}`} aria-label="오목판">
       <div className={styles.boardScroll}>
         <div className={styles.boardFrame}>
         <div className={styles.columnLabels} aria-hidden="true">{Array.from({ length: 20 }, (_, x) => <span key={x}>{String.fromCharCode(65 + x)}</span>)}</div>
@@ -130,7 +131,7 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
   // 접속 확인 응답의 serverTime/connected 플래그만 달라졌다면 400개 교차점을 다시 그리지 않는다.
   // 수신 시각도 props로 전달해 시계 Context 갱신이 동일한 판의 렌더링을 우회하지 않게 한다.
   // 되돌리기·재착수는 turnNumber가 증가하므로 같은 개수의 돌이라도 반드시 다시 렌더링한다.
-  return previous.selfSeat === next.selfSeat && previous.disabled === next.disabled && previous.onMove === next.onMove
+  return previous.className === next.className && previous.selfSeat === next.selfSeat && previous.disabled === next.disabled && previous.onMove === next.onMove
     && previous.game.id === next.game.id && previous.game.phase === next.game.phase
     && previous.game.blackSeat === next.game.blackSeat && previous.game.turnSeat === next.game.turnSeat
     && previous.game.turnNumber === next.game.turnNumber && previous.game.deadline === next.game.deadline
