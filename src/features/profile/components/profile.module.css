@@ -50,6 +50,11 @@
   outline: 3px solid #7948ed;
   outline-offset: 4px;
 }
+@media (hover: none) and (pointer: coarse) {
+  .dialog .closeButton:is(:focus, :focus-visible) {
+    outline: none;
+  }
+}
 
 .dialogHeader {
   display: flex;

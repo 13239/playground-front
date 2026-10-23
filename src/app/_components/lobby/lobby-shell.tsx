@@ -8,6 +8,7 @@ import {
   type GameCategoryId,
   type LobbyGame,
 } from "@/features/lobby/catalog";
+import { showModalWithoutCloseFocus } from "@/lib/client/show-modal";
 import { ChatPanel } from "./chat-panel";
 import { SiteHeader } from "./site-header";
 import { GomokuCover } from "./gomoku-cover";
@@ -254,7 +255,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
         type="button"
         aria-label="실시간 채팅 열기"
         onClick={() => {
-          mobileChatRef.current?.showModal();
+          showModalWithoutCloseFocus(mobileChatRef.current);
           setMobileChatOpen(true);
         }}
       >

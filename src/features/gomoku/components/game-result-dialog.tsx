@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useId, useRef } from "react";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
+import { showModalWithoutCloseFocus } from "@/lib/client/show-modal";
 import styles from "./game-room.module.css";
 
 /** 시안의 귀여운 캐릭터 팝업을 승리·패배에 공통 적용한다. 문구·버튼은 이미지와 분리해 선명하게 제공한다. */
@@ -12,7 +13,7 @@ export function GameResultDialog({ result, reason, rematchRequested, pending, on
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const title = useId();
-  useEffect(() => { ref.current?.showModal(); }, []);
+  useEffect(() => showModalWithoutCloseFocus(ref.current), []);
   return <dialog ref={ref} className={styles.resultDialog} aria-labelledby={title} onClose={onDismiss}>
     <button type="button" className={styles.resultClose} aria-label="결과 닫기" onClick={onDismiss}><LobbyIcon name="close" /></button>
     <Image className={styles.resultMascot} src={`/images/gomoku/result-${result === "defeat" ? "defeat" : "victory"}.png`}

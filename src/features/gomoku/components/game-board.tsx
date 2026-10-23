@@ -11,11 +11,11 @@ type BoardState = Pick<MatchState, "id" | "phase" | "blackSeat" | "turnSeat" | "
 export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, receivedAt = 0, disabled, onMove, className }: {
   game: BoardState; selfSeat: number; serverTime?: string; receivedAt?: number; disabled: boolean; onMove: (x: number, y: number) => void; className?: string;
 }) {
-  const [selection, setSelection] = useState<{ gameId: number; turn: number; point: number; input: "mouse" | "touch" | "keyboard" } | null>(null);
+  const [selection, setSelection] = useState<{ gameId: number; turn: number; point: number; input: "mouse" | "touch" | "keyboard"; gestureId: number } | null>(null);
   // 턴·대국이 바뀌면 선택만 무효화한다. 키보드 위치는 매 수마다 초기화하지 않는다.
   const [cursor, setCursor] = useState(210);
   const grid = useRef<HTMLDivElement>(null);
-  const pointerType = useRef("mouse");
+  const gesture = useRef({ id: 0, type: "mouse", consumed: false });
   const submitted = useRef(false);
   const board = useMemo(() => new Map(game.moves.map((move, index) => [move.y * 20 + move.x, { ...move, index }])), [game.moves]);
   const [expiredDeadline, setExpiredDeadline] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
 
   function preview(point: number, input: "mouse" | "touch" | "keyboard") {
     if (!canMove || board.has(point) || submitted.current) { setSelection(null); return; }
-    setSelection({ gameId: game.id, turn: game.turnNumber, point, input });
+    setSelection({ gameId: game.id, turn: game.turnNumber, point, input, gestureId: gesture.current.id });
   }
 
   function place(point: number) {
@@ -65,14 +65,29 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
     onMove(point % 20, Math.floor(point / 20));
   }
 
+  function touchGesture() {
+    return gesture.current.type === "touch" || gesture.current.type === "pen" || window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  }
+
   function activate(event: MouseEvent<HTMLButtonElement>, point: number) {
     if (!canMove || board.has(point)) return;
-    // 최신 브라우저의 click은 PointerEvent다. 이전 구현은 pointerdown에서 기억한 실제 입력 종류로 보완한다.
     const native = event.nativeEvent;
     const eventPointer = "pointerType" in native && typeof native.pointerType === "string" && native.pointerType ? native.pointerType : undefined;
-    const input = eventPointer ?? pointerType.current;
-    // 포인터 종류가 없는 detail 0만 키보드·보조기술로 본다. 터치·펜은 detail과 관계없이 두 번째 입력에서 확정한다.
-    if (event.detail === 0 && !eventPointer || input === "mouse" || selected === point && selection?.input === "touch") place(point);
+    if (event.detail === 0 && !eventPointer) {
+      place(point);
+      return;
+    }
+    const current = gesture.current;
+    const pressedTouch = current.type === "touch" || current.type === "pen";
+    if (pressedTouch && current.consumed) return;
+    const touchInput = touchGesture() || eventPointer === "touch" || eventPointer === "pen";
+    if (!touchInput) {
+      place(point);
+      return;
+    }
+    current.consumed = true;
+    const confirming = selected === point && selection?.input === "touch" && selection.gestureId !== current.id;
+    if (confirming) place(point);
     else preview(point, "touch");
   }
 
@@ -109,8 +124,17 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
                 aria-selected={selected === position} aria-disabled={!canMove || !!move} tabIndex={cursor === position ? 0 : -1}
                 className={styles.intersection} data-position={position} data-x={x} data-y={y}
                 onKeyDown={event => key(event, position)}
-                onFocus={event => { setCursor(position); if (event.currentTarget.matches(":focus-visible")) preview(position, "keyboard"); }}
-                onPointerDown={event => { pointerType.current = event.pointerType || "mouse"; }}
+                onFocus={event => {
+                  setCursor(position);
+                  if (!event.currentTarget.matches(":focus-visible")) return;
+                  if (!touchGesture()) { preview(position, "keyboard"); return; }
+                  if (selected === position && selection?.input === "touch") return;
+                  preview(position, "touch");
+                }}
+                onPointerDown={event => {
+                  const type = event.pointerType === "touch" || event.pointerType === "pen" ? event.pointerType : "mouse";
+                  gesture.current = { id: gesture.current.id + 1, type, consumed: false };
+                }}
                 onPointerEnter={event => { if (event.pointerType === "mouse") preview(position, "mouse"); }}
                 onClick={event => activate(event, position)}>
                 {[3, 9, 16].includes(x) && [3, 9, 16].includes(y) && <span className={styles.starPoint} />}

@@ -77,6 +77,13 @@ input {
   -webkit-tap-highlight-color: transparent;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  dialog:is(:focus, :focus-visible),
+  dialog button[aria-label$="닫기"]:is(:focus, :focus-visible) {
+    outline: none;
+  }
+}
+
 button {
   cursor: pointer;
 }

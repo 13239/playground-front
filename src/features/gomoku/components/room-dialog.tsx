@@ -6,6 +6,7 @@ import Link from "next/link";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { AuthRequestError } from "@/features/auth/client/api";
 import { revalidateAuthSession } from "@/features/auth/client/session-store";
+import { showModalWithoutCloseFocus } from "@/lib/client/show-modal";
 import { closeRoom } from "../client/api";
 import type { HostedRoom } from "../contracts";
 import styles from "./gomoku.module.css";
@@ -29,9 +30,7 @@ export function RoomDialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
+  useEffect(() => showModalWithoutCloseFocus(ref.current), []);
   return (
     <dialog
       ref={ref}

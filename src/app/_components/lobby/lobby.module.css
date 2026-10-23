@@ -46,6 +46,11 @@
   outline: 3px solid #8051f6;
   outline-offset: 4px;
 }
+@media (hover: none) and (pointer: coarse) {
+  .screen button[aria-label$="닫기"]:is(:focus, :focus-visible) {
+    outline: none;
+  }
+}
 .screen button:disabled {
   cursor: not-allowed;
 }

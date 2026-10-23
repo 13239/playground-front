@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
+import { showModalWithoutCloseFocus } from "@/lib/client/show-modal";
 import { AuthRequestError } from "@/features/auth/client/error";
 import { profileAvatars, getProfileAvatar, type ProfileAvatarId } from "../catalog";
 import type { UserProfile } from "../types";
@@ -22,7 +23,7 @@ export function ProfileEditor({ profile, onSave, onClose }: {
   const [error, setError] = useState("");
   const selectedAvatar = getProfileAvatar(selected);
 
-  useEffect(() => { dialogRef.current?.showModal(); }, []);
+  useEffect(() => showModalWithoutCloseFocus(dialogRef.current), []);
 
   async function save() {
     if (submitting.current || selected === profile.avatarId) return;

@@ -31,6 +31,12 @@
   outline: 3px solid #8553fa;
   outline-offset: 3px;
 }
+@media (hover: none) and (pointer: coarse) {
+  .screen button[aria-label$="닫기"]:is(:focus, :focus-visible),
+  .dialog button[aria-label$="닫기"]:is(:focus, :focus-visible) {
+    outline: none;
+  }
+}
 .screen :is(input, select),
 .dialog input {
   min-width: 0;
