@@ -70,7 +70,8 @@
 /* 단일 역할 선택도 공통 얇은 포커스와 같은 크기의 네이티브 입력으로 표시한다. */
 .screen input[type="radio"] { flex-shrink: 0; width: 18px; height: 18px; accent-color: #8b32f5; cursor: pointer; }
 .screen input[type="radio"]:disabled { cursor: not-allowed; }
-.pageHeading .roleBadge { max-width: 40%; white-space: normal; overflow-wrap: anywhere; }
+/* 짧은 역할 배지가 좁은 화면에서 한 글자씩 압축되지 않도록 크기를 보존한다. */
+.pageHeading .roleBadge { flex-shrink: 0; max-width: 40%; white-space: normal; overflow-wrap: anywhere; }
 .userBadges .roleBadge { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .userRoleFilter { margin-block: 12px; min-width: 0; }
 .userRoleFilter > summary { padding: 12px; border: 1px solid #e6def5; border-radius: 9px; color: #7a668f; font-size: 0.8rem; cursor: pointer; overflow-wrap: anywhere; }

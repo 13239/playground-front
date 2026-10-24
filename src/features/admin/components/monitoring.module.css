@@ -1,0 +1,54 @@
+/* 승인 시안의 두 지표·그래프와 별도 서비스 상태만 배치하고 기존 공통 1px 포커스를 사용한다. */
+.panel { padding: clamp(16px, 1.6vw, 28px); }
+.dateLine { color: #89799f; font-size: .78rem; text-align: right; font-variant-numeric: tabular-nums; }
+.metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.metric { display: flex; align-items: center; gap: clamp(16px, 2vw, 30px); min-width: 0; min-height: 190px; padding: clamp(20px, 2vw, 36px); border: 1px solid #e8e0fa; border-radius: 18px; background: white; }
+.metricIcon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: clamp(64px, 5vw, 94px); height: clamp(64px, 5vw, 94px); border-radius: 50%; color: #913ef4; background: #f5eeff; }
+.metricIcon svg { width: 42%; height: 42%; }
+.metricIcon.mint { color: #10a887; background: #e7f9f2; }
+.metric h2 { margin: 0 0 10px; color: #25124e; font-size: 1rem; }
+.metricValue { margin: 0; color: #18074c; font-size: clamp(2.25rem, 3.2vw, 3.9rem); font-weight: 750; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.metricValue small { margin-left: 12px; color: #8c7aa6; font-size: .95rem; font-weight: 500; }
+.metricValue > span { font-size: clamp(1.3rem, 2vw, 2rem); }
+.metricHint { margin: 12px 0 0; color: #8a7aa3; font-size: .8rem; line-height: 1.6; }
+.chartCard { margin-top: 18px; padding: clamp(16px, 1.6vw, 28px); border: 1px solid #e8e0fa; border-radius: 18px; background: white; }
+.chartHeading, .serviceHeading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.chartHeading h2, .serviceHeading h2 { margin: 0; color: #25124e; font-size: 1.15rem; }
+.chartControls { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
+.segmented { display: inline-flex; border: 1px solid #e3d6fa; border-radius: 9px; overflow: hidden; padding: 2px; gap: 2px; }
+.segmented button { min-width: 64px; border: 0; padding: 6px 14px; color: #8a6dab; background: white; }
+.segmented button[aria-pressed="true"] { color: white; background: linear-gradient(120deg, #a14bfa, #7828ed); }
+.updated { margin: 10px 0 18px; color: #9685ab; font-size: .78rem; line-height: 1.65; }
+.chartCard > .updated { text-align: right; }
+.chartCanvas { position: relative; min-width: 0; }
+.chartCanvas svg { display: block; overflow: visible; }
+.axisText { fill: #8e7ba6; font-size: 11px; font-variant-numeric: tabular-nums; }
+.gridLine { stroke: #eee8fa; stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.chartPoint { fill: white; stroke: #8b36f5; stroke-width: 2; }
+.chartPoint:is(:hover, :focus-visible) { fill: #8b36f5; }
+.chartPoint:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+.chartLegend { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; color: #78618f; font-size: .78rem; }
+.chartLegend > span { width: 18px; height: 3px; border-radius: 2px; background: #8b36f5; }
+.noChart { position: absolute; inset: 35% 12px auto 46px; margin: 0; padding: 14px; text-align: center; color: #9b89b1; background: #ffffffdc; font-size: .86rem; }
+.graphHint { margin: 18px 0 0; color: #9b8aaf; font-size: .75rem; line-height: 1.6; }
+.dataNotice { margin: 8px 0; padding: 12px 14px; border-radius: 9px; background: #f7f2ff; color: #8766ab; font-size: .8rem; line-height: 1.6; }
+.serviceHeading { margin-bottom: 22px; }
+.serviceHeading .updated { margin-bottom: 0; }
+.serviceTableWrap { min-width: 0; border: 1px solid #e8e0fa; border-radius: 14px; overflow: hidden; }
+.serviceTable { width: 100%; border-collapse: collapse; text-align: left; color: #66507f; font-size: .88rem; }
+.serviceTable thead { background: #f5efff; color: #907aa9; font-size: .8rem; }
+.serviceTable th, .serviceTable td { padding: 20px 24px; border-bottom: 1px solid #eee7f8; }
+.serviceTable tbody tr:last-child > * { border-bottom: 0; }
+.serviceTable tbody th { font-weight: 650; color: #2c1751; }
+.serviceName { display: inline-flex; align-items: center; gap: 20px; }
+.serviceIcon { display: inline-flex; justify-content: center; align-items: center; width: 64px; height: 64px; border-radius: 14px; background: #f4ecff; color: #8637ed; }
+.serviceIcon svg { width: 30px; height: 30px; }
+.statusBadge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border-radius: 99px; font-size: .8rem; font-weight: 650; white-space: nowrap; }
+.statusBadge svg { width: 17px; height: 17px; }
+.normal { color: #0a9c78; background: #e7f8f1; }.delayed { color: #bc8522; background: #fff5e7; }.down { color: #cf5573; background: #fff0f4; }.unknown { color: #978aa9; background: #f3f0f8; }
+.serviceTime { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: .82rem; }
+.statusLegend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.statusLegend .statusBadge { font-size: .74rem; padding: 6px 10px; }
+@media (max-width: 1250px) { .metric { gap: 18px; padding: 20px; }.metricIcon { width: 64px; height: 64px; }.serviceTable th, .serviceTable td { padding: 16px; }.serviceName { gap: 12px; }.serviceIcon { width: 48px; height: 48px; }.serviceIcon svg { width: 25px; height: 25px; } }
+@media (max-width: 760px) { .metrics { grid-template-columns: minmax(0, 1fr); }.metric { min-height: 145px; }.metricValue { font-size: 2.6rem; }.chartHeading { flex-wrap: wrap; }.chartControls { gap: 8px; }.chartControls .dateLine { width: 100%; }.serviceHeading { align-items: flex-start; }.serviceTable, .serviceTable tbody { display: block; }.serviceTable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }.serviceTable tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 16px; gap: 12px; border-bottom: 1px solid #eee7f8; }.serviceTable tbody tr:last-child { border-bottom: 0; }.serviceTable th, .serviceTable td { padding: 0; border: 0; }.serviceDescription, .serviceTime { grid-column: 1 / -1; }.serviceDescription { font-size: .83rem; }.serviceTime { font-size: .78rem; color: #9986ac; }.serviceIcon { width: 40px; height: 40px; }.serviceName { gap: 10px; }.segmented button { min-width: 52px; padding-inline: 10px; }.chartCard > .updated { text-align: left; } }
+@media (max-width: 380px) { .serviceHeading { flex-wrap: wrap; }.serviceHeading .chartControls { width: 100%; }.serviceHeading .chartControls .dateLine { width: auto; }.chartHeading .chartControls { width: 100%; justify-content: space-between; }.statusBadge { gap: 5px; padding: 7px 10px; }.metric { gap: 14px; }.metricIcon { width: 52px; height: 52px; }.metricHint { font-size: .73rem; } }

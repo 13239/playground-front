@@ -1,5 +1,7 @@
 # Playground Frontend
 
+관리자 [운영 대시보드·서비스 상태](docs/admin-monitoring-stage8.md)는 `/admin/dashboard`, `/admin/service-status`에서 제공한다. 메인 서버 V19와 채팅 내부 상태 API를 함께 반영하고 실제 집계 시작 이전 구간은 빈 그래프로 표시한다.
+
 관리자 **로그 조회**에서 사용자 활동·관리자 작업 기록과 상세 모달을 제공한다. [6단계 화면 안내](docs/admin-logs-stage6.md)를 따르며 백엔드 V18과 함께 반영한다.
 
 관리자 **유저 관리**에서 회원 정보·닉네임 변경 이력·허용된 계정 관리 기능을 제공한다. [5단계 화면 안내](docs/user-management-stage5.md)를 따른다.

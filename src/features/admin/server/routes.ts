@@ -13,8 +13,9 @@ import { parseUserPage, parseUserDetails, parseSensitive, parseUserRole, parseNi
 import { parseActivityLogPage, parseAuditLogPage, parseActivityLogDetails, parseAuditLogDetails, parseLogOptions } from "../log-contracts";
 import { isLogDate } from "../log-search";
 import { parseAdminChatGames, parseAdminChatMessage, parseAdminChatPage } from "../chat-contracts";
+import { parseDashboard, parseServiceStatuses } from "../monitoring-contracts";
 
-type Endpoint = Readonly<{ parse: (v: unknown) => unknown; fields?: readonly string[]; query?: "list" | "roles" | "delete" | "users" | "history" | "activity-logs" | "audit-logs" | "chat"; status?: 200 | 204 }>;
+type Endpoint = Readonly<{ parse: (v: unknown) => unknown; fields?: readonly string[]; query?: "list" | "roles" | "delete" | "users" | "history" | "activity-logs" | "audit-logs" | "chat" | "dashboard"; status?: 200 | 204 }>;
 const roleFields = ["name", "description", "permissions", "reason"];
 const availabilityFields = ["published", "availability", "message", "expectedVersion", "reason"];
 const modeFields = ["name", "minHumanPlayers", "maxHumanPlayers", "sortOrder", "expectedVersion", "reason"];
@@ -24,6 +25,11 @@ const gameFields = ["metadata", "expectedVersion", "reason"];
 /** 고정된 관리 기능만 전달한다. 임의 URL·메서드나 미래에 추가된 Spring API를 자동 공개하지 않는다. */
 function endpoint(segments: readonly string[], method: string): Endpoint {
   const [area, code, sub, mode, action] = segments;
+  // 지표 기간과 고정 서비스 상태만 읽는다. 수집/진단/인프라 조작 경로는 공개하지 않는다.
+  if (area === "dashboard" || area === "service-status") {
+    if (segments.length !== 1 || method !== "GET") throw new ApiError("INVALID_REQUEST_BODY");
+    return area === "dashboard" ? { parse: parseDashboard, query: "dashboard" } : { parse: parseServiceStatuses };
+  }
   // 채팅 저장 내역은 GET 세 경로만 허용한다. ObjectId를 일반 게임·권한 코드로 해석하지 않는다.
   if (area === "chat") {
     if (method !== "GET") throw new ApiError("INVALID_REQUEST_BODY");
@@ -100,7 +106,7 @@ function assertFields(value: unknown, fields: readonly string[]): asserts value 
 /** 쿼리 중복·미등록 조건은 거절하고 서명한 인코딩/순서를 그대로 상위 서버에 전달한다. */
 function validateQuery(url: URL, kind: Endpoint["query"]): void {
   const keys = [...url.searchParams.keys()];
-  const allowed = kind === "chat" ? ["from","to","query","scope","gameCode","roomId","page","size"] : kind === "delete" ? ["expectedVersion"] : kind === "users" ? ["query","page","size","status","roleCode"] : kind === "history" ? ["page","size"]
+  const allowed = kind === "dashboard" ? ["period"] : kind === "chat" ? ["from","to","query","scope","gameCode","roomId","page","size"] : kind === "delete" ? ["expectedVersion"] : kind === "users" ? ["query","page","size","status","roleCode"] : kind === "history" ? ["page","size"]
     : kind === "activity-logs" ? ["from","to","query","type","result","page","size"]
       : kind === "audit-logs" ? ["from","to","query","action","targetType","page","size"] : kind ? ["query", "cursor", "limit"] : [];
   if (new Set(keys).size !== keys.length || keys.some(k => !allowed.includes(k))) throw new ApiError("INVALID_REQUEST_BODY");
@@ -109,6 +115,7 @@ function validateQuery(url: URL, kind: Endpoint["query"]): void {
       || key === "expectedVersion" && (!/^\d{1,16}$/.test(value) || !Number.isSafeInteger(Number(value)))
       || key === "status" && !["ACTIVE","INACTIVE","PENDING","DELETED"].includes(value)
       || key === "roleCode" && !gameCodePattern.test(value)
+      || key === "period" && !["TODAY", "WEEK", "MONTH"].includes(value)
       || key === "scope" && !["GLOBAL", "GAME_ROOM"].includes(value)
       || key === "gameCode" && !gameCodePattern.test(value)
       || key === "roomId" && (!/^[1-9]\d{0,15}$/.test(value) || !Number.isSafeInteger(Number(value)))
@@ -156,7 +163,11 @@ export async function handleAdminRequest(request: Request, segments: readonly st
     }), sessionId);
     if (request.method === "DELETE" || spec.status === 204) return new Response(null, { status: 204, headers: { "Cache-Control": "private, no-store" } });
     let result: unknown;
-    try { result = spec.parse(value); } catch { throw new ApiError("INVALID_BACKEND_RESPONSE"); }
+    try {
+      result = spec.parse(value);
+      // 다른 기간의 응답을 현재 차트에 잘못 표시하지 않는다. 기간은 이미 검증된 응답 계약에서 읽는다.
+      if (segments.length === 1 && segments[0] === "dashboard" && (result as { period: string }).period !== (url.searchParams.get("period") ?? "TODAY")) throw new Error("Dashboard period mismatch");
+    } catch { throw new ApiError("INVALID_BACKEND_RESPONSE"); }
     return Response.json(result, { status: spec.status ?? (request.method === "POST" ? 201 : 200),
       headers: { "Cache-Control": "private, no-store", "Vary": "Cookie, X-Expected-Session-ID" } });
   } catch (error) {
