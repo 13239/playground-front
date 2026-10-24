@@ -19,6 +19,10 @@ export type WaitingParticipant = Readonly<{
   host: boolean;
   self: boolean;
   ready: boolean;
+  // 서버가 확정한 온라인 전적. AI 게임과 이전 대국은 포함하지 않는다.
+  wins: number;
+  losses: number;
+  draws: number;
 }>;
 export type WaitingRoom = Readonly<{
   id: number;
@@ -89,7 +93,9 @@ export function isWaitingRoom(value: unknown): value is WaitingRoom {
         isProfileAvatarId(p.avatarId) &&
         typeof p.host === "boolean" &&
         typeof p.self === "boolean" &&
-        typeof p.ready === "boolean",
+        typeof p.ready === "boolean" &&
+        [p.wins, p.losses, p.draws].every(value =>
+          typeof value === "number" && Number.isSafeInteger(value) && value >= 0),
     )
   )
     return false;
@@ -122,13 +128,16 @@ export function publicWaitingRoom(room: WaitingRoom): WaitingRoom {
     membershipId: room.membershipId,
     allReady: room.allReady,
     participants: room.participants.map(
-      ({ seat, nickname, avatarId, host, self, ready }) => ({
+      ({ seat, nickname, avatarId, host, self, ready, wins, losses, draws }) => ({
         seat,
         nickname,
         avatarId,
         host,
         self,
         ready,
+        wins,
+        losses,
+        draws,
       }),
     ),
     status: room.status,

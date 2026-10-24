@@ -636,6 +636,9 @@ function ParticipantCard({
         <span className={styles.readyState}>입장 대기 중</span>
       </article>
     );
+  // 서버가 확정한 승패만 승률에 포함한다. 아직 승패가 없으면 0.0%로 표시한다.
+  const decidedGames = participant.wins + participant.losses;
+  const winRate = decidedGames === 0 ? "0.0" : (participant.wins / decidedGames * 100).toFixed(1);
   return (
     <article
       className={`${styles.playerCard} ${participant.self ? styles.selfCard : ""}`}
@@ -651,6 +654,15 @@ function ParticipantCard({
         {participant.nickname}
         {participant.self && <small>나</small>}
       </h2>
+      {/* 서버가 확정한 온라인 대국만 집계한다. 무승부는 별도 횟수로 보여주고 승률 분모에서는 제외한다. */}
+      <div className={styles.playerStats} role="group" aria-label="온라인 오목 전적">
+        <span className={styles.statsResults}>
+          <span className={styles.statsWin}>{participant.wins}승</span>
+          <span className={styles.statsLoss}>{participant.losses}패</span>
+          <span className={styles.statsDraw}>{participant.draws}무</span>
+        </span>
+        <span className={styles.statsRate}>승률 <strong>{winRate}%</strong></span>
+      </div>
       <span
         className={`${styles.readyState} ${participant.ready ? styles.isReady : ""}`}
       >

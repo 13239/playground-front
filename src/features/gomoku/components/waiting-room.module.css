@@ -295,6 +295,37 @@
   font-size: 0.5em;
   flex-shrink: 0;
 }
+/* 닉네임 아래 온라인 승·패·무 및 승률만 표시한다. 작은 창에서 카드 폭을 넘지 않도록 줄바꿈한다. */
+.playerStats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4em 0.65em;
+  max-width: 100%;
+  color: #554584;
+  font-size: 0.83em;
+  font-weight: 750;
+  line-height: 1.4;
+  text-align: center;
+}
+.statsResults {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6em;
+}
+.statsWin { color: #087d62; }
+.statsLoss { color: #c24b60; }
+.statsDraw { color: #7769a6; }
+.statsRate {
+  padding: 0.2em 0.55em;
+  border-radius: 1em;
+  background: #eee8ff;
+  color: #6e40b9;
+  white-space: nowrap;
+}
+.statsRate strong { color: #6532bf; font-weight: 850; }
 .readyState {
   display: inline-flex;
   align-items: center;
