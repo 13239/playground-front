@@ -798,8 +798,13 @@
   }
 
   .gameScene {
-    grid-template-columns: minmax(180px, .4fr) minmax(0, 1fr);
+    grid-template-columns: minmax(200px, .62fr) minmax(0, 1fr);
   }
+}
+
+/* 판 옆 참가자 패널은 카드 두 장 높이만 유지한다. 세로 배치인 좁은 화면은 기존 전체 폭을 쓴다. */
+@media (max-width: 1100px) and (min-width: 701px) {
+  .gameScene > .players { align-self: start; justify-self: start; width: min(100%, 22rem); height: auto; max-height: 100%; }
 
   .playerIdentity {
     flex-wrap: nowrap;
@@ -938,26 +943,53 @@
 /* 가용 높이는 오목 셸이 계산한다. 상단 전환 버튼·하단 대국 동작을 먼저 확보하고 나머지를 판에 할당한다. */
 @media (min-width: 1101px) and (min-height: 600px) {
   .gameLayout[data-gomoku-game] {
-    width: min(100%, 2400px);
+    width: 100%;
     height: 100%;
     min-height: 0;
     margin-inline: auto;
-    grid-template-columns: minmax(0, 1fr) clamp(260px, 22vw, 380px);
-    gap: clamp(.75rem, 1vw, 1.25rem);
+    /* 같은 폭의 좌우 열 사이에 판을 두고, 참가자·채팅은 이 간격보다 판에서 멀어지지 않는다. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, min(1150px, calc(100cqh - 10.5rem))) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: clamp(1rem, 1.6vw, 2.5rem);
+    row-gap: .75rem;
     padding: .5rem;
     align-items: stretch;
   }
-  .gameLayout .gameContainer { display: flex; flex-direction: column; min-height: 0; }
-  .gameLayout .displayActions { flex: 0 0 auto; }
-  .gameLayout .gameScene {
-    flex: 1 1 0%;
+  .gameLayout .gameContainer {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+    min-width: 0;
     min-height: 0;
-    grid-template-columns: clamp(180px, 18vw, 280px) minmax(0, 1fr);
+  }
+  .gameLayout .displayActions { grid-column: 3; grid-row: 1; justify-self: start; align-self: center; margin-bottom: 0; }
+  .gameLayout .gameContainer > .error { grid-column: 2; grid-row: 1; align-self: center; margin: 0; }
+  .gameLayout .popupPlaceholder { grid-column: 1 / 3; grid-row: 1 / -1; align-self: center; justify-self: center; }
+  .gameLayout .gameScene {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: subgrid;
+    min-width: 0;
+    min-height: 0;
     align-items: stretch;
   }
-  .gameLayout .playArea { display: flex; flex-direction: column; min-height: 0; }
-  .gameLayout > aside { height: 100%; min-height: 0; max-height: 100%; }
-  .gameLayout .players { min-height: 0; padding: clamp(.5rem, 1cqh, 1.2rem); overflow-y: auto; }
+  .gameLayout .playArea { display: flex; flex-direction: column; grid-column: 2; width: 100%; min-height: 0; max-width: none; }
+  .gameLayout > aside {
+    position: relative;
+    z-index: 1;
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: start;
+    width: min(100%, clamp(300px, 24vw, 440px));
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+  }
+  /* 바깥 배경은 두 참가자 높이에서 멈추고, 카드는 판 바로 옆에 22rem까지 둔다. */
+  .gameLayout .players { grid-column: 1; justify-self: end; align-self: start; width: min(100%, 22rem); height: auto; max-height: 100%; min-height: 0; padding: clamp(.5rem, 1cqh, 1.2rem); overflow: auto; }
   .gameLayout .player { padding: clamp(.5rem, 1cqh, 1rem) .65rem; gap: clamp(.4rem, .8cqh, 1rem); }
   .gameLayout .playerIdentity { flex-wrap: nowrap; }
   .gameLayout .playerIdentity strong { font-size: clamp(.95rem, 1vw, 1.2rem); }

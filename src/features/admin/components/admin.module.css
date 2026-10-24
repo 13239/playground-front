@@ -1,0 +1,111 @@
+/* 기존 로비의 보라·파랑 색상과 공통 1px 입력 포커스를 그대로 사용한다. */
+.screen { min-height: 100dvh; }
+.workspace { display: grid; grid-template-columns: clamp(180px, 13vw, 240px) minmax(0, 1fr); gap: clamp(16px, 2vw, 32px); align-items: start; padding-block: 16px 48px; }
+.sidebar { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 24px; min-height: min(700px, calc(100dvh - 150px)); padding: 24px 12px; border: 1px solid #ffffffb3; border-radius: 22px; background: #ffffffb5; }
+.consoleLabel { display: flex; gap: 10px; align-items: center; padding-inline: 12px; color: #68629c; font-size: 0.85rem; font-weight: 750; }
+.consoleLabel svg, .sidebar nav svg { width: 22px; height: 22px; flex-shrink: 0; }
+.sidebar nav { display: grid; gap: 8px; }
+.sidebar nav a { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 12px 16px; border-radius: 12px; color: #252058; font-weight: 650; }
+.sidebar nav a:hover { background: #f3efff; }
+.sidebar nav a[aria-current="page"] { background: linear-gradient(110deg, #eee5ff, #f2edff); color: #7928f5; }
+.backLink { margin-top: auto; padding: 16px 12px; color: #70669f !important; font-size: 0.85rem; }
+.main { min-width: 0; }
+.pageHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 4px 0 24px; }
+.pageHeading h1 { margin: 5px 0 8px; font-size: clamp(1.65rem, 1.5vw + 0.8rem, 2.35rem); line-height: 1.3; letter-spacing: -0.045em; color: #18074c; }
+.pageHeading > div > span { font-size: 0.65rem; letter-spacing: 0.15em; color: #8d76b5; font-weight: 800; }
+.pageHeading p { margin: 0; color: #767098; font-size: 0.9rem; line-height: 1.6; }
+.roleBadge { padding: 8px 14px; border: 1px solid #e2d6ff; border-radius: 99px; background: #f5eeff; color: #7425df; font-weight: 750; font-size: 0.8rem; white-space: nowrap; }
+.masterDetail { display: grid; grid-template-columns: minmax(220px, 0.36fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.panel, .listPanel { min-width: 0; border: 1px solid #e5e3fb; border-radius: 20px; background: #ffffffed; box-shadow: 0 8px 32px #7973b006; }
+.panel { padding: clamp(18px, 2vw, 32px); }
+.listPanel { padding: 20px 14px 12px; }
+.listHeading, .panelHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.listHeading { padding-inline: 6px; }
+.listHeading h2, .panelHeading h2 { margin: 0; font-size: 1.2rem; color: #1e0d55; letter-spacing: -0.03em; }
+.panelHeading h3 { margin: 0; }
+.panelHeading p { margin: 6px 0 0; color: #85809f; font-size: 0.85rem; line-height: 1.5; overflow-wrap: anywhere; }
+.screen button { min-height: 38px; padding: 8px 14px; border: 1px solid #e0d9f6; border-radius: 9px; color: #68548e; background: white; font-size: 0.83rem; line-height: 1.5; font-weight: 650; }
+.screen button:hover:not(:disabled) { background: #f8f4ff; }
+.screen button:disabled { opacity: 0.55; }
+.screen button.primary, .screen button.smallPrimary { border-color: #7d35ee; background: linear-gradient(125deg, #9b3bff, #7020f2); color: white; box-shadow: 0 3px 8px #7020f21c; }
+.screen button.primary:hover:not(:disabled), .screen button.smallPrimary:hover:not(:disabled) { background: #7830e7; }
+.screen button.primary { min-width: 96px; }
+.screen button.smallPrimary { padding: 6px 10px; min-height: 34px; }
+.screen button.danger { margin-right: auto; color: #c94464; border-color: #f2d7df; }
+.search { display: flex; align-items: center; min-width: 0; overflow: hidden; border: 1px solid #e1def7; border-radius: 10px; background: #fcfcff; }
+.search input { width: 100%; min-width: 0; padding: 10px 12px; border: 0; background: transparent; }
+.screen .search button { border: 0; border-radius: 0; background: transparent; white-space: nowrap; padding-inline: 12px; }
+.listItems { display: grid; gap: 5px; margin-block: 14px; }
+.screen button.listItem { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-width: 0; min-height: 67px; padding: 12px; border-color: transparent; border-radius: 11px; text-align: left; background: transparent; }
+.screen button.listItem[aria-pressed="true"] { color: #7b28ed; background: #f0e9ff; }
+.listItem > span:first-child { min-width: 0; }
+.listItem strong { display: block; font-size: 0.92rem; overflow-wrap: anywhere; }
+.listItem small { display: block; margin-top: 5px; color: #9790af; font-size: 0.7rem; overflow-wrap: anywhere; }
+.pagination { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #efedf9; }
+.screen .pagination button { font-size: 0.75rem; min-height: 32px; padding-block: 5px; }
+.tag, .statusGood, .statusWarning { display: inline-block; flex-shrink: 0; padding: 5px 9px; border-radius: 7px; font-size: 0.7rem; line-height: 1.3; font-weight: 650; }
+.tag { background: #f1eff8; color: #8a809f; }
+.statusGood { background: #e8f9f1; color: #1a9267; }
+.statusWarning { background: #fff3dd; color: #ac731d; }
+.formFields { display: grid; gap: 18px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.field { display: grid; min-width: 0; gap: 8px; margin-block: 16px; color: #51416f; font-size: 0.85rem; font-weight: 650; }
+.formFields > .field { margin: 0; }
+.field small, .hint { color: #8d859e; font-size: 0.76rem; line-height: 1.6; font-weight: 400; }
+.screen input:not([type="checkbox"]), .screen textarea, .screen select { box-sizing: border-box; min-width: 0; max-width: 100%; font: inherit; font-size: 0.85rem; color: #30234c; }
+.field input, .field textarea, .field select, .subheading input { width: 100%; padding: 11px 13px; border: 1px solid #e0dcf0; border-radius: 9px; background: #fefeff; font-weight: 400; }
+.screen textarea { resize: vertical; min-height: 70px; line-height: 1.65; }
+.screen input:disabled, .screen textarea:disabled, .screen select:disabled { background: #f7f6fa; color: #8b8496; }
+.formColumns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.formColumns .field { margin: 0; }
+.subheading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 28px 0 16px; }
+.subheading h3, .screen h3 { font-size: 0.95rem; color: #3b255f; }
+.subheading input { width: min(45%, 240px); }
+.permissionGroups { display: grid; gap: 14px; }
+.permissionGroup { min-width: 0; margin: 0; padding: 10px 16px; border: 1px solid #ebe6f8; border-radius: 12px; background: linear-gradient(130deg, #f9f6ff66, white); }
+.permissionGroup legend { padding: 3px 8px; color: #73608f; font-size: 0.8rem; font-weight: 750; }
+.checkRow { display: flex; align-items: center; gap: 12px; min-height: 42px; padding-block: 8px; color: #514766; font-size: 0.85rem; line-height: 1.5; cursor: pointer; }
+.checkRow small { display: block; color: #9a8eaa; font-size: 0.72rem; font-weight: 400; }
+.screen input[type="checkbox"] { flex-shrink: 0; width: 18px; height: 18px; accent-color: #8b32f5; cursor: pointer; }
+.screen input[type="checkbox"]:disabled { cursor: not-allowed; }
+.toggleRow { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px; border: 1px solid #e9e1fa; border-radius: 12px; background: #faf7ff; }
+.toggleRow strong { display: block; font-size: 0.95rem; color: #4b2c74; }
+.toggleRow small { display: block; margin-top: 7px; font-size: 0.78rem; line-height: 1.6; color: #9789aa; }
+/* 네이티브 체크박스를 유지해 키보드와 고대비 모드에서도 스위치가 동작하게 한다. */
+.screen .toggleRow input { appearance: none; width: 46px; height: 26px; margin: 0; border: 1px solid #cfc5df; border-radius: 99px; background: #d9d2e6; }
+.toggleRow input::after { content: ""; display: block; width: 20px; height: 20px; margin: 2px; border-radius: 50%; background: white; box-shadow: 0 1px 3px #3b1f6a20; }
+.toggleRow input:checked { border-color: #8a34f6; background: #8a34f6; }
+.toggleRow input:checked::after { transform: translateX(20px); }
+.actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #eee9f8; }
+.stack { display: grid; gap: 22px; }
+.inset { min-width: 0; padding: 20px; border: 1px solid #e9e2f6; border-radius: 14px; background: #fdfcff; }
+.inset > h3 { margin-top: 0; }
+.inset .inset { margin-top: 24px; background: white; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid #eae3f6; margin-bottom: 24px; overflow-x: auto; }
+.screen .tabs button { border: 0; border-radius: 0; border-bottom: 2px solid transparent; padding: 12px 16px; background: transparent; white-space: nowrap; }
+.screen .tabs button[aria-pressed="true"] { color: #8726ed; border-bottom-color: #8726ed; }
+.picker { min-width: 0; padding: 14px; border: 1px solid #eae3f6; border-radius: 12px; }
+.pickerOptions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 0 16px; padding: 10px 4px; max-height: 320px; overflow-y: auto; }
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #efedf9; overflow-wrap: anywhere; }
+.screen .chips button { min-height: 28px; padding: 4px 9px; background: #f3ecff; border-color: #e7d8ff; color: #8960b4; font-size: 0.7rem; overflow-wrap: anywhere; }
+.empty { display: grid; justify-items: center; gap: 12px; padding: 48px 16px; text-align: center; color: #8b80a4; font-size: 0.9rem; line-height: 1.6; }
+.empty h1 { font-size: 1.35rem; color: #5a407a; }
+.empty p { margin: 0; }
+.error, .success { margin: 16px 0 0; padding: 12px 16px; border-radius: 10px; font-size: 0.85rem; line-height: 1.65; overflow-wrap: anywhere; }
+.error { background: #fff0f3; color: #b74f69; }
+.success { background: #ecfaf4; color: #268664; }
+.savedNotice { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; padding: 8px 16px; border: 1px solid #d5eee3; border-radius: 10px; background: #effbf5; color: #348769; font-size: 0.85rem; }
+.screen .savedNotice button { min-height: 28px; border: 0; padding: 2px 8px; color: inherit; background: transparent; }
+.dialog { width: min(460px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 28px; border: 1px solid #e2d6f3; border-radius: 20px; background: #fffdff; color: #4a3765; box-shadow: 0 24px 100px #2b0f5c30; }
+.dialog::backdrop { background: #25134455; backdrop-filter: blur(3px); }
+.dialog h2 { margin: 0 0 18px; font-size: 1.2rem; }
+.dialog p { font-size: 0.9rem; line-height: 1.7; }
+.dialog button { min-height: 40px; padding: 9px 15px; border: 1px solid #ddd1ef; border-radius: 9px; background: white; color: #79608e; font: inherit; font-size: 0.85rem; }
+.dialog button.primary { border-color: #8335f4; background: #8335f4; color: white; }
+.dialog button:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+/* 넓은 화면에서는 기능 그룹을 두 열로 배치해 빈 여백과 저장 버튼까지의 스크롤을 줄인다. */
+@media (min-width: 1500px) { .permissionGroups { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+@media (min-width: 2400px) { .masterDetail { grid-template-columns: minmax(300px, 0.28fr) minmax(0, 1fr); } }
+@media (max-width: 1200px) { .workspace { grid-template-columns: 170px minmax(0, 1fr); gap: 16px; } .masterDetail { grid-template-columns: minmax(180px, 0.4fr) minmax(0, 1fr); gap: 14px; } .sidebar nav a { padding-inline: 12px; font-size: 0.85rem; } .listPanel { padding-inline: 10px; } }
+@media (max-width: 980px) { .workspace { grid-template-columns: minmax(0, 1fr); } .sidebar { position: static; min-height: 0; padding: 12px; gap: 10px; } .consoleLabel { display: none; } .sidebar nav { display: flex; gap: 8px; overflow-x: auto; } .sidebar nav a { flex-shrink: 0; min-height: 42px; } .backLink { display: none; } }
+@media (max-width: 680px) { .masterDetail { grid-template-columns: minmax(0, 1fr); } .listItems { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 230px; overflow-y: auto; } .listHeading h2 { font-size: 1.05rem; } .pageHeading { align-items: flex-start; } .roleBadge { font-size: 0.7rem; padding: 7px 10px; } .panel { border-radius: 16px; padding: 18px; } .formColumns { grid-template-columns: minmax(0, 1fr); } .panelHeading { flex-wrap: wrap; } .subheading { flex-wrap: wrap; } .subheading input { width: 100%; } .inset { padding: 16px; } .sidebar nav a { gap: 7px; font-size: 0.8rem; } .sidebar nav svg { width: 19px; height: 19px; } .dialog { padding: 22px; } .toggleRow { padding: 16px; } }
+@media (forced-colors: active) { .screen .toggleRow input { appearance: auto; } .toggleRow input::after { display: none; } }

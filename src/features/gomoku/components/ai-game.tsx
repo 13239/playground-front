@@ -67,7 +67,7 @@ function AiGame({ difficulty, rule, sessionId }: { difficulty: AiDifficulty; rul
       router.push("/games/gomoku");
     } else setConfirmation("leave");
   };
-  // 일반 화면·팝업 모두 판 바로 위에 차례를 한 번만 표시하고 모바일에서는 참가자 정보 다음에 읽힌다.
+  // 차례 안내는 판 앞에 한 번만 둔다. 넓은 화면에서는 팝업·나가기와 같은 줄로 올리고, 모바일·팝업에서는 참가자 다음에 판 위에서 읽힌다.
   const turnStatus = <div className={styles.status} role="status" aria-live="polite"><strong>{status}</strong>{thinking && <span className={styles.thinking} aria-hidden="true"><i /><i /><i /></span>}</div>;
 
   const scene = <div className={`${styles.page}${popup.container ? ` ${boardStyles.popupScene} ${styles.popupPage}` : ""}`} data-gomoku-game={popup.container ? undefined : "ai"}>
@@ -89,13 +89,16 @@ function AiGame({ difficulty, rule, sessionId }: { difficulty: AiDifficulty; rul
             </div>
           </div>
         </article>)}
-        <p className={styles.rules}>20×20 · {aiRules[rule].label}<br /> 시간 제한 없이 즐겨요.</p>
       </aside>
       <div className={styles.playArea}>
         {turnStatus}
-        <GameBoard key={game.id} className={styles.boardSection} game={game} selfSeat={1} disabled={thinking || game.error || confirmation !== undefined} onMove={move} />
-        {game.forbidden && <p className={styles.forbidden} role="alert">렌주 룰의 금수예요. 흑돌은 3·3, 4·4, 장목을 둘 수 없어요. 다른 곳을 선택해 주세요.</p>}
-        {game.error && <div className={styles.failure} role="alert"><span>AI 계산을 완료하지 못했어요. 다시 시도해 주세요.</span><button type="button" className={boardStyles.secondaryButton} onClick={() => dispatch({ type: "RETRY" })}>다시 시도</button></div>}
+        {/* 판과 안내만 묶어서 넓은 화면에서 참가자 카드와 위쪽 선을 맞춘다. */}
+        <div className={styles.boardStack}>
+          <GameBoard key={game.id} className={styles.boardSection} game={game} selfSeat={1} disabled={thinking || game.error || confirmation !== undefined} onMove={move} />
+          {game.forbidden && <p className={styles.forbidden} role="alert">렌주 룰의 금수예요. 흑돌은 3·3, 4·4, 장목을 둘 수 없어요. 다른 곳을 선택해 주세요.</p>}
+          {game.error && <div className={styles.failure} role="alert"><span>AI 계산을 완료하지 못했어요. 다시 시도해 주세요.</span><button type="button" className={boardStyles.secondaryButton} onClick={() => dispatch({ type: "RETRY" })}>다시 시도</button></div>}
+          {rematchError && <p className={boardStyles.error} role="alert">{rematchError}</p>}
+        </div>
         {/* 종료 후에도 두 동작을 판 안쪽의 짧은 버튼 행에 함께 표시한다. */}
         <footer className={`${boardStyles.actions} ${styles.actions}`} data-finished={finished}>
           {finished ? <>
@@ -119,7 +122,6 @@ function AiGame({ difficulty, rule, sessionId }: { difficulty: AiDifficulty; rul
         </footer>
       </div>
     </section>
-    {rematchError && <p className={boardStyles.error} role="alert">{rematchError}</p>}
     {confirmation && <RoomDialog title={confirmation === "leave" ? "대국을 나갈까요?" : "기권할까요?"} onClose={() => setConfirmation(undefined)}>
       <p>{confirmation === "leave" ? "진행 중인 AI 대국이 종료돼요." : "이번 대국은 AI의 승리로 끝나요."}</p>
       <div className={shared.actions}>

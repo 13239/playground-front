@@ -122,6 +122,22 @@ export async function requestAuthenticatedApi(
   return withAuthLock(() => authenticatedRequest(path, true, input, signal), signal);
 }
 
+/** 관리자 REST 요청도 기존 탭 잠금·토큰 갱신을 공유한다. 실패한 변경 명령을 임의 재전송하지 않는다. */
+export async function requestAdminApi(path: `/api/admin/${string}`, sessionId: string,
+  method: "GET" | "POST" | "PUT" | "DELETE" = "GET", input?: object, signal?: AbortSignal): Promise<Response> {
+  return withAuthLock(async () => {
+    const send = () => signedAuthRequest(path, input, true, signal, { method, sessionId });
+    try { return await send(); }
+    catch (error) {
+      if (error instanceof AuthRequestError && error.code === "LOGIN_SESSION_CHANGED") { clearProofNonces(); notifyAuthChanged(); }
+      if (!requiresRefresh(error)) throw error;
+      signal?.throwIfAborted();
+      await authMutation("/api/auth/refresh");
+      return send();
+    }
+  }, signal);
+}
+
 // 잠금 안에서 응답 검증까지 끝내므로 다른 탭의 쿠키 변경과 사용자 정보 복원이 뒤섞이지 않는다.
 async function readSession(retry = true): Promise<CurrentSession> {
   const response = await authenticatedRequest("/api/auth/session", retry);

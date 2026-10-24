@@ -62,8 +62,10 @@ export async function preparePageExit(input: Readonly<{
 
 /** 일반 요청과 미리 준비한 종료 요청이 같은 메서드·경로·본문·세션 nonce 결합을 사용한다. */
 async function signBoundRequest(path: string, method: string, body: string | undefined,
-  key: Awaited<ReturnType<typeof getBrowserKey>>, nonce: Nonce): Promise<string> {
+  key: Awaited<ReturnType<typeof getBrowserKey>>, nonce: Nonce, sessionId?: string): Promise<string> {
   return new SignJWT({ nonce: nonce.value, htm: method, htu: window.location.origin + path,
+    // 관리자 조회의 검색 조건과 화면에서 확인한 세션도 서명해 다른 계정의 쿠키로 재실행되지 않게 한다.
+    ...(sessionId && { sid: sessionId }),
     bht: base64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(proofBody(path, body ?? "")))) })
     .setProtectedHeader({ alg: "ES256", typ: "bff-session-proof+jwt", jwk: key.publicKey })
     .setJti(createUuidV4()).setIssuedAt(Math.floor((nonce.serverTime + performance.now() - nonce.receivedAt) / 1000))
@@ -72,7 +74,8 @@ async function signBoundRequest(path: string, method: string, body: string | und
 
 /** 요청마다 새로운 증명을 만든다. nonce 갱신은 서버가 실행 전에 거절한 경우에만 한 번 재시도한다. */
 // 채팅 증명 발급의 실제 경로·메서드·세션 본문도 기존 로그인 키로 서명한다.
-export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomoku/${string}` | `/api/games/${string}/modes/${string}/admission` | "/api/chat/tickets", input?: object, nonceRetry = true, signal?: AbortSignal): Promise<Response> {
+export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomoku/${string}` | `/api/games/${string}/modes/${string}/admission` | `/api/admin/${string}` | "/api/chat/tickets", input?: object, nonceRetry = true, signal?: AbortSignal,
+  admin?: Readonly<{ method: "GET" | "POST" | "PUT" | "DELETE"; sessionId: string }>): Promise<Response> {
   // 대국 접속 확인은 5초 안에 실패를 감지해 5회 재접속 예산을 지킨다. 스트림은 서버가 20초마다 정상 종료한다.
   const timeout = path === "/api/gomoku/rooms/state" ? 5_000 : 35_000;
   // 호출자의 취소와 인증/스트림 연결 단계의 제한 시간을 합쳐 요청 전체를 중단할 수 있게 한다.
@@ -83,13 +86,15 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     assertAuthRequestAllowed(path);
     // 프로필도 동일 경로·메서드·본문에 서명한다. 조회는 GET, 캐릭터 변경은 멱등적인 PUT을 사용한다.
     // 오목 검색은 조건도 서명하도록 POST 본문을 쓰고 생성·닫기도 같은 인증 경계를 공유한다.
-    const method = path === "/api/auth/session" || path === "/api/auth/profile" && input === undefined
-      ? "GET" : path === "/api/auth/profile" ? "PUT" : "POST";
+    const method = admin?.method ?? (path === "/api/auth/session" || path === "/api/auth/profile" && input === undefined
+      ? "GET" : path === "/api/auth/profile" ? "PUT" : "POST");
+    const adminHeaders: Record<string, string> = admin ? { "X-Expected-Session-ID": admin.sessionId } : {};
     // 원격 HTTP의 dev에서는 Web Crypto를 호출하지 않는다. 일반 BFF·JWT 검증은 서버에서 유지한다.
     if (isDevHttpAuth()) {
       return await requireSuccess(await fetch(path, {
         method, credentials: "same-origin", cache: "no-store", redirect: "error",
-        signal: requestSignal, ...(input !== undefined && { headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+        signal: requestSignal, headers: { ...adminHeaders, ...(input !== undefined && { "Content-Type": "application/json" }) },
+        ...(input !== undefined && { body: JSON.stringify(input) }),
       }));
     }
     const purpose = path === "/api/auth/login" ? "login" : "session";
@@ -97,13 +102,13 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     signal?.throwIfAborted();
     const nonce = await nonceFor(purpose, key.thumbprint, signal);
     const body = input === undefined ? undefined : JSON.stringify(input);
-    const proof = await signBoundRequest(path, method, body, key, nonce);
+    const proof = await signBoundRequest(path, method, body, key, nonce, admin?.sessionId);
     signal?.throwIfAborted();
     // 동일 Origin의 BFF만 호출하며 인증 토큰을 읽거나 브라우저 저장소에 보관하지 않는다.
     return await requireSuccess(await fetch(path, {
       method, credentials: "same-origin", cache: "no-store", redirect: "error", body,
       signal: requestSignal,
-      headers: { "X-Browser-Proof": proof, ...(input !== undefined && { "Content-Type": "application/json" }) },
+      headers: { ...adminHeaders, "X-Browser-Proof": proof, ...(input !== undefined && { "Content-Type": "application/json" }) },
     }));
   } catch (error) {
     // 네트워크 오류로 포장하지 않아 종료된 스트림에 대한 자동 재시도가 발생하지 않는다.
@@ -112,7 +117,7 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     if (nonceRetry && error instanceof AuthRequestError
       && ["BROWSER_PROOF_EXPIRED", "BROWSER_PROOF_INVALID"].includes(error.code ?? "")) {
       clearProofNonces();
-      return signedAuthRequest(path, input, false, signal);
+      return signedAuthRequest(path, input, false, signal, admin);
     }
     if (error instanceof AuthRequestError) throw error;
     throw new AuthRequestError("서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.", 0);

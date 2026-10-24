@@ -88,6 +88,25 @@ export function LobbyShell({ account }: { account: ReactNode }) {
   const genres = useGameGenres();
   const categories = [...gameCategories, ...genres.items.map(genreCategory)];
   const games = catalog.items.map(lobbyGame);
+  // 넘친 카테고리만 화살표로 옮기고, 맨 앞·맨 뒤에서는 더 갈 수 없는 쪽을 끈다.
+  const [categoryScroll, setCategoryScroll] = useState({ prev: false, next: false });
+  useEffect(() => {
+    const list = categoryListRef.current;
+    if (!list) return;
+    const update = () => {
+      const prev = list.scrollLeft > 1;
+      const next = list.scrollWidth - list.clientWidth - list.scrollLeft > 1;
+      setCategoryScroll((current) => current.prev === prev && current.next === next ? current : { prev, next });
+    };
+    update();
+    list.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(list);
+    return () => {
+      list.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [categories.length]);
   const categoryLabel =
     categories.find((value) => value.id === category)?.label ?? "전체";
   const catalogTitle = normalizedQuery
@@ -112,6 +131,13 @@ export function LobbyShell({ account }: { account: ReactNode }) {
     setQuery("");
   }
 
+  function scrollCategories(direction: -1 | 1) {
+    categoryListRef.current?.scrollBy({
+      left: direction * 250,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+    });
+  }
+
   return (
     <div className={styles.screen}>
       <a className={styles.skipLink} href="#game-catalog">
@@ -130,6 +156,15 @@ export function LobbyShell({ account }: { account: ReactNode }) {
         <main className={styles.main}>
           <HeroBanner onBrowse={browseGames} />
           <section className={styles.categories} aria-label="게임 카테고리">
+            <button
+              className={styles.categoryPrev}
+              type="button"
+              aria-label="이전 카테고리 보기"
+              disabled={!categoryScroll.prev}
+              onClick={() => scrollCategories(-1)}
+            >
+              <LobbyIcon name="chevron" />
+            </button>
             <div ref={categoryListRef} className={styles.categoryList}>
               {categories.map((item) => (
                 <button
@@ -155,16 +190,8 @@ export function LobbyShell({ account }: { account: ReactNode }) {
               className={styles.categoryNext}
               type="button"
               aria-label="다음 카테고리 보기"
-              onClick={() =>
-                categoryListRef.current?.scrollBy({
-                  left: 250,
-                  behavior: window.matchMedia(
-                    "(prefers-reduced-motion: reduce)",
-                  ).matches
-                    ? "instant"
-                    : "smooth",
-                })
-              }
+              disabled={!categoryScroll.next}
+              onClick={() => scrollCategories(1)}
             >
               <LobbyIcon name="chevron" />
             </button>

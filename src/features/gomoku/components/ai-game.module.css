@@ -3,7 +3,7 @@
 .heading, .heading > div, .heading button, .difficulty { display: flex; align-items: center; gap: .6em; }
 .heading { justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 1.2em; }
 .heading > div { flex-wrap: wrap; }
-/* 제목과 화면 버튼만 상단에 두고 차례 안내는 판과 같은 중앙 열에서 표시한다. */
+/* 좁은 화면의 차례 안내는 판 위에 두고, 넓은 화면에서는 팝업·나가기 버튼과 같은 줄로 올린다. */
 .heading h1 { display: inline-flex; align-items: center; gap: .45em; margin: 0; font-size: clamp(1.2rem, 1.6vw, 2rem); font-weight: 850; }
 .heading h1 svg { color: #e6943e; }
 .difficulty { padding: .45em .8em; border-radius: .7em; color: #7047c7; background: #f1eaff; font-size: .8em; font-weight: 750; }
@@ -14,9 +14,10 @@
 .avatar { display: grid; place-items: center; flex: 0 0 auto; width: clamp(50px, 5vw, 88px); aspect-ratio: 1; border-radius: 1.2rem; background: #f1eaff; color: #8051d1; }
 .avatar[data-ai="true"] { color: #e6943e; background: #fff2db; }
 .scene .avatar svg { width: 52%; height: 52%; }
-.rules { margin: .3rem .5rem 0; color: #79739e; font-size: .8em; line-height: 1.9; }
 /* 채팅이 없는 AI 화면에서는 데스크톱의 가용 높이에 맞춰 판과 아래 동작을 함께 볼 수 있게 한다. */
 .playArea { min-width: 0; width: 100%; max-width: clamp(320px, calc(100svh - 18rem), 1150px); justify-self: center; }
+/* 판·금수·계산 안내를 한 열로 묶어 참가자 카드와 위쪽 선을 맞출 수 있게 한다. */
+.boardStack { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 /* 긴 AI 계산 안내도 줄바꿈하며 차례 배경은 판 너비보다 짧게 가운데에 표시한다. */
 .status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .7rem; width: fit-content; max-width: calc(100% - 2rem); min-height: 46px; margin: 0 auto .7rem; padding: .6rem 1.2rem; border-radius: .9rem; background: #ffffffb0; color: #7047c7; font-size: .9em; text-align: center; overflow-wrap: anywhere; }
 .thinking { display: inline-flex; align-items: center; gap: 4px; }
@@ -33,10 +34,8 @@
 @media (max-width: 1100px) {
   .scene { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .playArea { max-width: 720px; }
-  /* 공통 참가자 패널의 flex 배치보다 우선해 두 카드와 규칙 안내가 세 칸으로 찌그러지지 않게 한다. */
-  .scene .players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 10px; }
-  .rules { grid-column: 1 / -1; text-align: center; font-size: 12px; }
-  .rules br { display: none; }
+  /* 공통 참가자 패널의 flex 배치보다 우선해 두 카드가 한 줄에서 같은 너비를 갖게 한다. */
+  .scene .players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 10px; align-self: start; height: auto; }
   .avatar { width: 42px; border-radius: 12px; }
   .heading { margin-bottom: 14px; }
   .heading .displayActions { margin-left: auto; justify-content: flex-end; }
@@ -52,18 +51,78 @@
   /* 아주 좁은 화면은 제목·화면 버튼이 필요할 때만 줄바꿈하고 차례 문구는 판 위에서 줄바꿈한다. */
   .heading { column-gap: 8px; }
 }
-/* 헤더·푸터를 제외한 셸의 본문 높이를 사용한다. 제목과 차례를 고정하고 판·동작은 남은 높이를 나눠 쓴다. */
+/* 헤더·푸터를 제외한 셸의 본문 높이를 사용한다. 제목·차례·화면 버튼을 한 줄에 두고 판과 참가자는 그 아래 선에 맞춘다. */
 @media (min-width: 1101px) and (min-height: 600px) {
-  .page[data-gomoku-game="ai"] { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: .5rem; }
-  .page[data-gomoku-game="ai"] .heading { flex: 0 0 auto; }
-  .page[data-gomoku-game="ai"] .scene { flex: 1 1 0%; min-height: 0; align-items: stretch; }
-  .page[data-gomoku-game="ai"] .scene .players { align-self: start; max-height: 100%; padding: clamp(.5rem, 1cqh, 1.2rem); overflow-y: auto; }
-  .page[data-gomoku-game="ai"] .playArea { display: flex; flex-direction: column; min-height: 0; max-width: none; container-type: inline-size; }
-  .page[data-gomoku-game="ai"] .status { flex: 0 0 auto; }
+  .page[data-gomoku-game="ai"] {
+    display: grid;
+    width: min(100%, 2400px);
+    height: 100%;
+    min-height: 0;
+    padding: .5rem;
+    /* 같은 폭의 좌우 열로 판을 가운데에 두고, 참가자는 이 간격보다 판에서 멀어지지 않는다. */
+    grid-template-columns: minmax(16rem, 1fr) minmax(0, min(1150px, calc(100cqh - 10.5rem))) minmax(16rem, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    column-gap: clamp(1rem, 1.6vw, 2.5rem);
+    row-gap: .75rem;
+    align-items: start;
+  }
+  .page[data-gomoku-game="ai"] .heading {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    grid-template-columns: subgrid;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    margin: 0;
+  }
+  /* 제목도 참가자 카드와 같은 너비로 판 옆에 두어 넓은 화면에서 왼쪽 끝으로 떨어지지 않게 한다. */
+  .page[data-gomoku-game="ai"] .heading > div:first-child { grid-column: 1; min-width: 0; justify-self: end; width: min(100%, 22rem); }
+  .page[data-gomoku-game="ai"] .displayActions { grid-column: 3; justify-self: end; margin-left: 0; }
+  .page[data-gomoku-game="ai"] .scene {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    grid-template-columns: subgrid;
+    grid-template-rows: subgrid;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* 바깥 배경은 두 카드 높이만 차지하고, 사람 대전과 같이 22rem을 넘지 않으며 판 바로 옆에 둔다. */
+  .page[data-gomoku-game="ai"] .scene .players {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    justify-self: end;
+    width: min(100%, 22rem);
+    height: auto;
+    max-height: 100%;
+    margin: 0;
+    padding: clamp(.5rem, 1cqh, 1.2rem);
+    overflow: auto;
+  }
+  .page[data-gomoku-game="ai"] .playArea { display: contents; }
+  .page[data-gomoku-game="ai"] .status {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-self: center;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0;
+  }
+  .page[data-gomoku-game="ai"] .boardStack {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: stretch;
+    min-height: 0;
+    container-type: inline-size;
+  }
+  .page[data-gomoku-game="ai"] .actions { grid-column: 2; grid-row: 3; align-self: start; justify-self: center; }
   /* 공통 좌표판의 높이 계산을 너비 상한에도 적용해 큰 화면에서 판과 버튼 사이에 빈 높이가 남지 않게 한다. */
   .page[data-gomoku-game="ai"] .boardSection { max-height: min(1170px, calc(100cqw + var(--board-label-size) * 3 - 1.1rem)); }
   .page[data-gomoku-game="ai"] .avatar { width: clamp(40px, 8cqh, 80px); }
-  .page[data-gomoku-game="ai"] .playArea > .actions { flex: 0 0 auto; justify-content: center; }
+  .page[data-gomoku-game="ai"] .playArea > .actions { justify-content: center; }
   .page[data-gomoku-game="ai"] .failure,
   .page[data-gomoku-game="ai"] .forbidden { flex: 0 0 auto; }
 }
@@ -72,7 +131,7 @@
   .page[data-gomoku-game="ai"] .playArea > .actions { width: min(100%, 16rem); }
   /* 오류·금수 안내가 더해지면 판을 지나치게 줄이지 않고 대국 영역 안에서 스크롤한다. 양쪽 여백은 대칭으로 유지한다. */
   .page[data-gomoku-game="ai"] .scene:has(.failure, .forbidden) { overflow-y: auto; scrollbar-gutter: stable both-edges; }
-  .page[data-gomoku-game="ai"] .playArea:has(.failure, .forbidden) { height: 36rem; }
+  .page[data-gomoku-game="ai"] .boardStack:has(.failure, .forbidden) { overflow: auto; }
 }
 /* 사람 대전과 같은 팝업 스타일을 공유하되 AI의 상태·아바타는 작은 창 높이에 맞춘다. */
 .popupPage { width: 100%; padding: .8rem; font-size: .875rem; }
@@ -81,7 +140,6 @@
 .popupPage .heading h1 svg { width: 1.2rem; height: 1.2rem; }
 .popupPage .scene { grid-template-columns: minmax(0, 1fr); gap: .65rem; }
 .popupPage .scene .players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0; gap: .6rem; background: transparent; }
-.popupPage .rules { display: none; }
 .popupPage .avatar { width: 36px; border-radius: 10px; }
 .popupPage .playArea { max-width: none; }
 .popupPage .status { min-height: 34px; margin-bottom: .6rem; padding: .4rem; font-size: .8rem; }

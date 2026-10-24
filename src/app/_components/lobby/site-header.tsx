@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { DismissibleDetails } from "./dismissible-details";
 import { LobbyIcon } from "./lobby-icon";
 import styles from "./lobby.module.css";
+import { AdminEntry } from "@/features/admin/components/admin-entry";
 
 /** 홈과 게임 화면이 같은 탐색·계정 경계를 사용한다. 홈 검색의 상태와 스크롤 동작도 그대로 전달한다. */
 export function SiteHeader({
@@ -68,6 +69,9 @@ export function SiteHeader({
           }
         />
       </form>}
+      {/* 관리 진입은 알림 왼쪽에 배치한다. 같은 열 안에서 묶어 권한별 표시 변화가 계정 배치를 밀지 않게 한다. */}
+      <div className={styles.headerActions}>
+      <AdminEntry />
       <DismissibleDetails className={styles.notifications}>
         <summary className={styles.iconButton} aria-label="알림">
           <LobbyIcon name="bell" />
@@ -79,6 +83,7 @@ export function SiteHeader({
           <span>새로운 소식이 생기면 알려드릴게요.</span>
         </div>
       </DismissibleDetails>
+      </div>
       <div className={styles.accountSlot}>{account}</div>
     </header>
   );

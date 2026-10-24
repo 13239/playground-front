@@ -5,6 +5,19 @@ import { parseOperationalNotice } from "@/lib/operational-notice";
 
 // 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
 const errors = {
+  // 관리 기능의 충돌과 권한 오류를 토큰 만료로 처리하거나 내부 예외 원문으로 노출하지 않는다.
+  ROLE_NOT_FOUND: [404, "권한을 찾을 수 없습니다."],
+  ROLE_ALREADY_EXISTS: [409, "이미 사용 중인 권한 코드입니다."],
+  ROLE_PROTECTED: [409, "기본 권한 또는 최고 관리자 설정은 변경할 수 없습니다."],
+  ROLE_IN_USE: [409, "회원 또는 접속 허용 설정에서 사용 중인 권한입니다."],
+  ROLE_PERMISSION_NOT_ASSIGNABLE: [400, "슈퍼 관리자 전용 기능은 다른 권한에 부여할 수 없습니다."],
+  AUTHORIZATION_CHANGED: [409, "다른 관리자가 먼저 수정했습니다. 최신 내용을 불러온 뒤 다시 편집해 주세요."],
+  AUTHORIZATION_SERVICE_UNAVAILABLE: [503, "관리 권한을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."],
+  ACCESS_EXEMPTION_INVALID: [400, "접속을 허용할 권한을 다시 확인해 주세요."],
+  CATALOG_GENRE_NOT_FOUND: [404, "게임 장르를 찾을 수 없습니다."],
+  GAME_CONFIGURATION_INVALID: [400, "게임 설정이 지원 범위를 벗어났습니다. 입력값을 확인해 주세요."],
+  GAME_CATALOG_CHANGED: [409, "게임 설정이 변경되었습니다. 최신 내용을 불러온 뒤 다시 편집해 주세요."],
+  GAME_CATALOG_CONFLICT: [409, "이미 등록되어 있거나 다른 관리자가 변경한 설정입니다."],
   VALIDATION_FAILED: [400, "입력값이 올바르지 않습니다."],
   INVALID_REQUEST_BODY: [400, "요청 본문의 형식 또는 값이 올바르지 않습니다."],
   PAYLOAD_TOO_LARGE: [413, "요청 본문이 너무 큽니다."],
