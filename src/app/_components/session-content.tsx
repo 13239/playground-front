@@ -49,7 +49,9 @@ export function SessionContent() {
 
   // 로비의 공개 화면 틀은 유지하며 헤더의 계정 영역에서만 확인·복구 상태를 안내한다.
   // 표시 이름은 계정 메뉴가 조회한 닉네임을 사용하므로 로그인 아이디를 전달하지 않는다.
-  if (!session) return <SessionRecovery compact message={state.status === "error" ? state.message : undefined} onRetry={retryAuthSession} />;
+  if (!session) return <SessionRecovery compact message={state.status === "error" ? state.message : undefined} onRetry={retryAuthSession}
+    retryAt={state.status === "error" || state.status === "checking" ? state.retryAt : undefined}
+    pending={state.status === "error" && state.pending} startedAt={state.status === "checking" ? state.startedAt : undefined} />;
 
   return (
     <AccountMenu key={session.sessionId} sessionId={session.sessionId} sessionWarning={state.status === "authenticated" ? state.verificationError : undefined}>

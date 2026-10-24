@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useId, useRef, useState, type Rea
 import type { AdminContext, PermissionCode } from "../contracts";
 import { adminRequest, errorMessage } from "../client/api";
 import { AuthRequestError } from "@/features/auth/client/api";
+import { RetryButton } from "@/app/_components/retry-button";
 import { invalidateAdminAccess } from "../client/use-admin-access";
 import styles from "./admin.module.css";
 
@@ -19,8 +20,9 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 export function Feedback({ error, success }: { error?: string; success?: string }) {
   return error ? <p className={styles.error} role="alert">{error}</p> : success ? <p className={styles.success} role="status">{success}</p> : null;
 }
-export function Loading({ error, retry }: { error?: string; retry?: () => void }) {
-  return <div className={styles.empty} role="status"><p>{error ?? "설정을 불러오고 있어요."}</p>{error && retry && <button onClick={retry}>다시 불러오기</button>}</div>;
+// 인증 복구에 전달된 대기 시각은 다른 화면과 같은 기준으로 표시하고 일반 관리 데이터 조회에도 재사용한다.
+export function Loading({ error, retry, retryAt, pending }: { error?: string; retry?: () => void; retryAt?: number; pending?: boolean }) {
+  return <div className={styles.empty} role="status"><p>{error ?? "설정을 불러오고 있어요."}</p>{error && retry && <RetryButton label="다시 불러오기" onRetry={retry} retryAt={retryAt} pending={pending} />}</div>;
 }
 export function Reason() { return <Field label="변경 사유 (선택)"><input name="reason" maxLength={300} placeholder="운영 기록에 남길 내용을 입력하세요" /></Field>; }
 export const formText = (form: FormData, key: string) => String(form.get(key) ?? "").trim();

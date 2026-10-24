@@ -7,7 +7,7 @@ import type { ChatDestination } from "./protocol";
 
 export type { PendingChatMessage, ChatConnectionState, ChatActionResult } from "./global-chat-store";
 
-/** 로비 단위로 한 번만 연결한다. 화면에 동시에 존재하는 PC·모바일 패널은 상태를 공유한다. */
+/** 공통 레이아웃에서 문서 단위로 한 번만 연결한다. 화면에 동시에 존재하는 PC·모바일 패널은 상태를 공유한다. */
 export function useGlobalChat() {
   return useChatConnection({ scope: "GLOBAL" });
 }
@@ -28,7 +28,11 @@ export function useChatConnection(destination: ChatDestination) {
   }, [store, sessionId, auth.status]);
 
   // 늦게 도착한 이전 세션의 응답이나 인증 재확인 중의 메시지가 새 계정 화면에 표시되지 않는다.
-  const visible = sessionId && snapshot.sessionId === sessionId ? snapshot : EMPTY_CHAT;
+  // 아직 확인하지 못한 세션을 로그아웃으로 안내하지 않는다. 인증 오류의 복구는 공통 계정 영역에서 제공한다.
+  const visible = sessionId && snapshot.sessionId === sessionId ? snapshot : auth.status === "anonymous" ? EMPTY_CHAT : {
+    ...EMPTY_CHAT, state: "expired" as const,
+    error: auth.status === "error" ? "로그인 확인이 필요해요. 화면의 다시 확인 버튼을 이용해 주세요." : undefined,
+  };
   return { ...visible, sendMessage: store.sendMessage, loadOlder: store.loadOlder, loadPresence: store.loadPresence,
     returnToLatest: store.returnToLatest, retryHistory: store.retryHistory, retryMessage: store.retryMessage, retry: store.retry };
 }

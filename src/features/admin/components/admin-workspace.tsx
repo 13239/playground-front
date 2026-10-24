@@ -42,7 +42,7 @@ export function AdminWorkspace({ section }: { section?: string }) {
       <main id="admin-main" className={styles.main}>
         {auth.status === "anonymous" ? <div className={styles.empty}><h1>로그인이 필요해요</h1><Link href="/login">로그인하러 가기</Link></div>
           // 인증 장애를 끝없는 권한 확인으로 표시하지 않고 기존 세션 복구 절차로 재시도한다.
-          : auth.status === "error" || auth.status === "authenticated" && auth.verificationError ? <Loading error={auth.status === "error" ? auth.message : auth.verificationError} retry={retryAuthSession} />
+          : auth.status === "error" || auth.status === "authenticated" && auth.verificationError ? <Loading error={auth.status === "error" ? auth.message : auth.verificationError} retry={retryAuthSession} retryAt={auth.retryAt} pending={auth.pending} />
           : access.status === "checking" ? <Loading />
           : access.status !== "ready" ? <div className={styles.empty}><h1>{access.status === "denied" ? "관리자 페이지 접근 권한이 없어요" : "접근 권한을 확인하지 못했어요"}</h1><p>{access.message}</p>{access.status === "error" && <button onClick={invalidateAdminAccess}>다시 확인</button>}<Link href="/">홈으로 돌아가기</Link></div>
           : !selected || !allowed.some(s => s.key === selected.key) ? <div className={styles.empty}><h1>이 메뉴를 사용할 권한이 없어요</h1><p>슈퍼 관리자에게 기능 권한을 확인해 주세요.</p></div>

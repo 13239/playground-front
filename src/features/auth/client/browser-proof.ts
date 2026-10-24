@@ -5,25 +5,40 @@ import { AuthRequestError, requireSuccess } from "./error";
 import { proofBody } from "../request-binding";
 import { isDevHttpAuth } from "./environment";
 import { assertAuthRequestAllowed, rememberAuthRateLimit } from "./request-cooldown";
+import { createSharedRequest } from "./shared-request";
 
 type Purpose = "login" | "session";
 type Nonce = Readonly<{ value: string; receivedAt: number; serverTime: number; validUntil: number; thumbprint: string }>;
 const nonces = new Map<Purpose, Nonce>();
+// 병렬 API는 목적·키·인증 세대가 같은 nonce 발급만 공유한다. 요청별 서명과 증명 ID는 매번 새로 만든다.
+const pendingNonces = new Map<Purpose, Readonly<{
+  thumbprint: string; revision: number; run: (signal?: AbortSignal) => Promise<Nonce>;
+}>>();
 let nonceRevision = 0;
 
 /** 탭에는 목적별 nonce 두 건만 보관한다. 인증 토큰이나 개인키 문자열을 저장하지 않는다. */
-export function clearProofNonces(): void { nonceRevision++; nonces.clear(); }
+export function clearProofNonces(): void { nonceRevision++; nonces.clear(); pendingNonces.clear(); }
 
 async function nonceFor(purpose: Purpose, thumbprint: string, signal?: AbortSignal): Promise<Nonce> {
   signal?.throwIfAborted();
   const cached = nonces.get(purpose);
   if (cached && cached.thumbprint === thumbprint && performance.now() < cached.validUntil) return cached;
+  const pending = pendingNonces.get(purpose);
+  if (pending?.thumbprint === thumbprint && pending.revision === nonceRevision) return pending.run(signal);
   const currentRevision = nonceRevision;
+  const run = createSharedRequest<Nonce>(requestSignal => requestNonce(purpose, thumbprint, currentRevision, requestSignal));
+  pendingNonces.set(purpose, { thumbprint, revision: currentRevision, run });
+  return run(signal);
+}
+
+/** 한 화면의 취소가 다른 화면의 발급을 끊지 않으며, 모든 대기자가 취소하면 실제 발급도 중단한다. */
+async function requestNonce(purpose: Purpose, thumbprint: string, currentRevision: number, signal: AbortSignal): Promise<Nonce> {
+  signal.throwIfAborted();
   // 종료 증명 준비도 공통 제한을 지킨다. 일반 탭 복귀에는 유효한 nonce를 그대로 재사용한다.
   assertAuthRequestAllowed("/api/auth/proof-challenge");
   const response = await requireSuccess(await fetch("/api/auth/proof-challenge", {
     method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
-    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(35_000)]) : AbortSignal.timeout(35_000),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(35_000)]),
     headers: { "Content-Type": "application/json" }, body: JSON.stringify({ purpose, keyThumbprint: thumbprint }),
   })).catch(error => { rememberAuthRateLimit("/api/auth/proof-challenge", error); throw error; });
   const value: unknown = await response.json();
@@ -37,7 +52,7 @@ async function nonceFor(purpose: Purpose, thumbprint: string, signal?: AbortSign
   }
   const receivedAt = performance.now();
   const result = { value: value.nonce, serverTime, receivedAt, validUntil: receivedAt + lifetime - 5000, thumbprint };
-  signal?.throwIfAborted();
+  signal.throwIfAborted();
   // 계정 변경 전에 시작한 발급 응답이 새 세션의 nonce 캐시를 되살리지 않게 한다.
   if (currentRevision === nonceRevision) nonces.set(purpose, result);
   return result;
@@ -80,6 +95,7 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
   const timeout = path === "/api/gomoku/rooms/state" ? 5_000 : 35_000;
   // 호출자의 취소와 인증/스트림 연결 단계의 제한 시간을 합쳐 요청 전체를 중단할 수 있게 한다.
   const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeout)]) : AbortSignal.timeout(timeout);
+  let attemptedNonceRevision: number | undefined;
   try {
     signal?.throwIfAborted();
     // 세션·프로필·채팅 티켓이 같은 제한을 반복해서 소모하지 않도록 서명과 HTTP 요청 전에 확인한다.
@@ -100,6 +116,7 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     const purpose = path === "/api/auth/login" ? "login" : "session";
     const key = await getBrowserKey(purpose === "login");
     signal?.throwIfAborted();
+    attemptedNonceRevision = nonceRevision;
     const nonce = await nonceFor(purpose, key.thumbprint, signal);
     const body = input === undefined ? undefined : JSON.stringify(input);
     const proof = await signBoundRequest(path, method, body, key, nonce, admin?.sessionId);
@@ -116,10 +133,12 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     rememberAuthRateLimit(path, error);
     if (nonceRetry && error instanceof AuthRequestError
       && ["BROWSER_PROOF_EXPIRED", "BROWSER_PROOF_INVALID"].includes(error.code ?? "")) {
-      clearProofNonces();
+      // 병렬 요청의 늦은 거절이 다른 요청에서 이미 갱신한 nonce와 진행 중인 발급을 다시 지우지 않게 한다.
+      if (attemptedNonceRevision === nonceRevision) clearProofNonces();
       return signedAuthRequest(path, input, false, signal, admin);
     }
     if (error instanceof AuthRequestError) throw error;
-    throw new AuthRequestError("서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.", 0);
+    throw new AuthRequestError("서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.", 0, undefined,
+      requestSignal.aborted ? "AUTH_REQUEST_TIMEOUT" : "NETWORK_UNAVAILABLE");
   }
 }

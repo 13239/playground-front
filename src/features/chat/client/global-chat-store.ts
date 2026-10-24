@@ -2,7 +2,9 @@ import { createUuidV4 } from "@/lib/client/uuid";
 import { AuthRequestError } from "@/features/auth/client/api";
 import { revalidateAuthSession } from "@/features/auth/client/session-store";
 import { authRetryDelay } from "@/features/auth/client/request-cooldown";
-import { connectChat } from "./connection";
+import { chatConnectionError, connectChat } from "./connection";
+import { chatRecovery } from "./recovery";
+import { reportConnectionIssue } from "@/lib/client/connection-diagnostics";
 import { mergeMessages } from "./message-window";
 import { parseChatEvent, sendChatFrame, validatedChatContent,
   type ChatEvent, type PublicChatMessage, type PublicChatUser, type ChatDestination } from "./protocol";
@@ -14,6 +16,11 @@ const PING_INTERVAL_MS = 25_000;
 const PONG_TIMEOUT_MS = 15_000;
 const MAX_PENDING = 20;
 const MAX_SEND_ATTEMPTS = 3;
+const MAX_AUTH_RECOVERY_ATTEMPTS = 3;
+const ticketIssueCodes = new Set([
+  "CHAT_TICKET_INVALID", "CHAT_TICKET_RATE_LIMIT_EXCEEDED", "CHAT_SERVICE_UNAVAILABLE", "BACKEND_TIMEOUT",
+  "BACKEND_UNAVAILABLE", "AUTH_SERVICE_UNAVAILABLE", "INVALID_BACKEND_RESPONSE", "SERVER_CONFIGURATION_ERROR", "NETWORK_UNAVAILABLE",
+]);
 type Timer = ReturnType<typeof setTimeout>;
 
 export type PendingChatMessage = Readonly<{
@@ -22,11 +29,13 @@ export type PendingChatMessage = Readonly<{
   state: "queued" | "unconfirmed" | "failed";
   attempts: number;
 }>;
-export type ChatConnectionState = "login" | "connecting" | "connected" | "reconnecting" | "expired";
+export type ChatConnectionState = "login" | "connecting" | "connected" | "reconnecting" | "expired" | "error";
 export type ChatActionResult = Readonly<{ ok: boolean; message?: string }>;
 export type ChatSnapshot = Readonly<{
   sessionId: string | null;
   state: ChatConnectionState;
+  error?: string;
+  retryAt?: number;
   messages: PublicChatMessage[];
   pending: PendingChatMessage[];
   history: "idle" | "loading" | "more" | "done" | "error";
@@ -59,6 +68,8 @@ export class GlobalChatStore {
   private abort?: AbortController;
   private generation = 0;
   private retries = 0;
+  // 같은 세션의 반복 인증 실패는 전역 로그인 확인을 무한히 재시작하지 않는다.
+  private authFailures = 0;
   private reconnectAt = 0;
   private retryTimer?: Timer;
   private pingTimer?: ReturnType<typeof setInterval>;
@@ -97,14 +108,22 @@ export class GlobalChatStore {
       this.snapshot = emptySnapshot();
       this.nextCursor = null;
       this.retries = 0;
+      this.authFailures = 0;
       this.reconnectAt = 0;
     }
-    this.abort = new AbortController();
-    this.update({ sessionId, state: "connecting", history: "idle", viewingOlder: false, hasNewMessages: false,
+    const controller = new AbortController();
+    this.abort = controller;
+    const generation = this.generation;
+    const exhausted = this.authFailures >= MAX_AUTH_RECOVERY_ATTEMPTS;
+    this.update({ sessionId, state: exhausted ? "error" : "connecting",
+      error: exhausted ? "채팅 접속 인증을 반복해서 확인하지 못했어요. 잠시 후 다시 연결해 주세요." : undefined,
+      retryAt: exhausted ? this.retryDeadline() : undefined,
+      history: "idle", viewingOlder: false, hasNewMessages: false,
       pending: this.snapshot.pending.map((item) => ({ ...item, state: "unconfirmed" })),
       onlineCount: null, onlineUsers: [], onlineNextCursor: null, onlineLoading: false });
-    void this.establish(this.generation, sessionId, this.abort.signal);
-    return this.disconnect;
+    if (!exhausted && generation === this.generation && !controller.signal.aborted) void this.establish(generation, sessionId, controller.signal);
+    // 이전 화면의 늦은 정리가 새 세션의 연결을 닫지 않도록 해당 연결 수명만 정리한다.
+    return () => { if (this.abort === controller) this.disconnect(); };
   };
 
   clear = (): void => {
@@ -115,7 +134,9 @@ export class GlobalChatStore {
 
   disconnect = (): void => {
     this.generation++;
-    this.abort?.abort();
+    const controller = this.abort;
+    this.abort = undefined;
+    controller?.abort();
     this.cancelConnection();
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = undefined;
@@ -148,11 +169,14 @@ export class GlobalChatStore {
     // 같은 세션의 인증 재확인으로 효과가 다시 연결돼도 기존 제한 대기 시간은 유지한다.
     const remaining = this.reconnectAt - performance.now();
     if (remaining > 0) {
-      this.update({ state: "reconnecting" });
+      this.setDisconnected("reconnecting");
+      if (generation !== this.generation || signal.aborted) return;
       this.retryTimer = setTimeout(() => { void this.establish(generation, sessionId, signal); }, remaining);
       return;
     }
-    this.update({ state: this.retries ? "reconnecting" : "connecting" });
+    // 실제 연결 준비와 다음 시도까지의 대기를 구분해 진행 중인 연결을 중복 재시도하지 않게 한다.
+    this.update({ state: "connecting", retryAt: undefined });
+    if (generation !== this.generation || signal.aborted) return;
     try {
       const connection = await connectChat(sessionId, signal, this.destination);
       if (generation !== this.generation || signal.aborted) { connection.close(); return; }
@@ -168,16 +192,14 @@ export class GlobalChatStore {
         if (frame) this.receive(frame);
       };
       // 종료 이벤트가 없는 통신 단절도 같은 정리·재접속 경로로 처리한다. 자동 재접속끼리는 소켓으로 구분한다.
-      const onConnectionLost = (closeCode?: number) => {
+      const onConnectionLost = (closeCode?: number, closeReason = "") => {
         if (generation !== this.generation || this.socket !== socket || signal.aborted) return;
-        if (performance.now() - connectedAt >= 30_000) this.retries = 0;
+        if (performance.now() - connectedAt >= 30_000) { this.retries = 0; this.authFailures = 0; }
         this.cancelConnection();
-        if (closeCode === 4401 || closeCode === 4403 && this.destination.scope === "GLOBAL") {
-          this.update({ state: "expired" });
-          revalidateAuthSession();
-        } else this.reconnect(generation, sessionId, signal, closeCode === 1008 ? 60_000 : 0);
+        // 종료 코드만으로 판단하지 않고 서버의 고정 오류 식별자로 티켓·세션·방 권한을 구분한다.
+        this.recover(chatConnectionError(closeCode ?? 1006, closeReason), generation, sessionId, signal);
       };
-      const onClose = (event: CloseEvent) => onConnectionLost(event.code);
+      const onClose = (event: CloseEvent) => onConnectionLost(event.code, event.reason);
       const ping = () => {
         // 복귀 직후의 확인과 주기 PING도 서버의 최소 1초 간격·단일 PONG 대기를 공유한다.
         if (generation !== this.generation || this.socket !== socket || signal.aborted || this.pongTimer !== undefined
@@ -211,8 +233,8 @@ export class GlobalChatStore {
         window.removeEventListener("focus", onResume);
         window.removeEventListener("online", onResume);
       };
-      this.update({ state: "connected" });
       this.reconnectAt = 0;
+      this.update({ state: "connected", error: undefined, retryAt: undefined });
       for (const data of connection.takeBufferedFrames()) onMessage({ data } as MessageEvent<string>);
       // 상태 구독자가 로그아웃·계정 전환을 처리했다면 이전 연결에 새 타이머를 설치하지 않는다.
       if (generation !== this.generation || this.socket !== socket || signal.aborted) return;
@@ -231,22 +253,65 @@ export class GlobalChatStore {
       if (generation !== this.generation || signal.aborted) return;
       // 인증 후 이력 조회 등에서 예외가 나더라도 이전 WebSocket을 닫고 재시도한다.
       this.cancelConnection();
-      if (error instanceof AuthRequestError && (error.status === 401 || error.status === 403 && error.code !== "CHAT_ROOM_ACCESS_DENIED")) {
-        this.update({ state: "expired" });
-        revalidateAuthSession();
-      } else this.reconnect(generation, sessionId, signal, error instanceof AuthRequestError && error.status === 429 ? authRetryDelay(error) : 0);
+      this.recover(error, generation, sessionId, signal);
     }
+  }
+
+  /** 서버가 세션 무효를 명시할 때만 전역 인증을 확인하고 나머지는 채팅의 복구 예산 안에서 처리한다. */
+  private recover(error: unknown, generation: number, sessionId: string, signal: AbortSignal): void {
+    if (generation !== this.generation || signal.aborted) return;
+    const recovery = chatRecovery(error);
+    // 원문 오류·티켓·대화는 전달하지 않고 복구를 결정한 고정 단계와 코드만 남긴다.
+    if (error instanceof AuthRequestError && error.code !== "LOGIN_SESSION_CHANGED") {
+      const code = error.code ?? "CHAT_CONNECTION_UNAVAILABLE";
+      const phase = ticketIssueCodes.has(code) ? "chat-ticket" : recovery === "session" || recovery === "stop" ? "chat-authentication" : "chat-connection";
+      reportConnectionIssue(phase, code, error.status);
+    } else if (!(error instanceof AuthRequestError) && !(error instanceof DOMException && error.name === "AbortError")) {
+      reportConnectionIssue("chat-connection");
+    }
+    if (recovery === "session" || recovery === "ticket") this.authFailures++;
+    const exhausted = this.authFailures >= MAX_AUTH_RECOVERY_ATTEMPTS;
+    if (recovery === "stop" || exhausted) {
+      this.reconnectAt = Math.max(this.reconnectAt, performance.now() + RETRY_MAX_MS);
+      this.setDisconnected("error", exhausted
+        ? "채팅 접속 인증을 반복해서 확인하지 못했어요. 잠시 후 다시 연결해 주세요."
+        : error instanceof AuthRequestError ? error.message : "채팅에 연결하지 못했습니다. 잠시 후 다시 연결해 주세요.");
+    } else if (recovery === "session") {
+      // 같은 세션이 BFF에서 다시 확인돼도 곧바로 채팅 인증을 반복하지 않도록 대기를 먼저 보존한다.
+      this.deferRetry();
+      this.setDisconnected("expired");
+    } else {
+      this.reconnect(generation, sessionId, signal, error instanceof AuthRequestError && error.status === 429 ? authRetryDelay(error) : 0);
+    }
+    // 실제 세션 오류는 마지막 시도에서도 확인하되 이후 같은 세션의 자동 채팅 재연결은 중단한다.
+    if (recovery === "session" && generation === this.generation && !signal.aborted) revalidateAuthSession();
+  }
+
+  private setDisconnected(state: ChatConnectionState, error?: string): void {
+    this.update({ state, error, retryAt: this.retryDeadline(), onlineCount: null, onlineUsers: [], onlineNextCursor: null,
+      onlineLoading: false, pending: this.snapshot.pending.map((item) => ({ ...item, state: "unconfirmed" })) });
+  }
+
+  /** 내부 재접속 시계는 유지하고 화면에는 브라우저 복귀 후에도 계산할 수 있는 공개 종료 시각만 제공한다. */
+  private retryDeadline(): number | undefined {
+    const remaining = this.reconnectAt - performance.now();
+    return remaining > 0 ? Date.now() + remaining : undefined;
+  }
+
+  private deferRetry(retryAfter = 0): number {
+    // 티켓 발급·연결 제한의 Retry-After는 일반 지수 재접속 상한보다 우선한다.
+    const delay = Math.max(retryAfter, Math.min(RETRY_MAX_MS, 1000 * 2 ** Math.min(this.retries++, 4)));
+    this.reconnectAt = Math.max(this.reconnectAt, performance.now() + delay + Math.floor(Math.random() * 400));
+    return this.reconnectAt - performance.now();
   }
 
   private reconnect(generation: number, sessionId: string, signal: AbortSignal, retryAfter = 0): void {
     if (generation !== this.generation || signal.aborted) return;
-    this.update({ state: "reconnecting", onlineCount: null, onlineUsers: [], onlineNextCursor: null,
-      onlineLoading: false, pending: this.snapshot.pending.map((item) => ({ ...item, state: "unconfirmed" })) });
-    // 티켓 발급·연결 제한의 Retry-After는 일반 지수 재접속 상한보다 우선한다.
-    const delay = Math.max(retryAfter, Math.min(RETRY_MAX_MS, 1000 * 2 ** Math.min(this.retries++, 4)));
-    this.reconnectAt = performance.now() + delay;
-    this.retryTimer = setTimeout(() => { void this.establish(generation, sessionId, signal); },
-      delay + Math.floor(Math.random() * 400));
+    const delay = this.deferRetry(retryAfter);
+    this.setDisconnected("reconnecting");
+    // 구독자가 오류 처리 중 로그아웃·계정 전환을 완료했다면 이전 세션의 재시도를 새로 예약하지 않는다.
+    if (generation !== this.generation || signal.aborted) return;
+    this.retryTimer = setTimeout(() => { void this.establish(generation, sessionId, signal); }, delay);
   }
 
   private loadHistory(before: string | null = null): boolean {
@@ -272,7 +337,12 @@ export class GlobalChatStore {
   returnToLatest = (): boolean => this.loadHistory();
   retryHistory = (): boolean => this.loadHistory(this.failedHistoryBefore);
   // 수동 재연결도 서버가 정한 대기 시간을 건너뛰지 않는다.
-  retry = (): void => { if (this.snapshot.sessionId && performance.now() >= this.reconnectAt) this.connect(this.snapshot.sessionId); };
+  retry = (): void => {
+    if (this.snapshot.sessionId && performance.now() >= this.reconnectAt) {
+      this.authFailures = 0;
+      this.connect(this.snapshot.sessionId);
+    }
+  };
 
   loadPresence = (cursor: string | null = null): boolean => {
     // 방 인원은 MySQL 참가 상태에서 표시하며 공용 채팅 접속자 목록과 섞지 않는다.

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
+import { RetryButton } from "@/app/_components/retry-button";
 import { AuthRequestError } from "@/features/auth/client/api";
 import {
   revalidateAuthSession,
@@ -138,18 +139,12 @@ export function RoomList() {
         ) : (
           <div className={styles.empty} role="status">
             <LobbyIcon name="board" />
-            <h2>로그인 상태 확인 중</h2>
+            <h2>{auth.status === "error" ? "로그인 확인 필요" : "로그인 상태 확인 중"}</h2>
             <p>
               {auth.status === "error" ? auth.message : "잠시만 기다려 주세요."}
             </p>
             {auth.status === "error" && (
-              <button
-                className={styles.secondaryButton}
-                type="button"
-                onClick={revalidateAuthSession}
-              >
-                다시 확인
-              </button>
+              <RetryButton className={styles.secondaryButton} label="다시 확인" onRetry={revalidateAuthSession} retryAt={auth.retryAt} pending={auth.pending} />
             )}
           </div>
         )}

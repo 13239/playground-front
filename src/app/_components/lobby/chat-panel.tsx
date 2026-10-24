@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { useChat } from "@/features/chat/client/chat-provider";
+import { RetryButton } from "@/app/_components/retry-button";
 import { LobbyIcon } from "./lobby-icon";
 import styles from "./lobby.module.css";
 
@@ -34,7 +35,9 @@ export function ChatPanel({
   const { loadPresence } = chat;
   const onlineLabel =
     chat.onlineCount === null
-      ? "접속자 확인 중"
+      // 중단된 채팅을 계속 확인 중으로 표시하지 않고 로그인·연결 오류를 구분한다.
+      ? chat.state === "error" ? "연결 확인 필요" : chat.state === "login" ? "로그인 필요"
+        : chat.state === "expired" ? chat.error ? "로그인 확인 필요" : "로그인 확인 중" : "접속자 확인 중"
       : `${chat.onlineCount.toLocaleString("ko-KR")}명 접속 중`;
 
   useEffect(() => {
@@ -131,7 +134,8 @@ export function ChatPanel({
     connecting: "채팅 서버에 연결하고 있어요.",
     connected: "메시지는 저장된 뒤 모두에게 전달돼요.",
     reconnecting: "연결이 끊겨 다시 접속하고 있어요.",
-    expired: "로그인 상태를 다시 확인하고 있어요.",
+    expired: chat.error ?? "로그인 상태를 다시 확인하고 있어요.",
+    error: chat.error ?? "채팅에 연결하지 못했어요. 잠시 후 다시 연결해 주세요.",
   }[chat.state];
 
   return (
@@ -351,7 +355,7 @@ export function ChatPanel({
       </div>
       <div className={styles.chatFooter}>
         <p id={statusId} role="status">
-          {composerError || status}
+          {chat.state === "error" ? status : composerError || status}
         </p>
         {/* 채팅 입력은 아이콘·전송 버튼을 감싼 테두리 하나만 강조한다. */}
         <form
@@ -383,14 +387,9 @@ export function ChatPanel({
             <LobbyIcon name="send" />
           </button>
         </form>
-        {chat.state === "reconnecting" && (
-          <button
-            type="button"
-            className={styles.chatRetry}
-            onClick={chat.retry}
-          >
-            다시 연결
-          </button>
+        {/* 채팅 인증·권한 오류도 이 패널에서 복구하며 전역 로그인 확인을 반복하지 않는다. */}
+        {(chat.state === "reconnecting" || chat.state === "error") && (
+          <RetryButton className={styles.chatRetry} label="다시 연결" onRetry={chat.retry} retryAt={chat.retryAt} />
         )}
       </div>
     </section>

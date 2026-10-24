@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
+import { RetryButton } from "@/app/_components/retry-button";
 import { revalidateAuthSession, useAuthSession } from "@/features/auth/client/session-store";
 import { aiDifficulties, aiRules, type AiDifficulty, type AiRule } from "../ai/contracts";
 import { useAiGame } from "../client/use-ai-game";
@@ -22,9 +23,9 @@ import styles from "./ai-game.module.css";
 export function AiGameScreen({ difficulty, rule }: { difficulty: AiDifficulty; rule: AiRule }) {
   const auth = useAuthSession();
   if (auth.status !== "authenticated") return <div className={shared.empty} role="status">
-    <h2>로그인 상태 확인 중</h2>
+    <h2>{auth.status === "error" ? "로그인 확인 필요" : "로그인 상태 확인 중"}</h2>
     <p>{auth.status === "error" ? auth.message : "잠시만 기다려 주세요."}</p>
-    {auth.status === "error" && <button type="button" className={shared.secondaryButton} onClick={revalidateAuthSession}>다시 확인</button>}
+    {auth.status === "error" && <RetryButton className={shared.secondaryButton} label="다시 확인" onRetry={revalidateAuthSession} retryAt={auth.retryAt} pending={auth.pending} />}
   </div>;
   return <GameEntryGate key={`${auth.session.sessionId}:${difficulty}:${rule}`} game="GOMOKU" mode="AI" sessionId={auth.session.sessionId}>
     <AiGame difficulty={difficulty} rule={rule} sessionId={auth.session.sessionId} />

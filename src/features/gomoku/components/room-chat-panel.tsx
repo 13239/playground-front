@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { useChatConnection } from "@/features/chat/client/use-global-chat";
+import { RetryButton } from "@/app/_components/retry-button";
 import type { WaitingRoom } from "../waiting-contracts";
 import styles from "./waiting-room.module.css";
 
@@ -92,7 +93,8 @@ export function RoomChatPanel({ room }: { room: WaitingRoom }) {
     connecting: "방 채팅에 연결하고 있어요.",
     connected: "이 방의 참가자만 대화를 볼 수 있어요.",
     reconnecting: "연결을 복구하고 있어요.",
-    expired: "로그인 상태를 다시 확인해 주세요.",
+    expired: chat.error ?? "로그인 상태를 다시 확인해 주세요.",
+    error: chat.error ?? "방 채팅에 연결하지 못했어요. 잠시 후 다시 연결해 주세요.",
   }[chat.state];
 
   return (
@@ -227,7 +229,7 @@ export function RoomChatPanel({ room }: { room: WaitingRoom }) {
       </div>
       <div className={styles.chatFooter}>
         <p className={styles.chatStatus} role="status">
-          {error || status}
+          {chat.state === "error" ? status : error || status}
         </p>
         {emojiOpen && (
           <div className={styles.emojiTray} aria-label="이모지 선택">
@@ -282,10 +284,9 @@ export function RoomChatPanel({ room }: { room: WaitingRoom }) {
             <LobbyIcon name="send" />
           </button>
         </form>
-        {chat.state === "reconnecting" && (
-          <button className={styles.chatTextButton} onClick={chat.retry}>
-            다시 연결
-          </button>
+        {/* 방 참가·채팅 인증 오류는 방 채팅의 재시도로 복구하며 입력은 재연결 전까지 비활성화한다. */}
+        {(chat.state === "reconnecting" || chat.state === "error") && (
+          <RetryButton className={styles.chatTextButton} label="다시 연결" onRetry={chat.retry} retryAt={chat.retryAt} />
         )}
       </div>
     </aside>

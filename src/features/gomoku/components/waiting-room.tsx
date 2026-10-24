@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
+import { RetryButton } from "@/app/_components/retry-button";
 import { AuthRequestError } from "@/features/auth/client/api";
 import {
   revalidateAuthSession,
@@ -103,12 +104,7 @@ export function WaitingRoomScreen({ roomId }: { roomId: number }) {
             : "로그인 상태를 확인하고 있어요."}
       </p>
       {auth.status === "error" && (
-        <button
-          className={common.primaryButton}
-          onClick={revalidateAuthSession}
-        >
-          다시 확인
-        </button>
+        <RetryButton className={common.primaryButton} label="다시 확인" onRetry={revalidateAuthSession} retryAt={auth.retryAt} pending={auth.pending} />
       )}
       {auth.status === "anonymous" && (
         <Link className={common.primaryButton} href="/login">

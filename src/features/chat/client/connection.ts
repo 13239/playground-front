@@ -3,6 +3,7 @@ import { SignJWT } from "jose";
 import { requestAuthenticatedApi, AuthRequestError } from "@/features/auth/client/api";
 import { getBrowserKey } from "@/features/auth/client/browser-key";
 import { isDevHttpAuth } from "@/features/auth/client/environment";
+import { withAuthRequestContext } from "@/features/auth/client/request-context";
 import type { ChatDestination } from "./protocol";
 import { isChatAuthenticatedFrame, isChatTicket, publicChatTicket,
   type ChatTicket, type ChatUser } from "../contracts";
@@ -18,8 +19,18 @@ export type AuthenticatedChatConnection = Readonly<{
 
 type ReceivedTicket = ChatTicket & Readonly<{ receivedAt: number }>;
 
+/** 발급·서명·소켓 열기 사이의 지연도 확인해 만료된 티켓을 로그인 오류로 처리하지 않는다. */
+function assertTicketValid(ticket: ReceivedTicket): void {
+  if (performance.now() - ticket.receivedAt >= Date.parse(ticket.expiresAt) - Date.parse(ticket.serverTime)) {
+    throw new AuthRequestError("채팅 접속 정보가 만료되었습니다. 다시 연결해 주세요.", 401, undefined, "CHAT_TICKET_INVALID");
+  }
+}
+
 /** 일시 장애·시간 초과·증명 거절을 구분하며 서버의 임의 종료 문구는 화면에 표시하지 않는다. */
 export function chatConnectionError(code: number, reason: string): AuthRequestError {
+  if (code === 4401 && reason === "ACCESS_RESTRICTED") {
+    return new AuthRequestError("로그인 상태가 변경되었습니다. 현재 접속 상태를 다시 확인합니다.", 401, undefined, "ACCESS_RESTRICTED");
+  }
   if (code === 4401 && reason === "INVALID_SESSION") {
     return new AuthRequestError("로그인이 만료되었습니다. 다시 로그인해 주세요.", 401, undefined, "INVALID_SESSION");
   }
@@ -28,30 +39,29 @@ export function chatConnectionError(code: number, reason: string): AuthRequestEr
     return new AuthRequestError("현재 방의 채팅 참가 상태를 확인하고 있습니다.", 403, undefined, "CHAT_ROOM_ACCESS_DENIED");
   }
   if (code === 4403) return new AuthRequestError("브라우저의 채팅 접속 인증을 확인할 수 없습니다.", 403, undefined, "CHAT_PROOF_INVALID");
-  if (code === 4408) return new AuthRequestError("채팅 연결 응답이 지연되고 있습니다.", 504);
-  if (code === 1008) return new AuthRequestError("채팅 연결 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.", 429);
-  return new AuthRequestError("채팅 서비스를 일시적으로 이용할 수 없습니다.", 503);
+  if (code === 4408) return new AuthRequestError("채팅 연결 응답이 지연되고 있습니다.", 504, undefined, "CHAT_CONNECTION_TIMEOUT");
+  if (code === 1008) return new AuthRequestError("채팅 연결 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.", 429, undefined, "CHAT_CONNECTION_RATE_LIMIT_EXCEEDED");
+  return new AuthRequestError("채팅 서비스를 일시적으로 이용할 수 없습니다.", 503, undefined, "CHAT_CONNECTION_UNAVAILABLE");
 }
 
 /** 기존 인증 잠금·갱신·브라우저 증명으로 발급하며 원문 증명을 저장소나 URL에 기록하지 않는다. */
-export async function requestChatTicket(sessionId: string): Promise<ReceivedTicket> {
-  const response = await requestAuthenticatedApi("/api/chat/tickets", { sessionId });
+export async function requestChatTicket(sessionId: string, signal?: AbortSignal): Promise<ReceivedTicket> {
+  // 연결을 정리한 화면의 티켓 요청도 인증 잠금 대기부터 취소한다.
+  const response = await requestAuthenticatedApi("/api/chat/tickets", { sessionId }, signal);
   let value: unknown;
   try { value = await response.json(); } catch { /* 허용한 JSON 계약 외의 응답은 사용하지 않는다. */ }
+  signal?.throwIfAborted();
   if (!isChatTicket(value) || !("sessionId" in value) || value.sessionId !== sessionId) {
-    throw new AuthRequestError("채팅 접속 정보를 확인하지 못했습니다.", 502);
+    throw new AuthRequestError("채팅 접속 정보를 확인하지 못했습니다.", 502, undefined, "INVALID_BACKEND_RESPONSE");
   }
   return { ...publicChatTicket(value), receivedAt: performance.now() };
 }
 
 /** 접속 증명 해시와 실제 WebSocket 주소를 기존 추출 불가 로그인 키에 결합한다. */
 async function authenticationFrame(ticket: ReceivedTicket): Promise<object> {
-  const elapsed = performance.now() - ticket.receivedAt;
-  if (elapsed >= Date.parse(ticket.expiresAt) - Date.parse(ticket.serverTime)) {
-    throw new AuthRequestError("채팅 접속 정보가 만료되었습니다. 다시 연결해 주세요.", 401);
-  }
+  assertTicketValid(ticket);
   if (!ticket.proofRequired) {
-    if (!isDevHttpAuth()) throw new AuthRequestError("채팅 접속 인증 설정이 올바르지 않습니다.", 403);
+    if (!isDevHttpAuth()) throw new AuthRequestError("채팅 접속 인증 설정이 올바르지 않습니다.", 403, undefined, "CHAT_CONFIGURATION_ERROR");
     return { version: 1, type: "AUTH", ticket: ticket.ticket };
   }
   const key = await getBrowserKey(false);
@@ -63,21 +73,29 @@ async function authenticationFrame(ticket: ReceivedTicket): Promise<object> {
     .setJti(createUuidV4())
     .setIssuedAt(Math.floor((Date.parse(ticket.serverTime) + performance.now() - ticket.receivedAt) / 1000))
     .sign(key.privateKey);
+  assertTicketValid(ticket);
   return { version: 1, type: "AUTH", ticket: ticket.ticket, proof };
 }
 
 /** AUTHENTICATED를 확인한 뒤 연결을 넘기며 후속 메시지는 화면 구독 전까지 유한 버퍼에 보관한다. */
 export async function connectChat(sessionId: string, signal?: AbortSignal,
   destination: ChatDestination = { scope: "GLOBAL" }): Promise<AuthenticatedChatConnection> {
+  // 티켓 발급·키 준비·핸드셰이크 전체를 같은 기한과 취소에 묶고 인증 완료 뒤에는 소켓 수명으로 전환한다.
+  return withAuthRequestContext(context => openChat(sessionId, context.signal, destination), signal);
+}
+
+async function openChat(sessionId: string, signal: AbortSignal | undefined,
+  destination: ChatDestination): Promise<AuthenticatedChatConnection> {
   signal?.throwIfAborted();
-  const ticket = await requestChatTicket(sessionId);
+  const ticket = await requestChatTicket(sessionId, signal);
+  signal?.throwIfAborted();
   const frame = await authenticationFrame(ticket);
   signal?.throwIfAborted();
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(ticket.websocketUrl);
     let settled = false;
     let bufferedListener: ((event: MessageEvent<unknown>) => void) | undefined;
-    const timer = setTimeout(() => fail(new AuthRequestError("채팅 연결 응답이 지연되고 있습니다.", 504)), 10_000);
+    const timer = setTimeout(() => fail(new AuthRequestError("채팅 연결 응답이 지연되고 있습니다.", 504, undefined, "CHAT_CONNECTION_TIMEOUT")), 10_000);
     const cleanup = () => {
       clearTimeout(timer);
       socket.removeEventListener("open", opened);
@@ -100,12 +118,16 @@ export async function connectChat(sessionId: string, signal?: AbortSignal,
       reject(failure);
     };
     // 방 번호는 첫 AUTH에서만 지정하고 이후 연결 대상은 서버가 고정한다.
-    const opened = () => socket.send(JSON.stringify({ ...frame, ...destination }));
+    const opened = () => {
+      // 핸드셰이크가 지연됐거나 직전에 닫힌 소켓도 같은 복구 경로로 처리한다.
+      try { assertTicketValid(ticket); socket.send(JSON.stringify({ ...frame, ...destination })); }
+      catch (error) { fail(error instanceof AuthRequestError ? error : new AuthRequestError("채팅 서비스에 연결할 수 없습니다.", 503, undefined, "CHAT_CONNECTION_UNAVAILABLE")); }
+    };
     const aborted = () => {
       if (settled) close();
       else fail(new DOMException("채팅 연결이 취소되었습니다.", "AbortError"));
     };
-    const error = () => fail(new AuthRequestError("채팅 서비스에 연결할 수 없습니다.", 503));
+    const error = () => fail(new AuthRequestError("채팅 서비스에 연결할 수 없습니다.", 503, undefined, "CHAT_CONNECTION_UNAVAILABLE"));
     const closed = (event: CloseEvent) => {
       signal?.removeEventListener("abort", aborted);
       socket.removeEventListener("close", closed);
@@ -116,7 +138,7 @@ export async function connectChat(sessionId: string, signal?: AbortSignal,
       try { if (typeof event.data === "string" && event.data.length <= 4096) value = JSON.parse(event.data); }
       catch { /* 원문 프레임을 오류 메시지에 복사하지 않는다. */ }
       if (!isChatAuthenticatedFrame(value)) {
-        fail(new AuthRequestError("채팅 접속 응답을 확인하지 못했습니다.", 502));
+        fail(new AuthRequestError("채팅 접속 응답을 확인하지 못했습니다.", 502, undefined, "CHAT_PROTOCOL_INVALID"));
         return;
       }
       settled = true;
