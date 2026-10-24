@@ -5,6 +5,9 @@ import { parseOperationalNotice } from "@/lib/operational-notice";
 
 // 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
 const errors = {
+  // 로그 저장소 오류는 로그인 만료와 구분하고 내부 SQL·JSON 원문을 공개하지 않는다.
+  ADMIN_LOG_NOT_FOUND: [404, "로그 기록을 찾을 수 없습니다."],
+  ADMIN_LOG_UNAVAILABLE: [503, "로그 기록을 일시적으로 조회할 수 없습니다."],
   // 회원 편집 충돌과 권한/저장소 실패를 로그인 만료와 구분한다.
   USER_MANAGEMENT_CHANGED: [409, "회원 정보가 변경되었습니다. 최신 내용을 불러온 뒤 다시 시도해 주세요."],
   USER_SELF_OPERATION_NOT_ALLOWED: [409, "현재 로그인한 본인 계정은 비활성화할 수 없습니다."],

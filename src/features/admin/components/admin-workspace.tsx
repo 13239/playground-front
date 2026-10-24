@@ -14,15 +14,17 @@ import { AccessPanel } from "./access-panel";
 import { GamesPanel } from "./games-panel";
 import { GenresPanel } from "./genres-panel";
 import { UsersPanel } from "./users-panel";
+import { LogsPanel } from "./logs-panel";
 import type { PermissionCode } from "../contracts";
 import styles from "./admin.module.css";
 
 const sections = [
-  { key: "users", name: "유저 관리", icon: "user", permission: "USER_READ", description: "회원 정보와 계정 상태, 권한, 닉네임 변경 이력을 확인하세요." },
-  { key: "roles", name: "권한 관리", icon: "users", permission: "ROLE_READ", description: "역할별로 사용할 수 있는 기능을 설정하세요." },
-  { key: "operations", name: "운영 설정", icon: "gear", permission: "ACCESS_POLICY_READ", description: "로그인과 기존 접속의 운영 정책을 관리하세요." },
-  { key: "games", name: "게임 관리", icon: "gamepad", permission: "GAME_READ", description: "게임 정보, 플레이 모드와 공개 상태를 관리하세요." },
-  { key: "genres", name: "장르 관리", icon: "grid", permission: "GAME_READ", description: "게임을 찾기 쉬운 분류로 정리하세요." },
+  { key: "users", name: "유저 관리", icon: "user", permissions: ["USER_READ"], description: "회원 정보와 계정 상태, 권한, 닉네임 변경 이력을 확인하세요." },
+  { key: "roles", name: "권한 관리", icon: "users", permissions: ["ROLE_READ"], description: "역할별로 사용할 수 있는 기능을 설정하세요." },
+  { key: "operations", name: "운영 설정", icon: "gear", permissions: ["ACCESS_POLICY_READ"], description: "로그인과 기존 접속의 운영 정책을 관리하세요." },
+  { key: "games", name: "게임 관리", icon: "gamepad", permissions: ["GAME_READ"], description: "게임 정보, 플레이 모드와 공개 상태를 관리하세요." },
+  { key: "genres", name: "장르 관리", icon: "grid", permissions: ["GAME_READ"], description: "게임을 찾기 쉬운 분류로 정리하세요." },
+  { key: "logs", name: "로그 조회", icon: "book", permissions: ["ACTIVITY_LOG_READ", "ADMIN_AUDIT_READ"], description: "사용자 활동과 관리자 작업 기록을 확인하세요." },
 ] as const;
 
 /** 공개 페이지 틀에는 보호 데이터를 넣지 않는다. 현재 ADMIN_ACCESS와 기능 권한이 확인된 뒤에만 패널을 연다. */
@@ -30,7 +32,8 @@ export function AdminWorkspace({ section }: { section?: string }) {
   const { auth, access } = useAdminAccess();
   // 저장 결과는 버전 변경으로 편집 폼이 교체돼도 남기되 다른 계정에는 보여 주지 않는다.
   const [savedSession, setSavedSession] = useState<string>();
-  const allowed = access.status === "ready" ? sections.filter(s => access.context.permissions.includes(s.permission as PermissionCode)) : [];
+  // 여러 조회 권한 중 하나만 있어도 메뉴에 진입하고 내부 탭은 개별 권한으로 제한한다.
+  const allowed = access.status === "ready" ? sections.filter(s => s.permissions.some(permission => access.context.permissions.includes(permission as PermissionCode))) : [];
   const selected = sections.find(s => s.key === (section ?? allowed[0]?.key));
   return <div className={`${lobby.screen} ${styles.screen}`}>
     <a href="#admin-main" className={lobby.skipLink}>관리자 본문으로 이동</a>
@@ -52,7 +55,7 @@ export function AdminWorkspace({ section }: { section?: string }) {
             {savedSession === access.sessionId && <div className={styles.savedNotice} role="status">저장했어요.<button type="button" aria-label="저장 안내 닫기" onClick={() => setSavedSession(undefined)}>×</button></div>}
             {/* 세션별로 편집 상태를 격리해 다른 계정 로그인 후 이전 입력이 제출되지 않게 한다. */}
             <div key={`${access.sessionId}:${selected.key}`}>
-              {selected.key === "users" ? <UsersPanel /> : selected.key === "roles" ? <RolesPanel /> : selected.key === "operations" ? <AccessPanel /> : selected.key === "games" ? <GamesPanel /> : <GenresPanel />}
+              {selected.key === "users" ? <UsersPanel /> : selected.key === "roles" ? <RolesPanel /> : selected.key === "operations" ? <AccessPanel /> : selected.key === "games" ? <GamesPanel /> : selected.key === "logs" ? <LogsPanel /> : <GenresPanel />}
             </div>
           </AdminScope>}
       </main>

@@ -1,0 +1,56 @@
+/* 기존 관리자 색상·표·공통 1px 포커스를 이어가며 로그별 레이아웃만 이 모듈에서 관리한다. */
+.panel { padding: clamp(14px, 1.7vw, 28px); }
+.heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid #eae3f6; }
+.heading .tabs { min-width: 0; margin-bottom: 0; border-bottom: 0; }
+.filters { display: grid; grid-template-columns: minmax(290px, 1.45fr) minmax(175px, 1fr) minmax(125px, .65fr) minmax(120px, .6fr) auto 110px; align-items: end; gap: 12px; margin-bottom: 20px; }
+.filter { display: grid; gap: 7px; min-width: 0; color: #51416f; font-size: .78rem; font-weight: 650; }
+.filter input, .filter select, .dates input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: #fff; font: inherit; color: #30234c; }
+.period { min-width: 0; margin: 0; padding: 0; border: 0; }
+.period legend { margin-bottom: 7px; padding: 0; color: #51416f; font-size: .78rem; font-weight: 650; }
+.dates { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; color: #9184a7; }
+.dates input { padding-inline: 9px; font-size: .8rem; }
+.filters > button { min-height: 44px; }
+.tableScroll { max-height: min(66dvh, 1050px); min-width: 0; overflow: auto; border: 1px solid #eee8fa; border-radius: 12px; overscroll-behavior: contain; }
+.tableScroll:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+.table { width: 100%; min-width: 1170px; border-collapse: separate; border-spacing: 0; text-align: left; color: #51406e; font-size: .83rem; }
+.table th, .table td { padding: 10px 14px; border-bottom: 1px solid #eee8fa; }
+.table thead th { position: sticky; top: 0; z-index: 2; height: 46px; background: #f3eeff; color: #8c77aa; font-size: .77rem; white-space: nowrap; }
+.table td { height: 62px; max-width: 250px; background: #fff; overflow-wrap: anywhere; }
+.table tbody tr:has(.recordButton) { cursor: pointer; }
+.table tbody tr:is(:hover, :focus-within) td { background: #f6f0ff; }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table :is(th, td):first-child { position: sticky; left: 0; z-index: 1; min-width: 76px; }
+.table thead th:first-child { z-index: 3; }
+.table time, .ip { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.table :is(td, th):nth-child(3) { min-width: 180px; }
+.table td > span { max-width: 200px; white-space: normal; overflow-wrap: anywhere; }
+.table button.recordButton { min-height: 36px; padding: 0 3px; border: 0; border-radius: 5px; background: transparent; color: inherit; font: inherit; font-weight: 650; }
+.person { display: inline-flex; align-items: center; gap: 10px; min-width: 0; color: #30204f; }
+.person img { flex-shrink: 0; border: 1px solid #eee4fa; border-radius: 50%; background: #faf6ff; }
+.person > span { min-width: 0; }
+.person strong { display: block; font-size: .83rem; overflow-wrap: anywhere; }
+.person small { display: block; margin-top: 3px; color: #9b8caf; font-size: .72rem; overflow-wrap: anywhere; }
+.failure { display: inline-block; padding: 5px 9px; border-radius: 7px; background: #ffedf1; color: #bf4968; font-size: .7rem; line-height: 1.3; font-weight: 650; }
+.footer { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #eee8fa; }
+.footer p { margin: 0; }
+/* 상세는 공통 네이티브 모달 안에서 텍스트를 줄바꿈하고 본문 영역만 스크롤한다. */
+.detailHeader { align-items: flex-start; }
+.detailHeader .detailTitle h2 { margin: 8px 0; color: #251050; font-size: clamp(1.25rem, 1.7vw, 1.6rem); }
+.detailHeader .detailSubtitle { margin: 0; color: #7d65a2; font-size: .88rem; }
+.detailsFacts { margin-top: 8px; }
+.wideFact { grid-column: 1 / -1; }
+.roleCode { display: block; color: #9b8caf; font-size: .74rem; }
+.detailSection { margin-top: 18px; }
+.detailSection h3 { margin-bottom: 16px; }
+.comparison { overflow-x: auto; border: 1px solid #e9defa; border-radius: 10px; }
+.comparison table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: .85rem; }
+.comparison th, .comparison td { padding: 14px; border: 1px solid #eee5fa; text-align: left; vertical-align: top; overflow-wrap: anywhere; white-space: pre-wrap; }
+.comparison thead th { background: #f1ebff; color: #7f68a3; }
+.comparison th:first-child { width: 23%; }
+.comparison td { background: white; color: #655077; }
+.comparison td:last-child { color: #6c31ba; }
+.savedReason { margin: 0; padding: 12px 14px; border: 1px solid #eee5f8; border-radius: 8px; background: white; overflow-wrap: anywhere; white-space: pre-wrap; }
+@media (max-width: 1650px) { .filters { grid-template-columns: minmax(280px, 1fr) minmax(200px, 1fr) 110px; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: 2; } .filters > button { grid-row: 2; grid-column: 3; } .pageSize { grid-column: 3; grid-row: 1; } }
+@media (max-width: 1300px) { .footer { display: flex; flex-direction: column; align-items: stretch; } }
+@media (max-width: 680px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .period { grid-column: 1 / -1; } .filters > :nth-child(2) { grid-column: 1 / -1; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: auto; } .filters > button { grid-row: auto; grid-column: 1; } .pageSize { grid-column: 2; grid-row: auto; justify-self: end; width: 110px; } .heading { gap: 8px; } .heading .tabs button { padding-inline: 10px; font-size: .78rem; } .comparison th, .comparison td { padding: 10px 8px; font-size: .8rem; } }
+@media (max-width: 360px) { .dates { grid-template-columns: minmax(0, 1fr); gap: 6px; } .dates > span { display: none; } .heading .tabs button { padding-inline: 7px; font-size: .74rem; } }

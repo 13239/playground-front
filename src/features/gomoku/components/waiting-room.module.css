@@ -295,13 +295,13 @@
   font-size: 0.5em;
   flex-shrink: 0;
 }
-/* 닉네임 아래 온라인 승·패·무 및 승률만 표시한다. 작은 창에서 카드 폭을 넘지 않도록 줄바꿈한다. */
+/* 닉네임 아래 승·패·무를 한 줄로 두고, 승률은 그 아래에 둔다. */
 .playerStats {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.4em 0.65em;
+  gap: 0.35em;
   max-width: 100%;
   color: #554584;
   font-size: 0.83em;

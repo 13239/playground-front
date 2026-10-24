@@ -208,7 +208,7 @@ function AuthenticatedWaitingRoom({
   // 중첩 요청 없이 동기화하고 숨겨진 대기 탭은 접속 리스만 유지하도록 조회 간격을 늘린다.
   // 대국에서는 이벤트 알림·5초 접속 확인·5회 재접속을 공통 훅에서 관리한다.
   // 페이지 OPEN이 서버에서 확정되기 전에는 착수·준비·퇴장을 보내지 않는다.
-  const sync = useRoomSync({ sessionId, roomId, pageId, playing: room?.game != null, busy, stopped: stoppedRef, accept, fail });
+  const sync = useRoomSync({ sessionId, roomId, pageId, playing: room?.game != null, busy, stopped: stoppedRef, revision, accept, fail });
 
   async function gameAction(action: GameAction) {
     if (!room?.game || !pageId || busy.current) return;
@@ -636,9 +636,8 @@ function ParticipantCard({
         <span className={styles.readyState}>입장 대기 중</span>
       </article>
     );
-  // 서버가 확정한 승패만 승률에 포함한다. 아직 승패가 없으면 0.0%로 표시한다.
-  const decidedGames = participant.wins + participant.losses;
-  const winRate = decidedGames === 0 ? "0.0" : (participant.wins / decidedGames * 100).toFixed(1);
+  // 서버가 확정한 승패만 승률에 포함한다. 승패가 없으면 0%이고, 소수 첫째 자리가 0이면 정수만 보여준다.
+  const winRate = formatWinRate(participant.wins, participant.losses);
   return (
     <article
       className={`${styles.playerCard} ${participant.self ? styles.selfCard : ""}`}
@@ -671,6 +670,13 @@ function ParticipantCard({
       </span>
     </article>
   );
+}
+
+function formatWinRate(wins: number, losses: number) {
+  const decidedGames = wins + losses;
+  if (decidedGames === 0) return "0";
+  const rounded = (wins / decidedGames * 100).toFixed(1);
+  return rounded.endsWith(".0") ? rounded.slice(0, -2) : rounded;
 }
 
 function Rule({

@@ -10,8 +10,9 @@ import { getGameDisplayWindow, getGamePopup, subscribeToGamePopup } from "./game
 const RETRY_DELAYS = [1000, 2000, 4000, 8000, 10_000] as const;
 
 /** 이벤트로 즉시 동기화하고 주기 조회로 접속·채팅 리스와 유실 알림을 복구한다. 대국 재접속은 5회로 제한한다. */
-export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped, accept, fail }: {
+export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped, revision, accept, fail }: {
   sessionId: string; roomId: number; pageId?: string; playing: boolean; busy: RefObject<boolean>;
+  revision: RefObject<number>;
   stopped: RefObject<boolean>;
   accept: (room: WaitingRoom) => void; fail: (error: unknown) => void;
 }) {
@@ -59,7 +60,13 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
         // SSE가 빠른 변경 알림을 처리하고 조회는 접속·채팅 권한만 유지한다.
         // 숨겨진 페이지는 15초 간격으로 제한하되 포그라운드 복귀는 즉시 확인한다.
         // 원본 탭을 숨겨도 팝업이 보이면 활성 대국의 접속 확인 간격을 유지한다.
-        schedule(document.hidden && getGameDisplayWindow().document.hidden ? 15_000 : playing ? 10_000 : 5000);
+        const leaseDelay = document.hidden && getGameDisplayWindow().document.hidden ? 15_000 : playing ? 10_000 : 5000;
+        // 무르기 알림이 유실돼도 10초 마감 시점에 한 번 판을 동기화해 만료된 팝업을 방치하지 않는다.
+        // 별도 폴링은 만들지 않고 기존 접속 확인 예약을 마감 시각으로 앞당긴다.
+        const undoDelay = result.game?.undoDeadline
+          ? Math.max(50, Date.parse(result.game.undoDeadline) - Date.parse(result.serverTime) + 100)
+          : Number.POSITIVE_INFINITY;
+        schedule(Math.min(leaseDelay, undoDelay));
       } catch (error) {
         if (disposed || stopped.current) return;
         fail(error);
@@ -86,7 +93,12 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
       if (disposed || terminal || stopped.current) return;
       if (Date.now() < retryAt) { scheduleStream(retryAt - Date.now()); return; }
       if (failures > 0) { scheduleStream(5000); return; }
-      try { await watchRoom(sessionId, roomId, pageId!, stream.signal, () => { if (failures === 0) void refresh(); }); }
+      try {
+        await watchRoom(sessionId, roomId, pageId!, stream.signal,
+          () => { if (failures === 0) void refresh(); },
+          // 20초 정상 만료·재연결 사이 이벤트를 놓쳤더라도 버전 차이가 있을 때만 복구한다.
+          serverRevision => { if (failures === 0 && serverRevision > revision.current) void refresh(); });
+      }
       catch (error) {
         // 소유권을 잃은 탭은 SSE 구독을 1초마다 재시도하지 않고 즉시 접속을 종료한다.
         const problem = error instanceof AuthRequestError ? error : null;
@@ -143,6 +155,6 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
       displayedPopup?.document.removeEventListener("visibilitychange", resume);
       document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", online);
     };
-  }, [sessionId, roomId, pageId, playing, busy, stopped, accept, fail, epoch]);
+  }, [sessionId, roomId, pageId, playing, busy, stopped, revision, accept, fail, epoch]);
   return { attempt, lost, restart: () => { setAttempt(0); setLost(false); setEpoch(value => value + 1); } };
 }

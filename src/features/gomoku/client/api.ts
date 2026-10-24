@@ -158,7 +158,8 @@ export async function sendGameAction(sessionId: string, room: WaitingRoom, actio
 }
 
 /** 이벤트에는 데이터 대신 변경 알림만 있다. 현재 인증으로 판을 다시 읽고 끊긴 스트림은 취소한다. */
-export async function watchRoom(sessionId: string, roomId: number, pageId: string, signal: AbortSignal, changed: () => void): Promise<void> {
+export async function watchRoom(sessionId: string, roomId: number, pageId: string, signal: AbortSignal,
+  changed: () => void, ready: (revision: number) => void): Promise<void> {
   signal.throwIfAborted();
   const response = await requestAuthenticatedApi("/api/gomoku/rooms/game/events", { sessionId, roomId, pageId }, signal);
   if (!response.body || !response.headers.get("Content-Type")?.startsWith("text/event-stream")) throw new AuthRequestError("대국 알림에 연결하지 못했습니다.", 502);
@@ -179,7 +180,13 @@ export async function watchRoom(sessionId: string, roomId: number, pageId: strin
       while ((end = buffer.indexOf("\n\n")) >= 0) {
         const event = buffer.slice(0, end);
         buffer = buffer.slice(end + 2);
-        if (event.split("\n").some(line => /^event:\s*changed$/.test(line))) changed();
+        const lines = event.split("\n");
+        if (lines.some(line => /^event:\s*changed$/.test(line))) changed();
+        else if (lines.some(line => /^event:\s*ready$/.test(line))) {
+          // 서버가 인증된 구독을 시작할 때 보낸 revision이 더 클 때만 유실 구간을 재조회한다.
+          const version = lines.find(line => /^data:\s*\d+$/.test(line))?.replace(/^data:\s*/, "");
+          if (version !== undefined && Number.isSafeInteger(Number(version))) ready(Number(version));
+        }
       }
     }
   } finally { signal.removeEventListener("abort", cancel); await reader.cancel().catch(() => {}); reader.releaseLock(); }
