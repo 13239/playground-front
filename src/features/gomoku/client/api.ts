@@ -42,18 +42,54 @@ async function readResponse(
 export async function searchRooms(
   sessionId: string,
   filters: RoomFilters,
+  signal?: AbortSignal,
 ): Promise<RoomPage> {
   const value = await readResponse(
     await requestAuthenticatedApi("/api/gomoku/rooms/search", {
       sessionId,
       ...filters,
-    }),
+    }, signal),
     sessionId,
   );
   if (!isRoomPage(value))
     throw new AuthRequestError("방 목록을 확인하지 못했습니다.", 502);
   return publicRoomPage(value);
 }
+/** 고정된 SSE 이벤트 이름만 처리한다. 스트림 본문에 방/회원 데이터는 포함하지 않는다. */
+export async function watchLobby(sessionId: string, signal: AbortSignal, onEvent: (type: "ready" | "changed") => void): Promise<void> {
+  signal.throwIfAborted();
+  const response = await requestAuthenticatedApi("/api/gomoku/rooms/events", { sessionId }, signal);
+  if (!response.body || !response.headers.get("Content-Type")?.startsWith("text/event-stream")) {
+    throw new AuthRequestError("로비 변경 알림에 연결하지 못했습니다.", 502);
+  }
+  const reader = response.body.getReader();
+  const cancel = () => { void reader.cancel().catch(() => {}); };
+  signal.addEventListener("abort", cancel, { once: true });
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (!signal.aborted) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      // 분할된 CRLF까지 처리하고 서버에서 전달된 명시적인 이벤트 이름 외에는 무시한다.
+      buffer = (buffer + decoder.decode(value, { stream: true })).replaceAll("\r\n", "\n");
+      if (buffer.length > 16_384) throw new AuthRequestError("로비 알림을 확인하지 못했습니다.", 502);
+      let end: number;
+      while ((end = buffer.indexOf("\n\n")) >= 0) {
+        const event = buffer.slice(0, end);
+        buffer = buffer.slice(end + 2);
+        const lines = event.split("\n");
+        if (lines.some(line => /^event:\s*changed$/.test(line))) onEvent("changed");
+        else if (lines.some(line => /^event:\s*ready$/.test(line))) onEvent("ready");
+      }
+    }
+  } finally {
+    signal.removeEventListener("abort", cancel);
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
+
 export async function createRoom(
   sessionId: string,
   requestId: string,

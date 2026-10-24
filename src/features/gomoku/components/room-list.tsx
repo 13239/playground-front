@@ -11,7 +11,8 @@ import {
   useAuthSession,
 } from "@/features/auth/client/session-store";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
-import { searchRooms } from "../client/api";
+import { searchRooms, watchLobby } from "../client/api";
+import { authRetryDelay } from "@/features/auth/client/request-cooldown";
 import {
   ruleLabel,
   type HostedRoom,
@@ -171,6 +172,7 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
   const [joining, setJoining] = useState<JoinTarget>();
   const [joinNotice, setJoinNotice] = useState<{ id: number; message: string }>();
   const joinNoticeId = useRef(0);
+  const firstQueryStarted = useRef(false);
   // 조회 중 재렌더링돼도 같은 입장 요청의 effect를 재구독하지 않도록 콜백을 고정한다.
   const refreshAfterJoin = useCallback(() => {
     setJoining(undefined);
@@ -184,6 +186,7 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
   }, []);
   useEffect(() => {
     let active = true;
+    const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let retries = 0;
     const retryDelays = [1000, 2000, 4000] as const;
@@ -193,7 +196,8 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
       if (!active) return;
       setLoading(true);
       try {
-        const result = await searchRooms(sessionId, filters);
+        firstQueryStarted.current = true;
+        const result = await searchRooms(sessionId, filters, abort.signal);
         if (!active) return;
         setData(result);
         setError("");
@@ -215,8 +219,85 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
       }
     };
     timer = setTimeout(() => { void load(); }, 250);
-    return () => { active = false; clearTimeout(timer); };
+    return () => { active = false; abort.abort(); clearTimeout(timer); };
   }, [sessionId, filters, revision]);
+
+  useEffect(() => {
+    let disposed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    let failures = 0;
+    let connected = false;
+    let connectedAt = 0;
+    let dirtyWhileHidden = false;
+    let lastRefreshAt = 0;
+    const stream = new AbortController();
+    // 검색 조건은 기존 목록 effect가 관리한다. SSE는 변경 신호만 전달해 필터/페이지를 초기화하지 않는다.
+    const refresh = () => {
+      if (disposed) return;
+      // 화면이 숨겨진 동안 이벤트를 모아두고 복귀 시 한 번만 최신 데이터를 읽는다.
+      if (document.hidden) { dirtyWhileHidden = true; return; }
+      // 이벤트 폭주 시에도 후행 디바운스로 무한 대기하지 않고 초당 최대 한 번만 재조회한다.
+      // 최초 변경은 짧게 묶어 빠르게 반영하고 기존 검색 API의 계정별 요청 제한을 보호한다.
+      if (refreshTimer !== undefined) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = undefined;
+        if (document.hidden) { dirtyWhileHidden = true; return; }
+        lastRefreshAt = Date.now();
+        setRevision(value => value + 1);
+      }, Math.max(300, 1000 - (Date.now() - lastRefreshAt)));
+    };
+    const listen = async () => {
+      if (disposed || stream.signal.aborted) return;
+      connected = false;
+      try {
+        await watchLobby(sessionId, stream.signal, type => {
+          if (disposed) return;
+          if (type === "ready") {
+            // SSE 연결 전 또는 단절 중의 변경을 놓치지 않는다. 최초 조회 이후에만 보정 조회한다.
+            if (firstQueryStarted.current) refresh();
+            connected = true;
+            connectedAt = Date.now();
+          } else refresh();
+        });
+      } catch (failure) {
+        if (disposed || stream.signal.aborted) return;
+        const problem = failure instanceof AuthRequestError ? failure : null;
+        if (problem?.status === 401 || problem?.code === "LOGIN_SESSION_CHANGED") {
+          revalidateAuthSession();
+          return;
+        }
+        // 가입자 수 제한 등 명시적인 접근 제한은 무한 재구독하지 않는다.
+        if (problem?.status === 403) return;
+        // 즉시 끊기는 프록시 장애에서도 짧은 간격의 인증/SSE 재연결 폭주를 피한다.
+        if (connected && Date.now() - connectedAt > 60_000) failures = 0;
+        const backoff = problem?.status === 429 ? authRetryDelay(problem)
+          : Math.min(30_000, 1000 * 2 ** Math.min(failures++, 5));
+        retryTimer = setTimeout(() => { void listen(); }, backoff);
+        return;
+      }
+      if (disposed) return;
+      // 정상 스트림 종료도 누락된 변경을 동기화한 후 점진적으로 복구한다. 주기 검색은 하지 않는다.
+      if (connected) refresh();
+      if (connected && Date.now() - connectedAt > 60_000) failures = 0;
+      retryTimer = setTimeout(() => { void listen(); }, Math.min(30_000, 1000 * 2 ** Math.min(failures++, 5)));
+    };
+    const resume = () => {
+      if (!document.hidden && dirtyWhileHidden) {
+        dirtyWhileHidden = false;
+        refresh();
+      }
+    };
+    document.addEventListener("visibilitychange", resume);
+    void listen();
+    return () => {
+      disposed = true;
+      document.removeEventListener("visibilitychange", resume);
+      stream.abort();
+      clearTimeout(refreshTimer);
+      clearTimeout(retryTimer);
+    };
+  }, [sessionId]);
 
   const change = (patch: Partial<RoomFilters>) =>
     setFilters((current) => ({ ...current, ...patch, page: 0 }));

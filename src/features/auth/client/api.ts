@@ -22,6 +22,8 @@ type FeaturePath = "/api/auth/profile" | "/api/auth/profile/nickname" | "/api/go
   | "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/kick" | "/api/gomoku/rooms/leave" | "/api/chat/tickets"
   // 대국 명령·이벤트 연결도 기존 쿠키 갱신 잠금과 경로별 요청 증명을 재사용한다.
   | "/api/gomoku/rooms/game" | "/api/gomoku/rooms/game/events" | "/api/gomoku/rooms/lifecycle"
+  // 로비 SSE도 대국과 동일하게 인증된 POST 요청만 허용한다.
+  | "/api/gomoku/rooms/events"
   // 공통 게임 시작도 별도 토큰 없이 기존 잠금·갱신·브라우저 키로 확인한다.
   | `/api/games/${string}/modes/${string}/admission`;
 type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | "/api/auth/password" | FeaturePath;

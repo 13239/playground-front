@@ -49,6 +49,8 @@ export function useGamePopup(bodyClassName: string) {
   const activeWindow = useRef<Window | null>(null);
   // 문서마다 추측할 수 없는 창 이름을 사용해 다른 탭의 팝업을 선택하거나 덮어쓰지 않는다.
   const activeName = useRef<string | null>(null);
+  // 팝업에서 원본 창도 이름으로 다시 선택해 최소화된 브라우저를 복원한다.
+  const sourceName = useRef<string | null>(null);
   const mounted = useRef(false);
   const disposeWindow = useRef<(() => void) | null>(null);
 
@@ -65,11 +67,21 @@ export function useGamePopup(bodyClassName: string) {
       disposeWindow.current?.();
       activeWindow.current = null;
       activeName.current = null;
+      sourceName.current = null;
     };
   }, []);
 
   const close = useCallback(() => {
     // 복귀 버튼은 원래 탭을 활성화하고, OS의 닫기 동작은 pagehide에서 화면만 복원한다.
+    const popupWindow = activeWindow.current;
+    if (popupWindow && !popupWindow.closed && sourceName.current) {
+      try {
+        // 사용자 클릭 안에서 팝업의 open을 호출한다. focus만으로 복원되지 않는 최소화 창도 다시 선택한다.
+        // 빈 URL은 원본을 새로고침하지 않으며, 같은 Window인지 확인해 중복 빈 창을 남기지 않는다.
+        const original = popupWindow.open("", sourceName.current);
+        if (original !== window) original?.close();
+      } catch { /* 창 재선택이 제한되면 아래의 기본 포커스 요청으로 복귀한다. */ }
+    }
     window.focus();
     disposeWindow.current?.();
   }, []);
@@ -107,6 +119,7 @@ export function useGamePopup(bodyClassName: string) {
     setError("");
     let popupWindow: Window | null = null;
     let stopSharing: (() => void) | undefined;
+    let restoreSourceName: (() => void) | undefined;
     try {
       // 사용자 클릭 직후 호출해야 하므로 이 호출 앞에서 비동기 작업을 기다리지 않는다.
       // 기본 OS 창 장식을 유지해 사용자가 제목 표시줄의 최소화·최대화 버튼을 사용할 수 있다.
@@ -121,6 +134,14 @@ export function useGamePopup(bodyClassName: string) {
         setError("팝업이 차단됐어요. 주소창에서 이 사이트의 팝업을 허용한 뒤 다시 눌러 주세요.");
         return;
       }
+      // 팝업이 열린 동안만 원본에 고유 이름을 부여하고, 종료 시 기존 이름을 되돌린다.
+      const previousName = window.name;
+      const originalName = `${name}-source`;
+      window.name = originalName;
+      sourceName.current = originalName;
+      restoreSourceName = () => {
+        if (window.name === originalName) window.name = previousName;
+      };
       // 최초 생성 때만 실제 제목 표시줄·테두리까지 포함해 중앙을 보정한다. 이후 사용자의 이동은 유지한다.
       try {
         const outerWidth = Math.min(popupWindow.outerWidth || width, display.availWidth);
@@ -146,6 +167,7 @@ export function useGamePopup(bodyClassName: string) {
         if (disposed) return;
         disposed = true;
         stopSharing?.();
+        restoreSourceName?.();
         openedWindow.removeEventListener("pagehide", dispose);
         // 팝업의 닫기·새로고침·다른 주소 이동은 원래 판으로 복귀하고 별도 참가를 만들지 않는다.
         unregister();
@@ -153,6 +175,7 @@ export function useGamePopup(bodyClassName: string) {
         if (activeWindow.current === openedWindow) {
           activeWindow.current = null;
           activeName.current = null;
+          sourceName.current = null;
           disposeWindow.current = null;
           if (mounted.current) setContainer(null);
         }
@@ -166,6 +189,8 @@ export function useGamePopup(bodyClassName: string) {
     } catch {
       // 거부·브라우저 오류가 발생해도 원래 대국 화면과 접속은 그대로 유지한다.
       stopSharing?.();
+      restoreSourceName?.();
+      sourceName.current = null;
       popupWindow?.close();
       disposeWindow.current?.();
       if (mounted.current) setError("팝업 창을 열지 못했어요. 브라우저 설정을 확인한 뒤 다시 시도해 주세요.");

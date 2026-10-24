@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import type { MatchState } from "../game-contracts";
 import styles from "./game-room.module.css";
 
@@ -8,8 +8,9 @@ import styles from "./game-room.module.css";
 type BoardState = Pick<MatchState, "id" | "phase" | "blackSeat" | "turnSeat" | "turnNumber" | "deadline" | "moves">;
 
 /** 마우스는 미리보기 후 클릭, 터치는 같은 교차점을 두 번 눌러 착수한다. 키보드는 방향키·Enter/Space를 사용한다. */
-export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, receivedAt = 0, disabled, onMove, className }: {
-  game: BoardState; selfSeat: number; serverTime?: string; receivedAt?: number; disabled: boolean; onMove: (x: number, y: number) => void; className?: string;
+export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, receivedAt = 0, disabled, onMove, className, overlay }: {
+  game: BoardState; selfSeat: number; serverTime?: string; receivedAt?: number; disabled: boolean; onMove: (x: number, y: number) => void;
+  className?: string; overlay?: ReactNode;
 }) {
   const [selection, setSelection] = useState<{ gameId: number; turn: number; point: number; input: "mouse" | "touch" | "keyboard"; gestureId: number } | null>(null);
   // 턴·대국이 바뀌면 선택만 무효화한다. 키보드 위치는 매 수마다 초기화하지 않는다.
@@ -107,7 +108,8 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
     // 화면별 크기 제한만 외부 클래스로 확장하고 공통 판의 좌표·입력 스타일은 유지한다.
     <section className={`${styles.boardSection}${className ? ` ${className}` : ""}`} aria-label="오목판">
       <div className={styles.boardScroll}>
-        <div className={styles.boardFrame}>
+        {/* 요청 응답 중에는 판을 읽을 수는 있지만 좌표의 포인터·키보드 입력은 막는다. */}
+        <div className={styles.boardFrame} inert={overlay != null}>
         <div className={styles.columnLabels} aria-hidden="true">{Array.from({ length: 20 }, (_, x) => <span key={x}>{String.fromCharCode(65 + x)}</span>)}</div>
         <div className={styles.boardInner}>
         <div className={styles.rowLabels} aria-hidden="true">{Array.from({ length: 20 }, (_, y) => <span key={y}>{y + 1}</span>)}</div>
@@ -148,6 +150,8 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
         </div>
         <div className={styles.columnLabels} aria-hidden="true">{Array.from({ length: 20 }, (_, x) => <span key={x}>{String.fromCharCode(65 + x)}</span>)}</div>
         </div>
+        {/* 안내는 실제 판 스크롤 영역 안에서만 겹치므로 큰 화면의 남는 높이를 덮지 않는다. */}
+        {overlay}
       </div>
     </section>
   );
@@ -155,7 +159,8 @@ export const GameBoard = memo(function GameBoard({ game, selfSeat, serverTime, r
   // 접속 확인 응답의 serverTime/connected 플래그만 달라졌다면 400개 교차점을 다시 그리지 않는다.
   // 수신 시각도 props로 전달해 시계 Context 갱신이 동일한 판의 렌더링을 우회하지 않게 한다.
   // 되돌리기·재착수는 turnNumber가 증가하므로 같은 개수의 돌이라도 반드시 다시 렌더링한다.
-  return previous.className === next.className && previous.selfSeat === next.selfSeat && previous.disabled === next.disabled && previous.onMove === next.onMove
+  // 무르기 요청·응답 상태가 바뀌면 오버레이도 갱신하며, 초 단위 카운트다운은 하위에서 처리한다.
+  return previous.overlay === next.overlay && previous.className === next.className && previous.selfSeat === next.selfSeat && previous.disabled === next.disabled && previous.onMove === next.onMove
     && previous.game.id === next.game.id && previous.game.phase === next.game.phase
     && previous.game.blackSeat === next.game.blackSeat && previous.game.turnSeat === next.game.turnSeat
     && previous.game.turnNumber === next.game.turnNumber && previous.game.deadline === next.game.deadline

@@ -92,9 +92,14 @@ async function signBoundRequest(path: string, method: string, body: string | und
 export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomoku/${string}` | `/api/games/${string}/modes/${string}/admission` | `/api/admin/${string}` | "/api/chat/tickets", input?: object, nonceRetry = true, signal?: AbortSignal,
   admin?: Readonly<{ method: "GET" | "POST" | "PUT" | "DELETE"; sessionId: string }>): Promise<Response> {
   // 대국 접속 확인은 5초 안에 실패를 감지해 5회 재접속 예산을 지킨다. 스트림은 서버가 20초마다 정상 종료한다.
-  const timeout = path === "/api/gomoku/rooms/state" ? 5_000 : 35_000;
   // 호출자의 취소와 인증/스트림 연결 단계의 제한 시간을 합쳐 요청 전체를 중단할 수 있게 한다.
-  const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(timeout)]) : AbortSignal.timeout(timeout);
+  // 로비는 폴링 없이 연결을 유지한다. 연결 수립 시한만 적용하고 이후에는 호출자의 취소만 따른다.
+  const timeout = path === "/api/gomoku/rooms/state" ? 5_000 : 35_000;
+  const lobbyStream = path === "/api/gomoku/rooms/events";
+  const handshakeController = new AbortController();
+  const requestTimeout = lobbyStream ? handshakeController.signal : AbortSignal.timeout(timeout);
+  const handshakeTimer = lobbyStream ? setTimeout(() => handshakeController.abort(), timeout) : undefined;
+  const requestSignal = signal ? AbortSignal.any([signal, requestTimeout]) : requestTimeout;
   let attemptedNonceRevision: number | undefined;
   try {
     signal?.throwIfAborted();
@@ -108,11 +113,13 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     const adminHeaders: Record<string, string> = admin ? { "X-Expected-Session-ID": admin.sessionId } : {};
     // 원격 HTTP의 dev에서는 Web Crypto를 호출하지 않는다. 일반 BFF·JWT 검증은 서버에서 유지한다.
     if (isDevHttpAuth()) {
-      return await requireSuccess(await fetch(path, {
+      const response = await requireSuccess(await fetch(path, {
         method, credentials: "same-origin", cache: "no-store", redirect: "error",
         signal: requestSignal, headers: { ...adminHeaders, ...(input !== undefined && { "Content-Type": "application/json" }) },
         ...(input !== undefined && { body: JSON.stringify(input) }),
       }));
+      if (lobbyStream) clearTimeout(handshakeTimer);
+      return response;
     }
     const purpose = path === "/api/auth/login" ? "login" : "session";
     const key = await getBrowserKey(purpose === "login");
@@ -123,11 +130,13 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     const proof = await signBoundRequest(path, method, body, key, nonce, admin?.sessionId);
     signal?.throwIfAborted();
     // 동일 Origin의 BFF만 호출하며 인증 토큰을 읽거나 브라우저 저장소에 보관하지 않는다.
-    return await requireSuccess(await fetch(path, {
+    const response = await requireSuccess(await fetch(path, {
       method, credentials: "same-origin", cache: "no-store", redirect: "error", body,
       signal: requestSignal,
       headers: { ...adminHeaders, "X-Browser-Proof": proof, ...(input !== undefined && { "Content-Type": "application/json" }) },
     }));
+    if (lobbyStream) clearTimeout(handshakeTimer);
+    return response;
   } catch (error) {
     // 네트워크 오류로 포장하지 않아 종료된 스트림에 대한 자동 재시도가 발생하지 않는다.
     if (signal?.aborted) throw signal.reason;
@@ -141,5 +150,7 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     if (error instanceof AuthRequestError) throw error;
     throw new AuthRequestError("서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.", 0, undefined,
       requestSignal.aborted ? "AUTH_REQUEST_TIMEOUT" : "NETWORK_UNAVAILABLE");
+  } finally {
+    if (lobbyStream) clearTimeout(handshakeTimer);
   }
 }

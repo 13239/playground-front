@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import type { WaitingRoom } from "../waiting-contracts";
@@ -17,9 +17,11 @@ const reasons = { FIVE: "다섯 돌을 완성했어요.", BOARD_FULL: "판이 �
   DISCONNECT: "연결을 복구하지 못해 대국이 끝났어요.", INTERRUPTED: "양쪽 연결이 끊겨 대국을 중단했어요." } as const;
 
 /** 같은 방 안에서 추첨·판·결과·재대국을 표시한다. 모든 변경은 서버 응답을 확인한 뒤 반영한다. */
-export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, connectionLost, onAction, onLeave, onRecover }: {
+export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, connectionLost, onAction, onLeave, onRecover, leaveConfirmation }: {
   room: WaitingRoom & { game: MatchState }; receivedAt: number; pending: boolean; error: string; reconnectAttempt: number; connectionLost: boolean;
   onAction: (action: GameAction) => void; onLeave: () => void; onRecover: () => void;
+  // 방 컨트롤러의 퇴장 확인·오류·중복 요청 방지를 실제 대국이 표시되는 문서에서 그대로 사용한다.
+  leaveConfirmation?: ReactNode;
 }) {
   const game = room.game;
   const self = room.participants.find(player => player.self)!;
@@ -28,11 +30,22 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
   const [dismissedResultId, setDismissedResultId] = useState<number>();
   const confirmResign = resignMatchId === game.id;
   const resultDismissed = dismissedResultId === game.id;
+  const undoVisible = game.phase === "PLAYING" && game.undoSeat > 0;
+  const undoTitleId = useId();
+  const undoDescriptionId = useId();
+  const undoDialogRef = useRef<HTMLElement>(null);
   const popup = useGamePopup(styles.popupDocument);
   // 최신 명령 콜백만 교체하고 판에는 안정적인 함수 참조를 내려 주기 조회 시 전체 셀 렌더링을 막는다.
   const moveActionRef = useRef(onAction);
   useEffect(() => { moveActionRef.current = onAction; }, [onAction]);
   const move = useCallback((x: number, y: number) => moveActionRef.current({ action: "MOVE", x, y }), []);
+  // 무르기 팝업이 표시되면 실제 대국 문서(원래 화면 또는 별도 팝업)의 응답 버튼으로 포커스를 옮긴다.
+  useEffect(() => {
+    if (!undoVisible) return;
+    const dialog = undoDialogRef.current;
+    if (game.undoSeat === self.seat) dialog?.focus({ preventScroll: true });
+    else dialog?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+  }, [undoVisible, game.undoSeat, game.undoDeadline, self.seat, popup.container]);
   // 현재 차례와 만료 여부는 서버에서 검증한다. UI 시계의 초 변화는 하위 컴포넌트 안에서만 일어난다.
   const disabled = pending || reconnectAttempt > 0 || connectionLost;
   const ownPick = self.seat === 1 ? game.pickOne : game.pickTwo;
@@ -40,9 +53,9 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
   const usedUndo = self.seat === 1 ? game.undoOne : game.undoTwo;
   const requestedRematch = self.seat === 1 ? game.rematchOne : game.rematchTwo;
   const winner = room.participants.find(player => player.seat === game.winnerSeat);
-  // 퇴장 확인은 방 화면에서 처리하므로 팝업을 먼저 복원해 확인창이 뒤에 숨지 않게 한다.
-  function leaveFromGame() {
-    if (popup.container) popup.close();
+  // 퇴장 확인은 방 화면에서 처리하되 팝업을 유지해 기권 확인과 같은 창에 표시한다.
+  function leaveFromGame(event?: MouseEvent<HTMLButtonElement>) {
+    event?.currentTarget.closest("details")?.removeAttribute("open");
     onLeave();
   }
   const scene = (
@@ -102,16 +115,23 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
           {game.phase === "PLAYING" && <ActiveTurnCountdown serverTime={room.serverTime} deadline={game.deadline} />}
         </div>
         {/* 종료 안내는 결과 대화상자에서 확인하고 판 위에는 안내·재대국 버튼을 반복하지 않는다. */}
-        <GameBoard key={game.id} game={game} selfSeat={self.seat} serverTime={room.serverTime} receivedAt={receivedAt} disabled={disabled} onMove={move} />
+        {/* 무르기 요청은 판 아래의 안내 영역을 차지하지 않고 실제 오목판 위에 겹쳐 표시한다. */}
+        <GameBoard key={game.id} game={game} selfSeat={self.seat} serverTime={room.serverTime} receivedAt={receivedAt}
+          disabled={disabled || undoVisible} onMove={move} overlay={undoVisible ? <div className={styles.undoOverlay}>
+            <section ref={undoDialogRef} className={styles.undoNotice} role="dialog" aria-labelledby={undoTitleId}
+              aria-describedby={undoDescriptionId} tabIndex={-1}>
+              <h2 id={undoTitleId}>{game.undoSeat === self.seat ? "무르기 응답을 기다리고 있어요" : "상대가 무르기를 요청했어요"}</h2>
+              <p className={styles.undoCountdown}>응답 대기 <strong><CountdownSeconds serverTime={room.serverTime} deadline={game.undoDeadline} maximum={10} />초</strong></p>
+              {game.undoSeat !== self.seat && <div className={styles.actions}>
+                <button className={styles.primaryButton} type="button" disabled={disabled} onClick={() => onAction({ action: "UNDO_REPLY", accept: true })}>수락</button>
+                <button className={styles.secondaryButton} type="button" disabled={disabled} onClick={() => onAction({ action: "UNDO_REPLY", accept: false })}>거절</button>
+              </div>}
+              <p id={undoDescriptionId} className={styles.undoDescription}>
+                수락하면 요청자의 직전 착수부터 되돌려요. 응답 중에도 턴 시간은 계속 흘러요.
+              </p>
+            </section>
+          </div> : undefined} />
         {popup.container && game.phase === "PLAYING" && <p className={styles.popupHint}>빈 교차점을 클릭하여 착수하세요</p>}
-        {game.phase === "PLAYING" && game.undoSeat > 0 && <div className={styles.undoNotice} role="status">
-          <p>{game.undoSeat === self.seat ? "상대에게 무르기를 요청했어요." : "상대가 무르기를 요청했어요."} <small>응답 대기 <CountdownSeconds serverTime={room.serverTime} deadline={game.undoDeadline} maximum={10} />초</small></p>
-          {game.undoSeat !== self.seat && <div className={styles.actions}>
-            <button className={styles.primaryButton} type="button" disabled={disabled} onClick={() => onAction({ action: "UNDO_REPLY", accept: true })}>수락</button>
-            <button className={styles.secondaryButton} type="button" disabled={disabled} onClick={() => onAction({ action: "UNDO_REPLY", accept: false })}>거절</button>
-          </div>}
-          <small>수락하면 요청자의 직전 착수부터 되돌려요. 응답 중에도 턴 시간은 계속 흘러요.</small>
-        </div>}
       </>}
       {error && <p className={styles.error} role="alert">{error}</p>}
       {/* 종료 후에는 일반 화면·팝업 모두 판 아래에서 재대국 신청·대기와 나가기를 바로 선택한다. */}
@@ -150,6 +170,8 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
           <button className={styles.secondaryButton} disabled={pending} onClick={() => setResignMatchId(undefined)}>계속 두기</button>
           <button className={styles.dangerButton} disabled={disabled} onClick={() => { setResignMatchId(undefined); onAction({ action: "RESIGN" }); }}>기권하기</button>
         </div></RoomDialog>}
+      {/* 원본과 팝업 중 현재 판이 있는 문서에만 퇴장 확인창을 표시한다. */}
+      {leaveConfirmation}
     </section>
   );
   return <GameClockProvider serverTime={room.serverTime} receivedAt={receivedAt}><div className={styles.gameContainer}>

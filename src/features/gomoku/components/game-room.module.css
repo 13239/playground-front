@@ -115,6 +115,7 @@
 }
 
 .boardScroll {
+  position: relative;
   overflow: hidden;
   overscroll-behavior: contain;
   border-radius: 1rem;
@@ -275,7 +276,7 @@
   margin-top: 1rem;
 }
 
-.connectionNotice, .undoNotice {
+.connectionNotice {
   padding: 1rem;
   margin: 1rem 0;
   border-radius: .9rem;
@@ -283,14 +284,61 @@
   line-height: 1.6;
 }
 
-.connectionNotice p, .undoNotice p {
-  margin: 0 0 .6rem;
+.connectionNotice p { margin: 0 0 .6rem; }
+
+/* 같은 오목판에 상대 무르기 요청과 내 응답 대기를 띄운다. 판의 좌표·크기는 바꾸지 않는다. */
+.undoOverlay {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(.4rem, 2vw, 1rem);
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #21163699;
+  backdrop-filter: blur(2px);
 }
 
-.undoNotice small {
-  display: block;
-  color: #76634b;
-  font-size: .8rem;
+.undoNotice {
+  width: min(100%, 27rem);
+  max-height: 100%;
+  padding: clamp(.8rem, 2vw, 1.5rem);
+  overflow-y: auto;
+  border: 1px solid #e3d8fa;
+  border-radius: 1rem;
+  background: #fffaf1;
+  box-shadow: 0 12px 36px #180f3840;
+  color: #32274d;
+  line-height: 1.5;
+  text-align: center;
+  overscroll-behavior: contain;
+}
+
+.undoNotice h2 {
+  margin: 0;
+  color: #482b79;
+  font-size: clamp(.95rem, 1.35vw, 1.25rem);
+  font-weight: 800;
+}
+
+.undoCountdown { margin: .7rem 0 0; font-size: .9rem; }
+.undoCountdown strong { color: #8524ed; font-variant-numeric: tabular-nums; }
+
+.undoNotice .actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .6rem;
+  margin-top: 1rem;
+}
+
+.undoNotice .actions > button { min-width: 0; }
+
+.undoDescription {
+  margin: .7rem 0 0;
+  color: #75634a;
+  font-size: .78rem;
+  overflow-wrap: anywhere;
 }
 
 .error {
@@ -1133,7 +1181,15 @@
 .popupScene .actions { flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
 .popupScene .actions > button { min-width: 0; min-height: 38px; padding: .45rem .6rem; font-size: .75rem; border-radius: .6rem; }
 .popupScene .actions > button svg { width: 1rem; height: 1rem; }
-.popupScene .connectionNotice, .popupScene .undoNotice, .popupScene .error { margin-block: .6rem; padding: .7rem; font-size: .8rem; }
+.popupScene .connectionNotice, .popupScene .error { margin-block: .6rem; padding: .7rem; font-size: .8rem; }
+/* 작은 별도 창에서도 판 위의 응답 버튼 두 개가 함께 보이고 카드 안에서 스크롤할 수 있다. */
+.popupScene .undoOverlay { padding: .4rem; border-radius: .8rem; }
+.popupScene .undoNotice { padding: .65rem; border-radius: .75rem; font-size: .78rem; }
+.popupScene .undoNotice h2 { font-size: .9rem; }
+.popupScene .undoCountdown { margin-top: .35rem; font-size: .78rem; }
+.popupScene .undoNotice .actions { gap: .4rem; margin-top: .45rem; }
+.popupScene .undoNotice .actions > button { min-height: 36px; padding: .35rem .5rem; font-size: .78rem; }
+.popupScene .undoDescription { margin-top: .35rem; font-size: .7rem; }
 .popupScene .lottery { min-height: 20rem; padding: 1rem 0; }
 .popupScene .lottery h2 { font-size: 1.2rem; }
 .popupScene .cards { gap: .6rem; }

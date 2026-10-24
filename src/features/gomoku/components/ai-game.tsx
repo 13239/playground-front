@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
@@ -61,9 +61,11 @@ function AiGame({ difficulty, rule, sessionId }: { difficulty: AiDifficulty; rul
   const finished = game.phase === "FINISHED";
   const status = finished ? game.winner === 0 ? "무승부예요" : game.winner === 1 ? "승리했어요!" : "AI가 승리했어요"
     : game.error ? "AI 계산을 다시 시도해 주세요" : thinking ? "AI가 다음 수를 생각하고 있어요" : "내 차례예요";
-  const leave = () => {
-    if (popup.container) popup.close();
+  // 확인 전에는 팝업과 대국을 유지하고, 퇴장이 확정된 경우에만 원래 창으로 복귀한다.
+  const leave = (event?: MouseEvent<HTMLButtonElement>) => {
+    event?.currentTarget.closest("details")?.removeAttribute("open");
     if (finished || !game.moves.length && !thinking) {
+      if (popup.container) popup.close();
       setDismissedResult(game.id);
       router.push("/games/gomoku");
     } else setConfirmation("leave");
@@ -128,7 +130,11 @@ function AiGame({ difficulty, rule, sessionId }: { difficulty: AiDifficulty; rul
       <div className={shared.actions}>
         <button type="button" className={shared.secondaryButton} onClick={() => setConfirmation(undefined)}>계속 두기</button>
         <button type="button" className={shared.dangerButton} onClick={() => {
-          if (confirmation === "leave") router.push("/games/gomoku");
+          if (confirmation === "leave") {
+            // 확인 버튼의 사용자 동작 안에서 원래 창을 복원한 뒤 방 목록으로 이동한다.
+            if (popup.container) popup.close();
+            router.push("/games/gomoku");
+          }
           else dispatch({ type: "RESIGN" });
           setConfirmation(undefined);
         }}>{confirmation === "leave" ? "나가기" : "기권하기"}</button>

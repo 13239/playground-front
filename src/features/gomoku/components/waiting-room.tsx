@@ -376,12 +376,46 @@ function AuthenticatedWaitingRoom({
               ]
             : ["함께 대국을 준비해요", "준비가 되면 준비하기를 눌러주세요."];
 
+  // 퇴장 상태와 요청은 이 컨트롤러에 유지하고, 대국 중에는 GameRoom의 현재 문서에 확인창을 표시한다.
+  const leaveConfirmation = confirmLeave && (
+    <RoomDialog
+      title={room.game ? "방에서 나갈까요?" : "대기실에서 나갈까요?"}
+      busy={pending === "leave"}
+      showClose={false}
+      onClose={() => setConfirmLeave(false)}
+    >
+      {room.game && <p>{room.game.phase === "FINISHED" ? "방에서 나가면 상대가 새로운 참가자를 기다릴 수 있어요." : "대국 중에 나가면 기권 패배로 기록돼요."}</p>}
+      {leaveError && (
+        <p className={common.error} role="alert">
+          {leaveError}
+        </p>
+      )}
+      <div className={common.actions}>
+        <button
+          className={common.secondaryButton}
+          disabled={pending !== null}
+          onClick={() => setConfirmLeave(false)}
+        >
+          머무르기
+        </button>
+        <button
+          className={common.dangerButton}
+          disabled={!pageId || pending !== null}
+          onClick={() => void leave()}
+        >
+          {pending === "leave" ? "나가는 중…" : "나가기"}
+        </button>
+      </div>
+    </RoomDialog>
+  );
+
   return (
     <div className={room.game ? gameStyles.gameLayout : styles.waitingPage} data-gomoku-game={room.game ? "multiplayer" : undefined}>
       {/* 같은 방의 재대국에서도 대국 컨트롤러를 유지해 열린 팝업와 기존 연결을 재사용한다. */}
       {room.game ? <GameRoom room={{ ...room, game: room.game }} receivedAt={snapshot.receivedAt} pending={pending !== null || !pageId} error={error}
         reconnectAttempt={sync.attempt} connectionLost={sync.lost} onAction={action => void gameAction(action)}
-        onLeave={() => { setLeaveError(""); setConfirmLeave(true); }} onRecover={() => void recoverResult()} />
+        onLeave={() => { setLeaveError(""); setConfirmLeave(true); }} onRecover={() => void recoverResult()}
+        leaveConfirmation={leaveConfirmation} />
         : <section className={styles.scene} aria-label="오목 대기실">
         <Image
           src="/images/gomoku/waiting-room-background.webp"
@@ -574,37 +608,7 @@ function AuthenticatedWaitingRoom({
           </div>
         </RoomDialog>
       )}
-      {confirmLeave && (
-        <RoomDialog
-          title={room.game ? "방에서 나갈까요?" : "대기실에서 나갈까요?"}
-          busy={pending === "leave"}
-          showClose={false}
-          onClose={() => setConfirmLeave(false)}
-        >
-          {room.game && <p>{room.game.phase === "FINISHED" ? "방에서 나가면 상대가 새로운 참가자를 기다릴 수 있어요." : "대국 중에 나가면 기권 패배로 기록돼요."}</p>}
-          {leaveError && (
-            <p className={common.error} role="alert">
-              {leaveError}
-            </p>
-          )}
-          <div className={common.actions}>
-            <button
-              className={common.secondaryButton}
-              disabled={pending !== null}
-              onClick={() => setConfirmLeave(false)}
-            >
-              머무르기
-            </button>
-            <button
-              className={common.dangerButton}
-              disabled={!pageId || pending !== null}
-              onClick={() => void leave()}
-            >
-              {pending === "leave" ? "나가는 중…" : "나가기"}
-            </button>
-          </div>
-        </RoomDialog>
-      )}
+      {!room.game && leaveConfirmation}
     </div>
   );
 }

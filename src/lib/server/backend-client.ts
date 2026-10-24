@@ -49,8 +49,10 @@ export async function backendRequest(
   // BFF 서버 자신의 User-Agent와 구분되도록 정제한 브라우저 값만 전용 헤더로 전달한다.
   if (options.userAgent) headers.set("X-Client-User-Agent", options.userAgent);
   const body = options.body === undefined ? undefined : JSON.stringify(options.body);
-  const timeout = AbortSignal.timeout(options.responseType === "stream" ? 25_000 : getBackendTimeout());
-  const deadline = options.signal ? AbortSignal.any([timeout, options.signal]) : timeout;
+  // SSE는 헤더 수신에만 제한 시간을 적용한다. 열린 스트림은 원본 요청 취소/연결 종료까지 유지한다.
+  const timeoutController = new AbortController();
+  const timeoutTimer = setTimeout(() => timeoutController.abort(), options.responseType === "stream" ? 25_000 : getBackendTimeout());
+  const deadline = options.signal ? AbortSignal.any([timeoutController.signal, options.signal]) : timeoutController.signal;
 
   // 토큰 회전·상태 변경 중복을 방지하기 위해 자동 재시도하지 않는다.
   try {
@@ -81,5 +83,7 @@ export async function backendRequest(
   } catch (error) {
     if (error instanceof ApiError) throw error;
     throw new ApiError(deadline.aborted ? "BACKEND_TIMEOUT" : "BACKEND_UNAVAILABLE");
+  } finally {
+    clearTimeout(timeoutTimer);
   }
 }
