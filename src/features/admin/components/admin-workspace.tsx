@@ -13,10 +13,12 @@ import { RolesPanel } from "./roles-panel";
 import { AccessPanel } from "./access-panel";
 import { GamesPanel } from "./games-panel";
 import { GenresPanel } from "./genres-panel";
+import { UsersPanel } from "./users-panel";
 import type { PermissionCode } from "../contracts";
 import styles from "./admin.module.css";
 
 const sections = [
+  { key: "users", name: "유저 관리", icon: "user", permission: "USER_READ", description: "회원 정보와 계정 상태, 권한, 닉네임 변경 이력을 확인하세요." },
   { key: "roles", name: "권한 관리", icon: "users", permission: "ROLE_READ", description: "역할별로 사용할 수 있는 기능을 설정하세요." },
   { key: "operations", name: "운영 설정", icon: "gear", permission: "ACCESS_POLICY_READ", description: "로그인과 기존 접속의 운영 정책을 관리하세요." },
   { key: "games", name: "게임 관리", icon: "gamepad", permission: "GAME_READ", description: "게임 정보, 플레이 모드와 공개 상태를 관리하세요." },
@@ -37,7 +39,6 @@ export function AdminWorkspace({ section }: { section?: string }) {
       <aside className={styles.sidebar}>
         <div className={styles.consoleLabel}><LobbyIcon name="gear" /><span>관리자 페이지</span></div>
         <nav aria-label="관리자 메뉴">{allowed.map(s => <Link key={s.key} href={`/admin/${s.key}`} prefetch={false} aria-current={selected?.key === s.key ? "page" : undefined}><LobbyIcon name={s.icon} />{s.name}</Link>)}</nav>
-        <Link className={styles.backLink} href="/">← 플레이그라운드로</Link>
       </aside>
       <main id="admin-main" className={styles.main}>
         {auth.status === "anonymous" ? <div className={styles.empty}><h1>로그인이 필요해요</h1><Link href="/login">로그인하러 가기</Link></div>
@@ -51,7 +52,7 @@ export function AdminWorkspace({ section }: { section?: string }) {
             {savedSession === access.sessionId && <div className={styles.savedNotice} role="status">저장했어요.<button type="button" aria-label="저장 안내 닫기" onClick={() => setSavedSession(undefined)}>×</button></div>}
             {/* 세션별로 편집 상태를 격리해 다른 계정 로그인 후 이전 입력이 제출되지 않게 한다. */}
             <div key={`${access.sessionId}:${selected.key}`}>
-              {selected.key === "roles" ? <RolesPanel /> : selected.key === "operations" ? <AccessPanel /> : selected.key === "games" ? <GamesPanel /> : <GenresPanel />}
+              {selected.key === "users" ? <UsersPanel /> : selected.key === "roles" ? <RolesPanel /> : selected.key === "operations" ? <AccessPanel /> : selected.key === "games" ? <GamesPanel /> : <GenresPanel />}
             </div>
           </AdminScope>}
       </main>

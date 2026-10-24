@@ -1,5 +1,7 @@
 # Playground Frontend
 
+관리자 **유저 관리**에서 회원 정보·닉네임 변경 이력·허용된 계정 관리 기능을 제공한다. [5단계 화면 안내](docs/user-management-stage5.md)를 따른다.
+
 관리자 화면은 헤더 알림 왼쪽 설정 아이콘으로 진입한다. 현재 `ADMIN_ACCESS` 보유 사용자에게만 보이며 권한·운영 설정·게임·장르를 관리한다. [관리자 화면/BFF 안내](docs/admin-stage4.md)를 따른다.
 
 Next.js 16.4 App Router와 React 19를 사용한다. 로그인은 브라우저 → Next.js BFF → Spring API 흐름으로 연결하며, HttpOnly 쿠키에 더해 브라우저 키 소유를 검증한다.

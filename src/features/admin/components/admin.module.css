@@ -67,6 +67,33 @@
 .checkRow small { display: block; color: #9a8eaa; font-size: 0.72rem; font-weight: 400; }
 .screen input[type="checkbox"] { flex-shrink: 0; width: 18px; height: 18px; accent-color: #8b32f5; cursor: pointer; }
 .screen input[type="checkbox"]:disabled { cursor: not-allowed; }
+/* 단일 역할 선택도 공통 얇은 포커스와 같은 크기의 네이티브 입력으로 표시한다. */
+.screen input[type="radio"] { flex-shrink: 0; width: 18px; height: 18px; accent-color: #8b32f5; cursor: pointer; }
+.screen input[type="radio"]:disabled { cursor: not-allowed; }
+.pageHeading .roleBadge { max-width: 40%; white-space: normal; overflow-wrap: anywhere; }
+.userBadges .roleBadge { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.userRoleFilter { margin-block: 12px; min-width: 0; }
+.userRoleFilter > summary { padding: 12px; border: 1px solid #e6def5; border-radius: 9px; color: #7a668f; font-size: 0.8rem; cursor: pointer; overflow-wrap: anywhere; }
+.userRoleFilter[open] > summary { margin-bottom: 10px; }
+.userRoleFilter .picker { padding: 10px; }
+.userRoleFilter .pickerOptions { grid-template-columns: minmax(0, 1fr); }
+.userHeading { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.userHeading > img { flex-shrink: 0; border-radius: 50%; border: 1px solid #e7ddf8; background: #f7f2ff; }
+.userHeading > div { min-width: 0; }
+.userHeading h2 { overflow-wrap: anywhere; }
+.userBadges { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
+.userFacts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin: 20px 0 28px; }
+.userFacts > div { min-width: 0; }
+.userFacts dt { color: #9b8aa9; font-size: 0.75rem; margin-bottom: 8px; }
+.userFacts dd { margin: 0; color: #50415e; font-size: 0.9rem; line-height: 1.7; overflow-wrap: anywhere; }
+.nicknameHistory { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.nicknameHistory > li { border: 1px solid #eae3f7; border-radius: 12px; padding: 20px; background: #fdfbff; }
+.nicknameChange { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; align-items: center; }
+.nicknameChange small { display: block; color: #a090af; font-size: 0.72rem; margin-bottom: 7px; }
+.nicknameChange strong { color: #725092; font-size: 0.95rem; overflow-wrap: anywhere; }
+.nicknameChange > span:nth-child(2) { color: #b39cc8; }
+.historyMeta { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; border-top: 1px solid #eee8f8; padding-top: 12px; font-size: 0.76rem; color: #95869f; }
+@media (max-width: 760px) { .userFacts { grid-template-columns: minmax(0, 1fr); gap: 18px; } .nicknameHistory > li { padding: 16px; } .nicknameChange { gap: 10px; } }
 .toggleRow { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px; border: 1px solid #e9e1fa; border-radius: 12px; background: #faf7ff; }
 .toggleRow strong { display: block; font-size: 0.95rem; color: #4b2c74; }
 .toggleRow small { display: block; margin-top: 7px; font-size: 0.78rem; line-height: 1.6; color: #9789aa; }
@@ -109,3 +136,61 @@
 @media (max-width: 980px) { .workspace { grid-template-columns: minmax(0, 1fr); } .sidebar { position: static; min-height: 0; padding: 12px; gap: 10px; } .consoleLabel { display: none; } .sidebar nav { display: flex; gap: 8px; overflow-x: auto; } .sidebar nav a { flex-shrink: 0; min-height: 42px; } .backLink { display: none; } }
 @media (max-width: 680px) { .masterDetail { grid-template-columns: minmax(0, 1fr); } .listItems { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 230px; overflow-y: auto; } .listHeading h2 { font-size: 1.05rem; } .pageHeading { align-items: flex-start; } .roleBadge { font-size: 0.7rem; padding: 7px 10px; } .panel { border-radius: 16px; padding: 18px; } .formColumns { grid-template-columns: minmax(0, 1fr); } .panelHeading { flex-wrap: wrap; } .subheading { flex-wrap: wrap; } .subheading input { width: 100%; } .inset { padding: 16px; } .sidebar nav a { gap: 7px; font-size: 0.8rem; } .sidebar nav svg { width: 19px; height: 19px; } .dialog { padding: 22px; } .toggleRow { padding: 16px; } }
 @media (forced-colors: active) { .screen .toggleRow input { appearance: auto; } .toggleRow input::after { display: none; } }
+/* 회원 행은 아바타·상태를 함께 표시하고 작은 화면에서는 표 내부만 가로로 이동한다. */
+.visuallyHidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.userGridPanel { padding: clamp(14px, 1.7vw, 28px); }
+.userToolbar { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(140px, 0.35fr) minmax(160px, 0.35fr) 110px; align-items: start; gap: 12px; margin-bottom: 20px; }
+.userToolbar .search { min-height: 44px; }
+.userFilter { display: block; min-width: 0; }
+.userFilter select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: #fff; }
+.userToolbar .userRoleFilter { position: relative; margin: 0; }
+.userToolbar .userRoleFilter > summary { min-height: 44px; padding: 11px 12px; overflow-wrap: anywhere; }
+.userToolbar .userRoleFilter[open] > summary { margin-bottom: 0; }
+.userRolePopover { position: absolute; z-index: 5; top: calc(100% + 8px); left: 0; width: min(360px, calc(100vw - 64px)); border-radius: 12px; background: white; box-shadow: 0 12px 38px #39206b20; }
+.userRolePopover .picker { background: white; }
+.userTableScroll { min-width: 0; max-height: min(66dvh, 1050px); overflow: auto; border: 1px solid #eee8fa; border-radius: 12px; overscroll-behavior: contain; }
+.userTableScroll:focus-visible, .userRoleFilter > summary:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+.userTable { width: 100%; min-width: 1060px; border-collapse: separate; border-spacing: 0; text-align: left; color: #51406e; font-size: 0.85rem; }
+.userTable th { position: sticky; top: 0; z-index: 2; height: 48px; background: #f3eeff; color: #8c77aa; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+.userTable th, .userTable td { padding: 10px 14px; border-bottom: 1px solid #eee8fa; }
+.userTable td { height: 64px; background: #fff; overflow-wrap: anywhere; }
+.userTable tr:last-child td { border-bottom: 0; }
+.userTable tbody tr:has(.userOpenButton) { cursor: pointer; }
+.userTable tbody tr:is(:hover, :focus-within) td { background: #f6f0ff; }
+.userTable :is(th, td):nth-child(2) { position: sticky; left: 0; z-index: 1; min-width: 190px; }
+.userTable th:nth-child(2) { z-index: 3; }
+.userTable td:nth-child(3) { max-width: 220px; }
+.userTable time, .userTable td:last-child { white-space: nowrap; }
+.userTable .roleBadge { display: inline-block; max-width: 220px; padding: 6px 10px; font-size: 0.74rem; white-space: normal; overflow-wrap: anywhere; }
+.screen button.userOpenButton { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 40px; padding: 0; border: 0; border-radius: 6px; color: #271250; background: transparent; text-align: left; }
+.screen button.userOpenButton:hover { background: transparent; }
+.userOpenButton img { flex-shrink: 0; border: 1px solid #ebe2fa; border-radius: 50%; background: #f8f3ff; }
+.userOpenButton strong { max-width: 220px; overflow-wrap: anywhere; }
+.userGridFooter { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #eee8fa; }
+.userGridFooter p { margin: 0; }
+/* 새로고침은 응답이 빨라도 한 바퀴 보이며 양의 회전각으로 시계방향을 유지한다. */
+.screen .iconButton, .dialog .iconButton { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 40px; min-width: 40px; height: 40px; min-height: 40px; padding: 0; }
+.iconButton svg { width: 20px; height: 20px; }
+.refreshIcon { display: inline-flex; transition: transform 600ms ease-in-out; }
+.numberedPagination { display: flex; justify-content: center; align-items: center; gap: 6px; max-width: 100%; overflow-x: auto; padding-block: 3px; }
+.screen .numberedPagination button, .dialog .numberedPagination button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 36px; min-height: 36px; padding: 5px 8px; font-size: 0.8rem; }
+.numberedPagination svg { width: 17px; height: 17px; }
+.screen .numberedPagination button[aria-current="page"], .dialog .numberedPagination button[aria-current="page"] { border-color: #8c3af4; color: #fff; background: linear-gradient(125deg, #a24bff, #7c2aef); }
+/* 상세의 내용만 스크롤해 닫기·새로고침은 작은 뷰포트에서도 계속 사용할 수 있다. */
+.dialog.userDialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; width: min(960px, calc(100vw - 48px)); max-height: calc(100dvh - 48px); padding: 0; overflow: hidden; }
+.dialog.userDialog[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.dialog.userDialog:focus { outline: none; }
+.userDialogTop { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 26px 32px 16px; }
+.userDialogTop > div > span { color: #9c60ef; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; }
+.userDialogControls { display: flex; gap: 8px; }
+.userDialogBody { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 32px 28px; }
+.userIdentity { margin: 0 0 24px; }
+.userIdentity h2 { margin: 0; font-size: clamp(1.3rem, 2vw, 1.7rem); }
+.userIdentity p { margin: 5px 0 10px; color: #8e7aa7; font-size: 0.85rem; }
+.userIdentity .userBadges { margin: 0; }
+.userDialogFooter { display: flex; justify-content: flex-end; padding: 16px 32px; border-top: 1px solid #eee8fa; }
+.userDialog .inset .userFacts { margin-bottom: 0; }
+@media (max-width: 1300px) { .userGridFooter { display: flex; flex-direction: column; align-items: stretch; } .userToolbar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 110px; } .userToolbar > .search { grid-column: 1 / -1; } }
+@media (max-width: 680px) { .userToolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .userPageSize { grid-column: 2; justify-self: end; width: 110px; } .dialog.userDialog { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); border-radius: 16px; } .userDialogTop { padding: 18px 18px 14px; } .userDialogBody { padding: 0 18px 20px; } .userDialogFooter { padding: 12px 18px; } .userIdentity .userHeading { align-items: flex-start; gap: 12px; } .userHeading > img { width: 56px; height: 56px; } }
+@media (max-width: 480px) { .numberedPagination { gap: 4px; } .screen .numberedPagination button, .dialog .numberedPagination button { min-width: 28px; min-height: 32px; padding-inline: 4px; } .numberedPagination [data-mobile-visible="false"] { display: none !important; } }
+@media (prefers-reduced-motion: reduce) { .refreshIcon { transition: none; } }

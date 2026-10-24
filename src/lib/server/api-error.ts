@@ -5,6 +5,10 @@ import { parseOperationalNotice } from "@/lib/operational-notice";
 
 // 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
 const errors = {
+  // 회원 편집 충돌과 권한/저장소 실패를 로그인 만료와 구분한다.
+  USER_MANAGEMENT_CHANGED: [409, "회원 정보가 변경되었습니다. 최신 내용을 불러온 뒤 다시 시도해 주세요."],
+  USER_SELF_OPERATION_NOT_ALLOWED: [409, "현재 로그인한 본인 계정은 비활성화할 수 없습니다."],
+  USER_MANAGEMENT_UNAVAILABLE: [503, "회원 관리 서비스를 일시적으로 이용할 수 없습니다."],
   // 관리 기능의 충돌과 권한 오류를 토큰 만료로 처리하거나 내부 예외 원문으로 노출하지 않는다.
   ROLE_NOT_FOUND: [404, "권한을 찾을 수 없습니다."],
   ROLE_ALREADY_EXISTS: [409, "이미 사용 중인 권한 코드입니다."],
