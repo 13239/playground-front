@@ -5,9 +5,9 @@ import { authRetryDelay } from "@/features/auth/client/request-cooldown";
 import { chatConnectionError, connectChat } from "./connection";
 import { chatRecovery } from "./recovery";
 import { reportConnectionIssue } from "@/lib/client/connection-diagnostics";
-import { mergeMessages } from "./message-window";
+import { mergeMessages, compareChatTime } from "./message-window";
 import { parseChatEvent, sendChatFrame, validatedChatContent,
-  type ChatEvent, type PublicChatMessage, type PublicChatUser, type ChatDestination } from "./protocol";
+  type ChatEvent, type PublicChatMessage, type PublicChatUser, type PublicChatProfile, type ChatDestination } from "./protocol";
 
 const HISTORY_LIMIT = 30;
 const PRESENCE_LIMIT = 50;
@@ -79,7 +79,7 @@ export class GlobalChatStore {
   private recoveryTimer?: Timer;
   private statusTimer?: Timer;
   private readonly pendingTimers = new Map<string, Timer>();
-  private historyRequest?: { id: string; before: string | null; items: PublicChatMessage[]; live: PublicChatMessage[] };
+  private historyRequest?: { id: string; before: string | null; items: PublicChatMessage[]; live: PublicChatMessage[]; outsideWindow?: boolean };
   private presenceRequest?: { id: string; cursor: string | null };
   private statusRequest?: { clientMessageId: string; manual: boolean };
   private nextCursor: string | null = null;
@@ -89,6 +89,9 @@ export class GlobalChatStore {
   private lastStatusAt = Number.NEGATIVE_INFINITY;
   private lastSendAt = Number.NEGATIVE_INFINITY;
   private blockedUntil = 0;
+  // 홈 방문별 첫 접속의 서버 시각을 보존한다. 네트워크 재연결·닉네임 변경은 이 경계를 옮기지 않는다.
+  private visibleAfter?: string;
+  private readonly authorProfiles = new Map<string, PublicChatProfile>();
 
   getSnapshot = (): ChatSnapshot => this.snapshot;
   getServerSnapshot = (): ChatSnapshot => EMPTY_CHAT;
@@ -98,6 +101,20 @@ export class GlobalChatStore {
   };
 
   private update(patch: Partial<ChatSnapshot>): void {
+    if (patch.messages) {
+      // 늦은 Kafka 방송·이력 응답도 더 최신의 프로필 세대를 되돌릴 수 없다.
+      for (const message of patch.messages) {
+        if (message.authorKey && message.profileRevision !== undefined) this.rememberProfile({
+          authorKey: message.authorKey, nickname: message.nickname, avatarId: message.avatarId, revision: message.profileRevision,
+        });
+      }
+      patch = { ...patch, messages: patch.messages.map(message => {
+        const profile = message.authorKey ? this.authorProfiles.get(message.authorKey) : undefined;
+        return profile && profile.revision >= (message.profileRevision ?? 0)
+          && (message.nickname !== profile.nickname || message.avatarId !== profile.avatarId || message.profileRevision !== profile.revision)
+          ? { ...message, nickname: profile.nickname, avatarId: profile.avatarId, profileRevision: profile.revision } : message;
+      }) };
+    }
     this.snapshot = { ...this.snapshot, ...patch };
     for (const listener of this.listeners) listener();
   }
@@ -105,6 +122,8 @@ export class GlobalChatStore {
   connect = (sessionId: string): (() => void) => {
     this.disconnect();
     if (this.snapshot.sessionId !== sessionId) {
+      this.visibleAfter = undefined;
+      this.authorProfiles.clear();
       this.snapshot = emptySnapshot();
       this.nextCursor = null;
       this.retries = 0;
@@ -128,6 +147,8 @@ export class GlobalChatStore {
 
   clear = (): void => {
     this.disconnect();
+    this.visibleAfter = undefined;
+    this.authorProfiles.clear();
     this.snapshot = emptySnapshot();
     for (const listener of this.listeners) listener();
   };
@@ -178,8 +199,13 @@ export class GlobalChatStore {
     this.update({ state: "connecting", retryAt: undefined });
     if (generation !== this.generation || signal.aborted) return;
     try {
-      const connection = await connectChat(sessionId, signal, this.destination);
+      const connection = await connectChat(sessionId, signal, this.destination, serverTime => {
+        // 소켓 연결에 실패해 다시 시도해도 이번 홈 방문의 첫 티켓 발급 경계는 앞으로 옮기지 않는다.
+        if (generation === this.generation && !signal.aborted && this.destination.scope === "GLOBAL") this.visibleAfter ??= serverTime;
+      });
       if (generation !== this.generation || signal.aborted) { connection.close(); return; }
+      // 브라우저 시계 오차 대신 서버 발급 시각으로 홈의 이전 메시지를 걸러낸다. 방 채팅의 입장 경계는 서버가 관리한다.
+      if (this.destination.scope === "GLOBAL") this.visibleAfter ??= connection.serverTime;
       this.connectionClose = connection.close;
       this.socket = connection.socket;
       const socket = connection.socket;
@@ -438,7 +464,11 @@ export class GlobalChatStore {
 
   private receive(frame: ChatEvent): void {
     switch (frame.type) {
+      case "CHAT_PROFILE_CHANGED":
+        if (this.rememberProfile(frame.profile)) this.update({ messages: this.snapshot.messages });
+        break;
       case "CHAT_MESSAGE":
+        if (!this.visible(frame.message)) break;
         this.confirm(frame.message);
         // 이력 쿼리 이후 도착한 방송은 페이지 완료 시에도 유지해 조회와 실시간 수신 사이의 경합을 막는다.
         if (this.historyRequest && !this.historyRequest.before) {
@@ -449,6 +479,7 @@ export class GlobalChatStore {
         break;
       case "CHAT_HISTORY_ITEM":
         if (frame.requestId === this.historyRequest?.id && this.historyRequest.items.length < HISTORY_LIMIT) {
+          if (!this.visible(frame.message)) { this.historyRequest.outsideWindow = true; break; }
           this.historyRequest.items.push(frame.message);
           this.confirm(frame.message);
         }
@@ -459,10 +490,10 @@ export class GlobalChatStore {
         this.historyRequest = undefined;
         if (this.historyTimer) clearTimeout(this.historyTimer);
         this.historyTimer = undefined;
-        this.nextCursor = frame.nextCursor;
+        this.nextCursor = request.outsideWindow ? null : frame.nextCursor;
         // 한 페이지를 모아서 한 번 정렬한다. 과거 탐색 중 새 방송이 오래된 페이지를 밀어내지 않는다.
         this.update({ messages: mergeMessages(request.before ? this.snapshot.messages : request.live, request.items, request.before ? "oldest" : "latest"),
-          history: frame.hasMore ? "more" : "done", viewingOlder: Boolean(request.before),
+          history: frame.hasMore && !request.outsideWindow ? "more" : "done", viewingOlder: Boolean(request.before),
           hasNewMessages: request.before ? this.snapshot.hasNewMessages : false });
         break;
       }
@@ -488,6 +519,7 @@ export class GlobalChatStore {
         const item = this.snapshot.pending.find((value) => value.clientMessageId === frame.clientMessageId);
         if (frame.stored && frame.message) {
           this.confirm(frame.message);
+          if (!this.visible(frame.message)) { this.scheduleRecovery(); break; }
           if (this.historyRequest && !this.historyRequest.before) {
             this.historyRequest.live = mergeMessages(this.historyRequest.live, [frame.message]);
           }
@@ -534,5 +566,20 @@ export class GlobalChatStore {
         this.pongTimer = undefined;
         break;
     }
+  }
+
+  /** 홈을 떠나면 store를 비우고 새 방문의 첫 서버 시각 이후 접수된 글만 표시한다. */
+  private visible(message: PublicChatMessage): boolean {
+    return this.destination.scope !== "GLOBAL" || this.visibleAfter !== undefined && compareChatTime(message.createdAt, this.visibleAfter) > 0;
+  }
+
+  private rememberProfile(profile: PublicChatProfile): boolean {
+    const previous = this.authorProfiles.get(profile.authorKey);
+    if (previous && previous.revision >= profile.revision) return false;
+    this.authorProfiles.delete(profile.authorKey);
+    this.authorProfiles.set(profile.authorKey, profile);
+    // 화면 500개와 이력·실시간 임시 버퍼를 합친 수보다 크게 제한하고 무제한 작성자 캐시는 만들지 않는다.
+    if (this.authorProfiles.size > 1024) this.authorProfiles.delete(this.authorProfiles.keys().next().value!);
+    return true;
   }
 }

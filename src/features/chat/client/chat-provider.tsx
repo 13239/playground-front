@@ -1,13 +1,16 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { useGlobalChat, type GlobalChat } from "./use-global-chat";
 
 const ChatContext = createContext<GlobalChat | null>(null);
 
 /** 채팅 이벤트가 게임 목록 전체를 리렌더링하지 않도록 공유 연결을 공통 레이아웃의 별도 Provider에 둔다. */
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const chat = useGlobalChat();
+  // 루트의 인증 상태는 유지하되 홈을 벗어나면 공용 채팅 연결·메시지 창은 정리한다.
+  const pathname = usePathname();
+  const chat = useGlobalChat(pathname === "/");
   return <ChatContext value={chat}>{children}</ChatContext>;
 }
 

@@ -23,7 +23,9 @@ export async function readBrowserProof(request: Request): Promise<BrowserRequest
   const reader = request.body?.getReader();
   // 로그인과 방 생성은 비밀번호를 제외한 본문을 다시 구성해 브라우저와 같은 해시를 계산한다.
   // 입장 비밀번호에도 로그인·방 생성과 같은 본문 결합 정책을 적용한다.
-  const sensitiveBody = url.pathname === "/api/auth/login" || url.pathname === "/api/gomoku/rooms" || url.pathname === "/api/gomoku/rooms/join";
+  // 비밀번호 변경 원문도 로그인과 같이 빠른 증명 해시에서 제외한다.
+  const sensitiveBody = url.pathname === "/api/auth/login" || url.pathname === "/api/auth/password"
+    || url.pathname === "/api/gomoku/rooms" || url.pathname === "/api/gomoku/rooms/join";
   const credentialBody: Buffer[] = [];
   const hash = createHash("sha256");
   let size = 0;

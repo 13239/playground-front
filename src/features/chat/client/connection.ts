@@ -12,6 +12,8 @@ export type AuthenticatedChatConnection = Readonly<{
   socket: WebSocket;
   connectionId: string;
   user: ChatUser;
+  // 서버 시계로 정한 이번 연결 시각이다. 홈의 최초 연결 경계는 재연결에서도 유지한다.
+  serverTime: string;
   // AUTHENTICATED 직후 수신된 접속자 변경·채팅 방송을 화면 구독 전까지 보관한다.
   takeBufferedFrames: () => readonly string[];
   close: () => void;
@@ -79,16 +81,18 @@ async function authenticationFrame(ticket: ReceivedTicket): Promise<object> {
 
 /** AUTHENTICATED를 확인한 뒤 연결을 넘기며 후속 메시지는 화면 구독 전까지 유한 버퍼에 보관한다. */
 export async function connectChat(sessionId: string, signal?: AbortSignal,
-  destination: ChatDestination = { scope: "GLOBAL" }): Promise<AuthenticatedChatConnection> {
+  destination: ChatDestination = { scope: "GLOBAL" }, onTicketIssued?: (serverTime: string) => void): Promise<AuthenticatedChatConnection> {
   // 티켓 발급·키 준비·핸드셰이크 전체를 같은 기한과 취소에 묶고 인증 완료 뒤에는 소켓 수명으로 전환한다.
-  return withAuthRequestContext(context => openChat(sessionId, context.signal, destination), signal);
+  return withAuthRequestContext(context => openChat(sessionId, context.signal, destination, onTicketIssued), signal);
 }
 
 async function openChat(sessionId: string, signal: AbortSignal | undefined,
-  destination: ChatDestination): Promise<AuthenticatedChatConnection> {
+  destination: ChatDestination, onTicketIssued?: (serverTime: string) => void): Promise<AuthenticatedChatConnection> {
   signal?.throwIfAborted();
   const ticket = await requestChatTicket(sessionId, signal);
   signal?.throwIfAborted();
+  // 최초 티켓의 시각은 소켓 준비보다 먼저 알려 초기 연결 실패 중의 대화도 다음 연결에서 복구한다.
+  onTicketIssued?.(ticket.serverTime);
   const frame = await authenticationFrame(ticket);
   signal?.throwIfAborted();
   return new Promise((resolve, reject) => {
@@ -156,7 +160,7 @@ async function openChat(sessionId: string, signal: AbortSignal | undefined,
         bufferedListener = undefined;
         return bufferedFrames.splice(0);
       };
-      resolve({ socket, connectionId: value.connectionId,
+      resolve({ socket, connectionId: value.connectionId, serverTime: ticket.serverTime,
         user: { nickname: value.user.nickname, avatarId: value.user.avatarId }, takeBufferedFrames, close });
     };
     socket.addEventListener("open", opened);

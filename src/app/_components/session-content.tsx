@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { AuthRequestError, reportActivity } from "@/features/auth/client/api";
 import { retryAuthSession, revalidateAuthSession, useAuthSession } from "@/features/auth/client/session-store";
 import { authRetryDelay } from "@/features/auth/client/request-cooldown";
-import { LogoutButton } from "./logout-button";
 import { SessionRecovery } from "./session-recovery";
 import { AccountMenu } from "./lobby/account-menu";
 
@@ -58,7 +57,6 @@ export function SessionContent() {
       {/* 일시적인 재확인 지연은 화면 전체를 지우지 않고 계정 메뉴 안에서 알린다. */}
       {state.status === "authenticated" && state.verificationError && <p role="status">로그인 상태 확인이 지연되고 있어요. 잠시 후 자동으로 다시 확인할게요.</p>}
       {activityError?.sessionId === session.sessionId && <p role="status">{activityError.message}</p>}
-      <LogoutButton sessionId={session.sessionId} />
     </AccountMenu>
   );
 }

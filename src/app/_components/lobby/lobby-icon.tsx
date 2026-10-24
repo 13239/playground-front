@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 /** 로비 아이콘은 벡터로 표시하여 고해상도 화면에서도 선명하게 유지하고 외부 폰트 요청을 줄인다. */
 const paths = {
+  // 닉네임 편집도 별도 이미지 요청 없이 공통 벡터 아이콘으로 표시한다.
+  edit: <><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6 5-2" /></>,
   // 오목의 작은 창 전환도 공통 벡터 아이콘과 같은 선 굵기를 사용한다.
   popup: <><rect x="3" y="4" width="18" height="16" rx="2" /><rect x="12" y="11" width="7" height="6" rx="1" /></>,
   expand: <><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /><path d="m3 3 6 6m12-6-6 6M3 21l6-6m12 6-6-6" /></>,

@@ -102,8 +102,9 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
     assertAuthRequestAllowed(path);
     // 프로필도 동일 경로·메서드·본문에 서명한다. 조회는 GET, 캐릭터 변경은 멱등적인 PUT을 사용한다.
     // 오목 검색은 조건도 서명하도록 POST 본문을 쓰고 생성·닫기도 같은 인증 경계를 공유한다.
+    // 닉네임은 프로필 이미지와 독립적인 PUT 경로를 사용한다.
     const method = admin?.method ?? (path === "/api/auth/session" || path === "/api/auth/profile" && input === undefined
-      ? "GET" : path === "/api/auth/profile" ? "PUT" : "POST");
+      ? "GET" : path === "/api/auth/profile" || path === "/api/auth/profile/nickname" ? "PUT" : "POST");
     const adminHeaders: Record<string, string> = admin ? { "X-Expected-Session-ID": admin.sessionId } : {};
     // 원격 HTTP의 dev에서는 Web Crypto를 호출하지 않는다. 일반 BFF·JWT 검증은 서버에서 유지한다.
     if (isDevHttpAuth()) {

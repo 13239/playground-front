@@ -5,6 +5,8 @@ export type ChatDestination = Readonly<{ scope: "GLOBAL" }> | Readonly<{ scope: 
 
 /** 채팅 서버는 저장 완료 메시지·이력·접속자 정보만 공개하며 내부 사용자 식별자는 받지 않는다. */
 export type PublicChatUser = Readonly<{ nickname: string; avatarId: ProfileAvatarId }>;
+// 공개 작성자 키는 닉네임 중복·변경과 관계없이 같은 작성자의 표시를 갱신하는 용도로만 사용한다.
+export type PublicChatProfile = PublicChatUser & Readonly<{ authorKey: string; revision: number }>;
 export type PublicChatMessage = Readonly<{
   id: string;
   clientMessageId?: string;
@@ -13,9 +15,12 @@ export type PublicChatMessage = Readonly<{
   content: string;
   createdAt: string;
   ownMessage: boolean;
+  authorKey?: string;
+  profileRevision?: number;
 }>;
 
 export type ChatEvent =
+  | Readonly<{ type: "CHAT_PROFILE_CHANGED"; profile: PublicChatProfile }>
   | Readonly<{ type: "CHAT_MESSAGE"; message: PublicChatMessage }>
   | Readonly<{ type: "CHAT_ACCEPTED"; clientMessageId: string }>
   | Readonly<{ type: "CHAT_HISTORY_ITEM"; requestId: string; message: PublicChatMessage }>
@@ -48,7 +53,10 @@ function message(value: unknown, destination: ChatDestination): value is PublicC
     // 사용자 타입으로 좁히기 전에 메시지 고유 필드를 검증해 타입 정보가 사라지지 않게 한다.
     && typeof value.content === "string" && [...value.content].length <= 1000
     && typeof value.createdAt === "string" && Number.isFinite(Date.parse(value.createdAt))
-    && typeof value.ownMessage === "boolean" && user(value);
+    && typeof value.ownMessage === "boolean"
+    // 구버전 배포와의 호환성은 유지하되 새 작성자 메타데이터는 두 필드를 함께 검증한다.
+    && (value.authorKey == null && value.profileRevision == null || typeof value.authorKey === "string" && uuidPattern.test(value.authorKey)
+      && validCount(value.profileRevision)) && user(value);
 }
 
 function validCount(value: unknown): value is number {
@@ -62,6 +70,10 @@ export function parseChatEvent(data: unknown, destination: ChatDestination = { s
   try { value = JSON.parse(data); } catch { return null; }
   if (!object(value) || value.version !== 1) return null;
   switch (value.type) {
+    case "CHAT_PROFILE_CHANGED":
+      return user(value.profile) && "authorKey" in value.profile && typeof value.profile.authorKey === "string" && uuidPattern.test(value.profile.authorKey)
+        && "revision" in value.profile && validCount(value.profile.revision)
+        ? { type: "CHAT_PROFILE_CHANGED", profile: value.profile as PublicChatProfile } : null;
     case "CHAT_MESSAGE":
       return message(value.message, destination) ? { type: "CHAT_MESSAGE", message: value.message } : null;
     case "CHAT_ACCEPTED":

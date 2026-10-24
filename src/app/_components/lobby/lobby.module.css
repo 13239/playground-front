@@ -302,6 +302,12 @@
 .accountPopover > strong {
   font-size: 1.1em;
 }
+/* 버튼이 늘어난 계정 메뉴도 높이가 짧은 모바일 화면에서 내부 스크롤로 끝까지 접근한다. */
+.accountPopover {
+  max-height: calc(100dvh - 6em);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .accountPopover > p {
   color: var(--muted);
   font-size: 0.9em;
@@ -316,6 +322,12 @@
 }
 
 /* 프로필 조회 실패는 계정 메뉴 안에서 재시도하고 기존 로그아웃·세션 복구 동작을 유지한다. */
+/* 세 버튼은 기존 프로필 버튼의 너비·높이·안쪽 여백을 공유한다. 버튼 바깥에서 간격만 관리한다. */
+.accountActions {
+  display: grid;
+  gap: 0.65em;
+  margin-top: 1.1em;
+}
 .accountPopover .profileMenuButton {
   display: flex;
   align-items: center;
@@ -323,7 +335,7 @@
   gap: 0.55em;
   width: 100%;
   min-height: 2.9em;
-  margin-top: 1.1em;
+  margin: 0;
   padding: 0.7em 1em;
   border: 1px solid #ddccf8;
   border-radius: 12px;

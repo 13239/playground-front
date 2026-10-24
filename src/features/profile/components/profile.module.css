@@ -134,6 +134,7 @@
 }
 
 .previewCopy {
+  flex: 1;
   min-width: 0;
 }
 
@@ -149,6 +150,82 @@
   font-weight: 850;
   overflow-wrap: anywhere;
 }
+
+/* 긴 닉네임은 줄바꿈하고 편집 버튼은 고정된 터치 영역을 유지한다. */
+.nicknameRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.nicknameRow strong {
+  min-width: 0;
+  margin: 0;
+}
+
+.nicknameAction {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.nicknameButton {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: 1px solid #ddcef2;
+  border-radius: 10px;
+  background: #ffffffa6;
+  color: #8b5bc5;
+}
+
+.nicknameButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.nicknameButton:disabled { opacity: 0.5; }
+
+/* 툴팁은 포인터뿐 아니라 Tab 포커스에서도 표시하고 버튼 클릭 영역을 가리지 않는다. */
+.nicknameTooltip {
+  position: absolute;
+  z-index: 1;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  width: max-content;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: #39275e;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+  visibility: hidden;
+  transform: translateX(-50%);
+}
+
+.nicknameAction:is(:hover, :focus-within) .nicknameTooltip { visibility: visible; }
+
+.nicknameForm { margin-top: 7px; }
+.nicknameForm label { color: #726080; font-size: 11px; }
+.nicknameControls { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+.nicknameControls input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 7px 9px;
+  border: 1px solid #ddcef2;
+  border-radius: 10px;
+  background: #fff;
+  color: #34245b;
+  font-size: 14px;
+}
+.nicknameForm small { display: block; margin-top: 5px; color: #796887; font-size: 11px; }
+.fieldError, .previewCopy .fieldError { margin: 5px 0 0; color: #b03b65; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 
 .previewCopy p {
   margin: 7px 0 0;
@@ -349,6 +426,28 @@
   box-shadow: none;
 }
 
+/* 비밀번호 창도 프로필과 같은 헤더·스크롤 본문·고정 동작 영역을 사용한다. */
+.passwordDialog { width: min(560px, calc(100vw - 32px)); }
+.passwordForm { display: flex; flex-direction: column; min-height: 0; }
+.passwordFields { display: grid; gap: 18px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.passwordField { display: grid; gap: 7px; }
+.passwordField label { color: #58476e; font-size: 13px; font-weight: 700; }
+.passwordField input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #e2d9ef;
+  border-radius: 12px;
+  background: #fff;
+  color: #34245b;
+  font: inherit;
+}
+.passwordField input[aria-invalid="true"], .nicknameControls input[aria-invalid="true"] { border-color: var(--control-error-color); }
+.passwordField small { color: #796887; font-size: 11px; }
+.passwordNotice { margin: 22px 0 0; padding: 12px; border-radius: 12px; background: #f1eafb; color: #79618c; font-size: 12px; line-height: 1.8; }
+.dialogFooter .passwordActions { margin-left: auto; }
+
 @media (hover: hover) {
   .choice:hover .choiceCard {
     border-color: #c3a4f1;
@@ -385,6 +484,10 @@
   .previewCopy strong {
     font-size: 19px;
   }
+
+  /* 좁은 화면에서 저장·취소 아이콘이 닉네임 입력 폭을 지나치게 줄이지 않도록 다음 줄에 둔다. */
+  .nicknameControls { flex-wrap: wrap; }
+  .nicknameControls input { flex-basis: 100%; }
 
   .previewSparkle {
     display: none;

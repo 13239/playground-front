@@ -1,4 +1,5 @@
 import type { CurrentSession, LoginInput, SessionMutationInput } from "../types";
+import type { PasswordChangeInput } from "../password-validation";
 import { signedAuthRequest, clearProofNonces } from "./browser-proof";
 import { AuthRequestError } from "./error";
 import { isDevHttpAuth } from "./environment";
@@ -17,13 +18,13 @@ export { AuthRequestError } from "./error";
 // 방 검색·생성·닫기도 기능별로 인증을 복제하지 않고 이 증명·쿠키 잠금·갱신을 재사용한다.
 // 채팅의 일회용 접속 증명도 같은 로그인·토큰 갱신 경계를 통과한다.
 // 대기실도 공통 쿠키 변경 잠금·브라우저 증명·토큰 갱신을 재사용하고 별도 인증 쿠키를 만들지 않는다.
-type FeaturePath = "/api/auth/profile" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close"
+type FeaturePath = "/api/auth/profile" | "/api/auth/profile/nickname" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close"
   | "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/leave" | "/api/chat/tickets"
   // 대국 명령·이벤트 연결도 기존 쿠키 갱신 잠금과 경로별 요청 증명을 재사용한다.
   | "/api/gomoku/rooms/game" | "/api/gomoku/rooms/game/events" | "/api/gomoku/rooms/lifecycle"
   // 공통 게임 시작도 별도 토큰 없이 기존 잠금·갱신·브라우저 키로 확인한다.
   | `/api/games/${string}/modes/${string}/admission`;
-type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | FeaturePath;
+type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | "/api/auth/password" | FeaturePath;
 
 async function authRequest(path: AuthPath, context: AuthRequestContext, input?: LoginInput | SessionMutationInput): Promise<Response> {
   // 잠금 대기부터 갱신·원래 요청의 재실행까지 같은 취소 신호와 전체 기한을 사용한다.
@@ -102,6 +103,19 @@ export async function logout(sessionId: string): Promise<void> {
   });
   // 다른 화면의 재조회·자동 이동은 잠금 정리가 끝난 뒤 시작한다.
   notifyAuthChanged();
+}
+
+/** 비밀번호 변경도 로그인 변경과 같은 탭 잠금을 사용한다. 현재 로그인과 쿠키는 유지하고 업무 오류에서 재전송하지 않는다. */
+export async function changePassword(sessionId: string, input: PasswordChangeInput): Promise<void> {
+  await withAuthRequestContext(boundary => withAuthLock(async locked => {
+    const context: AuthRequestContext = {
+      signal: locked.signal,
+      assertActive: () => { boundary.assertActive(); locked.assertActive(); },
+    };
+    const response = await authenticatedRequest("/api/auth/password", context, true, { sessionId, ...input }, true);
+    if (response.status !== 204) throw new AuthRequestError("서비스 응답을 처리할 수 없습니다.", 502);
+    clearProofNonces();
+  }, boundary.signal));
 }
 
 function requiresRefresh(error: unknown): boolean {

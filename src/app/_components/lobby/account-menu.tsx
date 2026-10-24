@@ -5,6 +5,8 @@ import { defaultProfileAvatar } from "@/features/profile/catalog";
 import { useProfile } from "@/features/profile/client/use-profile";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { ProfileEditor } from "@/features/profile/components/profile-editor";
+import { PasswordEditor } from "@/features/profile/components/password-editor";
+import { LogoutButton } from "../logout-button";
 import { DismissibleDetails } from "./dismissible-details";
 import { LobbyIcon } from "./lobby-icon";
 import styles from "./lobby.module.css";
@@ -19,17 +21,18 @@ export function AccountMenu({
   sessionWarning?: string;
   children: ReactNode;
 }) {
-  const { profile, error, loading, retry, save } = useProfile(sessionId);
+  const { profile, error, loading, retry, save, saveNickname } = useProfile(sessionId);
   // 프로필을 불러오는 중이거나 조회에 실패해도 로그인 아이디를 대신 표시하지 않는다.
   const nickname = profile?.nickname ?? "플레이어";
-  const [editorOpen, setEditorOpen] = useState(false);
+  // 계정 편집 창은 한 번에 하나만 열어 포커스 복귀 대상과 세션을 공유한다.
+  const [editor, setEditor] = useState<"profile" | "password">();
 
-  function openEditor(event: MouseEvent<HTMLButtonElement>) {
+  function openEditor(event: MouseEvent<HTMLButtonElement>, target: "profile" | "password") {
     // 대화상자를 닫았을 때 숨겨진 메뉴 버튼 대신 계정 메뉴의 요약으로 포커스가 돌아오게 한다.
     const details = event.currentTarget.closest("details");
     details?.removeAttribute("open");
     details?.querySelector("summary")?.focus();
-    setEditorOpen(true);
+    setEditor(target);
   }
 
   return (
@@ -53,15 +56,18 @@ export function AccountMenu({
           <p className={styles.popoverEyebrow}>MY PLAYGROUND</p>
           <strong>{nickname}님, 반가워요!</strong>
           <p>오늘도 즐거운 시간 보내세요.</p>
-          <button
-            type="button"
-            className={styles.profileMenuButton}
-            onClick={openEditor}
-            disabled={loading || !profile}
-          >
-            <LobbyIcon name="user" />
-            {loading ? "프로필 확인 중…" : "프로필 변경"}
-          </button>
+          {/* 모든 계정 버튼이 같은 크기·간격을 공유하고 프로필·비밀번호·로그아웃 순서를 유지한다. */}
+          <div className={styles.accountActions}>
+            <button type="button" className={styles.profileMenuButton}
+              onClick={(event) => openEditor(event, "profile")} disabled={loading || !profile}>
+              <LobbyIcon name="user" />
+              {loading ? "프로필 확인 중…" : "프로필 변경"}
+            </button>
+            <button type="button" className={styles.profileMenuButton} onClick={(event) => openEditor(event, "password")}>
+              <LobbyIcon name="lock" />비밀번호 변경
+            </button>
+            <LogoutButton sessionId={sessionId} />
+          </div>
           {error && (
             <div className={styles.profileLoadError} role="status">
               <p>{error}</p>
@@ -71,9 +77,10 @@ export function AccountMenu({
           {children}
         </div>
       </DismissibleDetails>
-      {editorOpen && profile && (
-        <ProfileEditor profile={profile} onSave={save} onClose={() => setEditorOpen(false)} />
+      {editor === "profile" && profile && (
+        <ProfileEditor profile={profile} onSave={save} onSaveNickname={saveNickname} onClose={() => setEditor(undefined)} />
       )}
+      {editor === "password" && <PasswordEditor sessionId={sessionId} onClose={() => setEditor(undefined)} />}
     </>
   );
 }

@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // 요청별 CSP nonce는 정적 HTML/PPR에 재사용할 수 없다. 정적 JS·CSS·이미지 캐시는 유지한다.
   cacheComponents: false,
   reactCompiler: true,
+  experimental: {
+    // 개발 캐시 재사용 후 수정 없는 HMR 전체 재시작이 반복된 현상을 막는다. 실행 중 메모리 캐시는 유지한다.
+    turbopackFileSystemCacheForDev: false,
+  },
   images: {
     qualities: [75, 95],
   },

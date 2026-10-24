@@ -22,3 +22,8 @@ export async function getProfile(sessionId: string): Promise<UserProfile> {
 export async function updateProfile(sessionId: string, avatarId: ProfileAvatarId): Promise<UserProfile> {
   return readProfileResponse(await requestAuthenticatedApi("/api/auth/profile", { sessionId, avatarId }), sessionId);
 }
+
+/** 닉네임만 저장하고 서버가 보존한 최신 아바타도 함께 반영한다. */
+export async function updateNickname(sessionId: string, nickname: string): Promise<UserProfile> {
+  return readProfileResponse(await requestAuthenticatedApi("/api/auth/profile/nickname", { sessionId, nickname }), sessionId);
+}

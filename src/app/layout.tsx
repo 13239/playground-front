@@ -37,7 +37,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body>
         {/* 공통 레이아웃의 구독은 페이지 이동에도 유지하며 보호 데이터는 브라우저 검증 뒤 기존 화면에서만 표시한다. */}
         <AuthSessionObserver />
-        {/* 공용 채팅 연결은 문서 수명에 묶어 홈·게임·관리자 이동에도 유지하고 방 채팅은 별도로 관리한다. */}
+        {/* 공용 채팅은 홈에 머무르는 동안만 공유하고 페이지를 떠나면 정리한다. 방 채팅은 별도로 관리한다. */}
         <ChatProvider>{children}</ChatProvider>
       </body>
     </html>

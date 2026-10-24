@@ -1,5 +1,13 @@
 /** 로그인·방 비밀번호의 빠른 해시를 증명에 남기지 않는다. 자격 증명은 HTTPS/mTLS 안에서 직접 검증한다. */
 export function proofBody(path: string, body: string): string {
+  // 비밀번호 변경도 빠른 해시에서 두 비밀번호를 제외하고 변경 대상인 현재 세션만 서명에 결합한다.
+  if (path === "/api/auth/password") {
+    const input: unknown = JSON.parse(body);
+    if (typeof input !== "object" || input === null || !("sessionId" in input) || typeof input.sessionId !== "string") {
+      throw new TypeError("Invalid password change binding");
+    }
+    return JSON.stringify({ sessionId: input.sessionId });
+  }
   if (path !== "/api/auth/login" && path !== "/api/gomoku/rooms" && path !== "/api/gomoku/rooms/join") return body;
   const input: unknown = JSON.parse(body);
   // 짧은 방 비밀번호도 오프라인 대입의 대상이 되지 않게 제외하고 나머지 설정·세션·요청 ID는 묶는다.

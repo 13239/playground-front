@@ -60,6 +60,10 @@ const errors = {
   SIGN_UP_RATE_LIMIT_EXCEEDED: [429, "회원가입 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   SIGN_UP_SERVICE_UNAVAILABLE: [503, "회원가입 서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 시도해 주세요."],
   USER_NOT_FOUND: [404, "사용자를 찾을 수 없습니다."],
+  // 비밀번호 오입력을 세션 만료로 처리하지 않으며 내부 인증 오류 원문도 노출하지 않는다.
+  CURRENT_PASSWORD_INVALID: [400, "현재 비밀번호가 올바르지 않습니다."],
+  PASSWORD_UNCHANGED: [400, "새 비밀번호는 현재 비밀번호와 다르게 입력해 주세요."],
+  PASSWORD_CHANGE_RATE_LIMIT_EXCEEDED: [429, "비밀번호 변경 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   INVALID_CREDENTIALS: [401, "아이디 또는 비밀번호가 올바르지 않습니다."],
   // 접속 제한과 게임 점검 코드에만 검증된 관리자 안내를 허용하며 내부 예외 메시지의 허용 목록은 유지한다.
   ACCESS_RESTRICTED: [401, "서버 점검 중입니다. 잠시 후 다시 로그인해 주세요."],

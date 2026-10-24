@@ -1,14 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { AuthRequestError, logout } from "@/features/auth/client/api";
-import styles from "../home.module.css";
+import { LobbyIcon } from "./lobby/lobby-icon";
+import styles from "./lobby/lobby.module.css";
 
 /** 서버 세션과 쿠키 정리가 완료된 뒤 로그인 화면을 새 문서로 연다. */
 export function LogoutButton({ sessionId }: { sessionId: string }) {
   const submitting = useRef(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const statusId = useId();
 
   async function handleLogout() {
     if (submitting.current) return;
@@ -29,10 +31,12 @@ export function LogoutButton({ sessionId }: { sessionId: string }) {
 
   return (
     <div>
-      <button className={styles.button} type="button" onClick={handleLogout} disabled={pending} aria-describedby="logout-status">
+      {/* 프로필·비밀번호 버튼과 같은 치수를 사용하고 로그아웃 의미를 왼쪽 아이콘으로 구분한다. */}
+      <button className={styles.profileMenuButton} type="button" onClick={handleLogout} disabled={pending} aria-describedby={message ? statusId : undefined}>
+        <LobbyIcon name="exit" />
         {pending ? "로그아웃 중…" : "로그아웃"}
       </button>
-      <p id="logout-status" role="status" className={styles.status}>{message}</p>
+      {message && <p id={statusId} role="status" className={styles.profileLoadError}>{message}</p>}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { revalidateAuthSession } from "@/features/auth/client/session-store";
 import { authRetryDelay } from "@/features/auth/client/request-cooldown";
 import type { ProfileAvatarId } from "../catalog";
 import type { UserProfile } from "../types";
-import { getProfile, updateProfile } from "./api";
+import { getProfile, updateProfile, updateNickname } from "./api";
 import { notifyProfileChanged, subscribeProfileChanges } from "./profile-events";
 
 type ProfileState = { sessionId?: string; profile?: UserProfile; error?: string; pending?: boolean };
@@ -110,11 +110,20 @@ export function useProfile(sessionId: string) {
     notifyProfileChanged();
   }, [sessionId]);
 
+  const saveNickname = useCallback(async (nickname: string) => {
+    const profile = await updateNickname(sessionId, nickname);
+    // 기존 프로필 알림을 공유해 다른 탭의 헤더에도 새 닉네임을 반영한다.
+    generation.current++;
+    setState({ sessionId, profile });
+    notifyProfileChanged();
+  }, [sessionId]);
+
   return {
     profile: state.sessionId === sessionId ? state.profile : undefined,
     error: state.sessionId === sessionId ? state.error : undefined,
     loading: state.sessionId !== sessionId || !!state.pending,
     retry,
     save,
+    saveNickname,
   };
 }
