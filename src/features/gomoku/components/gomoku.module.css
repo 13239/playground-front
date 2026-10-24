@@ -8,7 +8,8 @@
   min-width: 0;
   padding-block: 0.25em 2em;
 }
-.screen svg,
+/* 공통 헤더 아이콘은 홈 크기를 유지하고, 오목 본문과 대화창 아이콘만 이 크기를 쓴다. */
+.screen > :not(header) svg,
 .dialog svg {
   flex: 0 0 auto;
   width: 1.3em;
