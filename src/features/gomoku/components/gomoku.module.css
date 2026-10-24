@@ -468,6 +468,17 @@
 .hostedNotice button {
   flex: 0 0 auto;
 }
+/* 로비에서도 방 복귀와 초대 코드 관리를 각각 독립된 동작으로 제공한다. */
+.hostedNoticeActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6em;
+}
+.hostedNoticeActions a {
+  text-decoration: none;
+}
 .listStatus {
   display: flex;
   justify-content: space-between;
@@ -1015,6 +1026,10 @@
   background: #fdfbff;
   box-shadow: 0 20px 100px #38225138;
   font-family: var(--font-noto-sans-kr), sans-serif;
+}
+.dialog:focus,
+.dialog:focus-visible {
+  outline: none;
 }
 .dialog::backdrop {
   background: #34325470;

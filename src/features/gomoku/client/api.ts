@@ -14,7 +14,7 @@ import {
   type RoomFilters,
   type RoomPage,
 } from "../contracts";
-import { isWaitingRoom, publicWaitingRoom, type WaitingRoom, type JoinRoomInput } from "../waiting-contracts";
+import { isJoinRoomReceipt, isWaitingRoom, publicWaitingRoom, type WaitingRoom, type JoinRoomInput, type JoinRoomReceipt } from "../waiting-contracts";
 import type { GameAction } from "../game-contracts";
 
 /** 결과를 화면의 로그인 세션과 대조해 늦은 이전 계정 응답을 사용하지 않는다. */
@@ -89,16 +89,27 @@ export async function closeRoom(
     throw new AuthRequestError("방을 닫지 못했습니다.", 502);
 }
 
-/** 입장·조회·준비 결과를 같은 계약으로 검증하고 이전 계정의 늦은 응답을 사용하지 않는다. */
-async function waitingRequest(path: "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready",
+/** 대기실 조회·준비 결과를 같은 계약으로 검증하고 이전 계정의 늦은 응답을 사용하지 않는다. */
+async function waitingRequest(path: "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/kick",
   sessionId: string, body: Readonly<Record<string, unknown>>): Promise<WaitingRoom> {
   const value = await readResponse(await requestAuthenticatedApi(path, { sessionId, ...body }), sessionId);
   if (!isWaitingRoom(value)) throw new AuthRequestError("대기실 정보를 확인하지 못했습니다.", 502);
   return publicWaitingRoom(value);
 }
-export const joinRoom = (sessionId: string, input: JoinRoomInput) => waitingRequest("/api/gomoku/rooms/join", sessionId, input);
+/** 참가 성공 여부는 영수증으로만 판단하고, 대기실 상세 데이터는 페이지에서 별도로 조회한다. */
+export async function joinRoom(sessionId: string, input: JoinRoomInput): Promise<JoinRoomReceipt> {
+  const value = await readResponse(
+    await requestAuthenticatedApi("/api/gomoku/rooms/join", { sessionId, ...input }),
+    sessionId,
+  );
+  if (!isJoinRoomReceipt(value)) throw new AuthRequestError("입장 결과를 확인하지 못했습니다.", 502);
+  return { roomId: value.roomId };
+}
 export const readWaitingRoom = (sessionId: string, roomId: number, pageId?: string) => waitingRequest("/api/gomoku/rooms/state", sessionId, { roomId, ...(pageId ? { pageId } : {}) });
 export const readyRoom = (sessionId: string, roomId: number, ready: boolean, pageId: string) => waitingRequest("/api/gomoku/rooms/ready", sessionId, { roomId, ready, pageId });
+/** 서버는 방장·현재 페이지·좌석·revision과 선택한 재참가 정책을 모두 재검증한다. */
+export const kickRoom = (sessionId: string, roomId: number, seat: 1 | 2, revision: number, pageId: string, blockRejoin: boolean) =>
+  waitingRequest("/api/gomoku/rooms/kick", sessionId, { roomId, seat, revision, pageId, blockRejoin });
 
 /** 전송 UUID와 방 순서를 고정한다. 성공 여부가 불명확하면 최신 판을 조회하고 명령을 임의 재전송하지 않는다. */
 export async function sendGameAction(sessionId: string, room: WaitingRoom, action: GameAction, pageId: string): Promise<WaitingRoom> {

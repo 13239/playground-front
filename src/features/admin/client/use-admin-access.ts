@@ -7,18 +7,21 @@ import type { AdminContext } from "../contracts";
 import { adminRequest, errorMessage } from "./api";
 
 type Access = Readonly<{ sessionId: string; status: "ready"; context: AdminContext } | { sessionId: string; status: "checking" | "denied" | "error"; message?: string }>;
+// 진입 확인의 null 응답은 현재 계정에 관리자 접근 권한이 없다는 정상 결과다.
+type AdminAccessResult = AdminContext | null;
 const changeEvent = "playground:admin-access-changed";
-let pending: { sessionId: string; promise: Promise<AdminContext>; revision: number } | undefined;
-let cache: { sessionId: string; context: AdminContext; until: number } | undefined;
+let pending: { sessionId: string; promise: Promise<AdminAccessResult>; revision: number } | undefined;
+let cache: { sessionId: string; context: AdminAccessResult; until: number } | undefined;
 let revision = 0;
 
 /** 헤더와 관리자 화면의 동시 조회를 합친다. 권한 변경 뒤에는 캐시를 비우고 각 화면이 다시 확인한다. */
 export function invalidateAdminAccess(): void { revision++; cache = undefined; window.dispatchEvent(new Event(changeEvent)); }
-function read(sessionId: string): Promise<AdminContext> {
+function read(sessionId: string): Promise<AdminAccessResult> {
   if (cache?.sessionId === sessionId && cache.until > Date.now()) return Promise.resolve(cache.context);
   if (pending?.sessionId === sessionId && pending.revision === revision) return pending.promise;
   const current = revision;
-  const promise = adminRequest<AdminContext>(sessionId, "me").then(context => {
+  // 접근 불가 결과도 짧게 공유해 헤더·본문과 탭 포커스의 중복 확인을 줄인다.
+  const promise = adminRequest<AdminAccessResult>(sessionId, "me").then(context => {
     if (current === revision) cache = { sessionId, context, until: Date.now() + 5000 };
     return context;
   }).finally(() => { if (pending?.promise === promise) pending = undefined; });
@@ -42,8 +45,11 @@ export function useAdminAccess() {
       running = true;
       const current = ++generation;
       void read(sessionId).then(context => {
-        if (context.userId !== userId || !context.permissions.includes("ADMIN_ACCESS")) throw new AuthRequestError("접근 권한이 없습니다.", 403);
-        if (active && current === generation) setState({ sessionId, status: "ready", context });
+        if (context !== null && context.userId !== userId) throw new AuthRequestError("접근 권한이 없습니다.", 403);
+        // 관리자 권한이 없는 계정은 예외를 만들지 않고 접근 불가 화면 상태로 반영한다.
+        if (active && current === generation) setState(context?.permissions.includes("ADMIN_ACCESS")
+          ? { sessionId, status: "ready", context }
+          : { sessionId, status: "denied", message: "접근 권한이 없습니다." });
       }).catch(error => {
         cache = undefined;
         if (active && current === generation) setState({ sessionId, status: error instanceof AuthRequestError && error.status === 403 ? "denied" : "error", message: errorMessage(error) });

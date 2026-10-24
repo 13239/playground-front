@@ -284,6 +284,16 @@ function AuthenticatedCreateRoom({ sessionId }: { sessionId: string }) {
             )}
           </div>
         )}
+        {/* 방은 서버에서 정상 생성됐지만 클라이언트 이동이 지연되는 경우에도 직접 복귀 경로를 제공한다. */}
+        {created && (
+          <p className={styles.muted} role="status">
+            방이 생성됐어요. 화면이 전환되지 않으면{" "}
+            <Link className={styles.textButton} href={`/games/gomoku/rooms/${created.id}`}>
+              대기실로 이동
+            </Link>
+            해 주세요.
+          </p>
+        )}
         <div className={styles.actions}>
           <Link
             className={styles.secondaryButton}

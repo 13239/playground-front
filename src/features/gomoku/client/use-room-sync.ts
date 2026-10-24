@@ -64,7 +64,7 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
         if (disposed || stopped.current) return;
         fail(error);
         const problem = error instanceof AuthRequestError ? error : null;
-        if (problem?.status === 401 || ["LOGIN_SESSION_CHANGED", "ROOM_NOT_FOUND", "ROOM_CLOSED", "ROOM_NOT_JOINED", "ROOM_PAGE_IN_USE"].includes(problem?.code ?? "")) {
+        if (problem?.status === 401 || ["LOGIN_SESSION_CHANGED", "ROOM_NOT_FOUND", "ROOM_CLOSED", "ROOM_NOT_JOINED", "ROOM_KICKED", "ROOM_KICKED_REJOIN_ALLOWED", "ROOM_PAGE_IN_USE"].includes(problem?.code ?? "")) {
           terminal = true; stream.abort(); return;
         }
         if (problem?.status === 429) {
@@ -91,7 +91,7 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
         // 소유권을 잃은 탭은 SSE 구독을 1초마다 재시도하지 않고 즉시 접속을 종료한다.
         const problem = error instanceof AuthRequestError ? error : null;
         if (problem?.status === 429) retryAt = Math.max(retryAt, Date.now() + authRetryDelay(problem));
-        if (problem?.status === 401 || ["ROOM_PAGE_IN_USE", "ROOM_NOT_JOINED", "ROOM_CLOSED", "LOGIN_SESSION_CHANGED"].includes(problem?.code ?? "")) {
+        if (problem?.status === 401 || ["ROOM_PAGE_IN_USE", "ROOM_NOT_JOINED", "ROOM_KICKED", "ROOM_KICKED_REJOIN_ALLOWED", "ROOM_CLOSED", "LOGIN_SESSION_CHANGED"].includes(problem?.code ?? "")) {
           terminal = true;
           if (!disposed) fail(error);
           return;
@@ -134,7 +134,8 @@ export function useRoomSync({ sessionId, roomId, pageId, playing, busy, stopped,
     window.addEventListener("online", online);
     void refresh();
     // 최초 신원 확인 조회는 구독을 만들지 않고 OPEN 이후 현재 탭만 SSE에 연결한다.
-    if (playing && pageId) void listen();
+    // 대기 중에도 구독해 방장 강퇴와 참가 변경을 상대에게 지연 없이 알린다.
+    if (pageId) void listen();
     return () => {
       disposed = true; stream.abort(); timerWindow.clearTimeout(timer); streamWindow.clearTimeout(streamTimer);
       unsubscribePopup();

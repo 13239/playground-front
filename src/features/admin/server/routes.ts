@@ -105,5 +105,15 @@ export async function handleAdminRequest(request: Request, segments: readonly st
     try { result = spec.parse(value); } catch { throw new ApiError("INVALID_BACKEND_RESPONSE"); }
     return Response.json(result, { status: request.method === "POST" ? 201 : 200,
       headers: { "Cache-Control": "private, no-store", "Vary": "Cookie, X-Expected-Session-ID" } });
-  } catch (error) { return apiErrorResponse(error); }
+  } catch (error) {
+    // 헤더의 관리자 진입 확인에서 권한 없음은 정상 조회 결과다. 검증된 ACCESS_DENIED만 200/null로 공개한다.
+    // 실제 관리 API의 접근 거부와 로그인 만료·브라우저 증명 실패는 각 오류 상태를 유지한다.
+    if (request.method === "GET" && segments.length === 1 && segments[0] === "me"
+      && error instanceof ApiError && error.code === "ACCESS_DENIED") {
+      return Response.json(null, {
+        headers: { "Cache-Control": "private, no-store", "Vary": "Cookie, X-Expected-Session-ID" },
+      });
+    }
+    return apiErrorResponse(error);
+  }
 }

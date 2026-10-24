@@ -19,7 +19,7 @@ export { AuthRequestError } from "./error";
 // 채팅의 일회용 접속 증명도 같은 로그인·토큰 갱신 경계를 통과한다.
 // 대기실도 공통 쿠키 변경 잠금·브라우저 증명·토큰 갱신을 재사용하고 별도 인증 쿠키를 만들지 않는다.
 type FeaturePath = "/api/auth/profile" | "/api/auth/profile/nickname" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close"
-  | "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/leave" | "/api/chat/tickets"
+  | "/api/gomoku/rooms/join" | "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/kick" | "/api/gomoku/rooms/leave" | "/api/chat/tickets"
   // 대국 명령·이벤트 연결도 기존 쿠키 갱신 잠금과 경로별 요청 증명을 재사용한다.
   | "/api/gomoku/rooms/game" | "/api/gomoku/rooms/game/events" | "/api/gomoku/rooms/lifecycle"
   // 공통 게임 시작도 별도 토큰 없이 기존 잠금·갱신·브라우저 키로 확인한다.

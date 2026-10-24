@@ -15,7 +15,7 @@ import {
 } from "@/features/auth/client/session-store";
 import { joinRoom } from "../client/api";
 import { inviteCodePattern } from "../contracts";
-import type { WaitingRoom } from "../waiting-contracts";
+import type { JoinRoomReceipt } from "../waiting-contracts";
 import { RoomDialog } from "./room-dialog";
 import { RoomToast } from "./room-toast";
 import styles from "./gomoku.module.css";
@@ -34,7 +34,7 @@ function joinFailureMessage(failure: unknown): string {
     : failure.message;
 }
 
-/** 공개 입장은 확인창 없이 즉시 처리하고 비공개 코드 입장도 서버가 비밀번호를 요구하면 같은 대화상자에서 검증한다. */
+/** 공개 입장은 확인창 없이 처리하고 성공 영수증의 방 ID로 이동한 뒤 상세 대기실 상태를 다시 읽는다. */
 export function JoinRoomDialog({
   sessionId,
   target,
@@ -52,7 +52,7 @@ export function JoinRoomDialog({
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(!privateRoom);
   const [error, setError] = useState("");
-  const initialRequest = useRef<Promise<WaitingRoom> | undefined>(undefined);
+  const initialRequest = useRef<Promise<JoinRoomReceipt> | undefined>(undefined);
   const submitting = useRef(false);
   const alive = useRef(false);
   const destination =
@@ -73,7 +73,7 @@ export function JoinRoomDialog({
       );
       void initialRequest.current
         .then((room) => {
-          if (!disposed) router.push(`/games/gomoku/rooms/${room.id}`);
+          if (!disposed) router.push(`/games/gomoku/rooms/${room.roomId}`);
         })
         .catch((failure) => {
           if (disposed) return;
@@ -118,7 +118,7 @@ export function JoinRoomDialog({
       });
       if (alive.current) {
         setPassword("");
-        router.push(`/games/gomoku/rooms/${room.id}`);
+        router.push(`/games/gomoku/rooms/${room.roomId}`);
       }
     } catch (failure) {
       if (!alive.current) return;
@@ -203,7 +203,6 @@ export function InviteRoomEntry() {
     useState<
       Readonly<{ sessionId: string; target: Readonly<{ inviteCode: string }> }>
     >();
-  const [error, setError] = useState("");
   const codeInput = useRef<HTMLInputElement>(null);
   const [notice, setNotice] =
     useState<Readonly<{ id: number; sessionId: string; message: string }>>();
@@ -236,17 +235,15 @@ export function InviteRoomEntry() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (currentAttempt) return;
+    if (auth.status !== "authenticated") return;
     if (!inviteCodePattern.test(code)) {
-      setError("6자리 영문·숫자 방 코드를 확인해 주세요.");
+      setNotice({ id: ++noticeSequence.current, sessionId: auth.session.sessionId, message: "6자리 영문·숫자 방 코드를 확인해 주세요." });
       return;
     }
-    if (auth.status === "authenticated") {
-      setAttempt({
-        sessionId: auth.session.sessionId,
-        target: { inviteCode: code },
-      });
-      setError("");
-    }
+    setAttempt({
+      sessionId: auth.session.sessionId,
+      target: { inviteCode: code },
+    });
   }
   return (
     <>
@@ -275,7 +272,6 @@ export function InviteRoomEntry() {
                 .replace(/[^A-Z0-9]/g, "")
                 .slice(0, 6),
             );
-            setError("");
           }}
         />
         <button
@@ -290,11 +286,6 @@ export function InviteRoomEntry() {
           {currentAttempt ? "확인 중…" : "입장"}
         </button>
       </form>
-      {error && (
-        <p className={styles.error} role="alert">
-          {error}
-        </p>
-      )}
       {currentNotice && (
         <RoomToast
           key={currentNotice.id}

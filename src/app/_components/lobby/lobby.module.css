@@ -1033,10 +1033,15 @@
   font-size: 0.7em;
   font-weight: 650;
 }
+/* 안내 말풍선도 일반 채팅과 같이 가로의 88%까지 채운다. */
 .welcomeMessage > div {
+  flex: 1;
   min-width: 0;
+  max-width: 88%;
 }
 .welcomeMessage p {
+  width: 100%;
+  box-sizing: border-box;
   margin: 0.5em 0 0;
   padding: 0.8em 1em;
   border-radius: 0 1em 1em;
@@ -1044,7 +1049,7 @@
   color: #74709d;
   font-size: max(12px, 0.75em);
   line-height: 1.9;
-  word-break: keep-all;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .chatEmpty {
@@ -1699,5 +1704,6 @@
   .chatHeader h2 { font-size: 1.02em; }
   .screen .onlineCountButton { font-size: 11px; padding-inline: 0.4em; }
   .chatBody { padding-inline: 0.8em; }
-  .chatMessageContent { max-width: 90%; }
+  .chatMessageContent,
+  .welcomeMessage > div { max-width: 90%; }
 }

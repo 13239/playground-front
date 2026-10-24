@@ -12,7 +12,7 @@ import {
   useAuthSession,
 } from "@/features/auth/client/session-store";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
-import { leaveRoom, newRoomRequestId, readWaitingRoom, readyRoom, sendGameAction } from "../client/api";
+import { kickRoom, leaveRoom, newRoomRequestId, readWaitingRoom, readyRoom, sendGameAction } from "../client/api";
 import { useRoomSync } from "../client/use-room-sync";
 import { useRoomDeparture } from "../client/use-room-departure";
 import type { GameAction } from "../game-contracts";
@@ -140,7 +140,11 @@ function AuthenticatedWaitingRoom({
   const room = snapshot?.room;
   const [error, setError] = useState("");
   const [fatal, setFatal] = useState(false);
-  const [pending, setPending] = useState<"ready" | "leave" | "game" | null>(null);
+  const [pending, setPending] = useState<"ready" | "leave" | "kick" | "game" | null>(null);
+  // 확인 중 다른 사용자가 같은 좌석에 들어오면 이전 선택을 취소하도록 당시 revision을 함께 보관한다.
+  const [kickTarget, setKickTarget] = useState<Readonly<{ participant: WaitingParticipant; revision: number }>>();
+  const [kickMode, setKickMode] = useState<"allow" | "block" | null>(null);
+  const [kickError, setKickError] = useState("");
   const [copied, setCopied] = useState(false);
   const [copyFallback, setCopyFallback] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -167,6 +171,10 @@ function AuthenticatedWaitingRoom({
     // 인증 재확인 뒤에도 바깥 수명 관리자가 같은 참가·pageId를 재사용하도록 본인의 참가 정보만 전달한다.
     onMembership(sessionId, next.membershipId);
     setSnapshot({ room: next, receivedAt: performance.now() });
+    // 좌석이 같아도 revision이 변경되면 재확인을 받아 새 참가자를 잘못 강퇴하지 않는다.
+    setKickTarget(current => current && next.revision === current.revision && next.participants.some(
+      p => p.seat === current.participant.seat && p.nickname === current.participant.nickname && !p.self,
+    ) && next.status === "WAITING" ? current : undefined);
     setError("");
   }, [sessionId, roomId, stoppedRef, onMembership]);
 
@@ -183,7 +191,7 @@ function AuthenticatedWaitingRoom({
         "대기실에 연결하지 못했습니다. 잠시 후 다시 확인해 주세요.",
     );
     if (
-      ["ROOM_NOT_FOUND", "ROOM_CLOSED", "ROOM_NOT_JOINED", "ROOM_PAGE_IN_USE"].includes(
+      ["ROOM_NOT_FOUND", "ROOM_CLOSED", "ROOM_NOT_JOINED", "ROOM_KICKED", "ROOM_KICKED_REJOIN_ALLOWED", "ROOM_PAGE_IN_USE"].includes(
         authError?.code ?? "",
       )
     )
@@ -239,6 +247,34 @@ function AuthenticatedWaitingRoom({
       if (mounted.current) setPending(null);
     }
   }
+  function selectKickTarget(participant: WaitingParticipant) {
+    if (!room) return;
+    setKickError("");
+    setKickMode(null);
+    setKickTarget({ participant, revision: room.revision });
+  }
+
+  async function kick() {
+    if (!room || !pageId || !kickTarget || !kickMode || busy.current || pending !== null) return;
+    const target = room.participants.find(p => p.seat === kickTarget.participant.seat
+      && p.nickname === kickTarget.participant.nickname && !p.self);
+    if (!room.participants.some(p => p.self && p.host) || !target || room.game || room.revision !== kickTarget.revision) return;
+    busy.current = true;
+    setPending("kick");
+    setKickError("");
+    try {
+      accept(await kickRoom(sessionId, roomId, target.seat, kickTarget.revision, pageId, kickMode === "block"));
+      if (mounted.current) { setKickTarget(undefined); setKickMode(null); }
+    } catch (failure) {
+      // 전송 성공 여부가 불명확한 경우 새 참가자가 대상인지 재확인한 후에만 다시 시도할 수 있게 한다.
+      if (mounted.current) setKickError(failure instanceof AuthRequestError ? failure.message : "강퇴하지 못했습니다. 다시 확인해 주세요.");
+      try { accept(await readWaitingRoom(sessionId, roomId, pageId)); } catch { /* 다음 동기화 주기가 복구한다. */ }
+    } finally {
+      busy.current = false;
+      if (mounted.current) setPending(null);
+    }
+  }
+
   async function leave() {
     if (busy.current || !room || !pageId) return;
     busy.current = true;
@@ -264,7 +300,8 @@ function AuthenticatedWaitingRoom({
     }
   }
   async function copyCode() {
-    if (!room) return;
+    // 방장이 아닌 참가자는 코드 값 자체를 받지 않으며 복사할 수도 없다.
+    if (!room?.inviteCode || !room.participants.some(p => p.self && p.host)) return;
     try {
       await navigator.clipboard.writeText(room.inviteCode);
       if (!mounted.current) return;
@@ -321,7 +358,7 @@ function AuthenticatedWaitingRoom({
     !pageId
       ? ["방 입장을 확인하고 있어요", connectionError ? "연결 상태를 확인한 뒤 다시 연결해 주세요." : "확인이 끝나면 준비하기를 누를 수 있어요."]
       : room.participants.length === 1
-      ? ["상대를 기다리고 있어요", "상단 방 코드를 복사해 친구에게 알려주세요."]
+      ? ["상대를 기다리고 있어요", room.participants.some(p => p.self && p.host) ? "상단 방 코드를 복사해 친구에게 알려주세요." : "다른 참가자가 입장할 때까지 기다려 주세요."]
       : room.allReady
         ? [
             "두 명 모두 준비를 마쳤어요",
@@ -369,7 +406,7 @@ function AuthenticatedWaitingRoom({
               <p title={room.title}>{room.title}</p>
             </div>
           </div>
-          <div className={styles.roomCode}>
+          {self.host && room.inviteCode && <div className={styles.roomCode}>
             <span>
               <LobbyIcon name="link" /> 방 코드
             </span>
@@ -382,9 +419,9 @@ function AuthenticatedWaitingRoom({
               <LobbyIcon name={copied ? "check" : "copy"} />
               {copied ? "복사 완료" : "코드 복사"}
             </button>
-          </div>
+          </div>}
         </div>
-        {copyFallback && (
+        {self.host && room.inviteCode && copyFallback && (
           <label className={styles.manualCopy}>
             코드를 선택해 직접 복사해 주세요.
             <input
@@ -396,13 +433,15 @@ function AuthenticatedWaitingRoom({
           </label>
         )}
         <div className={styles.playerRow}>
-          <ParticipantCard participant={ordered[0]} />
+          <ParticipantCard participant={ordered[0]} canKick={self.host && !ordered[0].self} kickDisabled={!pageId || pending !== null}
+            onKick={() => selectKickTarget(ordered[0])} />
           <div className={styles.versus} aria-hidden="true">
             <span>✦</span>
             <strong>VS</strong>
             <span>✧</span>
           </div>
-          <ParticipantCard participant={ordered[1]} />
+          <ParticipantCard participant={ordered[1]} canKick={self.host && !!ordered[1] && !ordered[1].self} kickDisabled={!pageId || pending !== null}
+            onKick={() => selectKickTarget(ordered[1])} />
         </div>
         <section className={styles.rules} aria-labelledby="waiting-rules-title">
           <h2 id="waiting-rules-title">
@@ -499,6 +538,42 @@ function AuthenticatedWaitingRoom({
         </div>
       </section>}
       <RoomChatPanel key={`${room.id}:${room.membershipId}`} room={room} />
+      {kickTarget && !room.game && self.host && (
+        <RoomDialog
+          title="강퇴 방식 선택"
+          busy={pending === "kick"}
+          showClose={false}
+          onClose={() => { setKickTarget(undefined); setKickMode(null); setKickError(""); }}
+        >
+          <p><strong>{kickTarget.participant.nickname}</strong> 님을 정말 강퇴하시겠어요? 강퇴 방식을 선택해 주세요.</p>
+          {/* 방장이 한 가지를 명시적으로 선택하기 전에는 강퇴 API를 호출하지 않는다. */}
+          <fieldset className={styles.kickChoices} disabled={pending !== null}>
+            <legend>재참가 허용 여부</legend>
+            <label className={styles.kickChoice} data-selected={kickMode === "allow"}>
+              <input type="radio" name="kick-mode" value="allow" checked={kickMode === "allow"}
+                onChange={() => setKickMode("allow")} />
+              <span><strong>재참가 가능한 강퇴</strong><small>이 방에 다시 입장할 수 있습니다.</small></span>
+            </label>
+            <label className={styles.kickChoice} data-selected={kickMode === "block"}>
+              <input type="radio" name="kick-mode" value="block" checked={kickMode === "block"}
+                onChange={() => setKickMode("block")} />
+              <span><strong>재참가 불가능한 강퇴</strong><small>이 방이 유지되는 동안 다시 입장할 수 없습니다.</small></span>
+            </label>
+          </fieldset>
+          {kickMode && <p className={styles.kickWarning} role="status">
+            {kickMode === "block"
+              ? "확인하면 해당 참가자를 즉시 강퇴하고 이 방의 재입장을 금지합니다."
+              : "확인하면 해당 참가자를 즉시 강퇴하지만 다시 입장하는 것은 허용합니다."}
+          </p>}
+          {kickError && <p className={common.error} role="alert">{kickError}</p>}
+          <div className={common.actions}>
+            <button type="button" className={common.secondaryButton} disabled={pending !== null}
+              onClick={() => { setKickTarget(undefined); setKickMode(null); setKickError(""); }}>취소</button>
+            <button type="button" className={common.dangerButton} disabled={!pageId || !kickMode || pending !== null}
+              onClick={() => void kick()}>{pending === "kick" ? "강퇴 중…" : "선택한 방식으로 강퇴"}</button>
+          </div>
+        </RoomDialog>
+      )}
       {confirmLeave && (
         <RoomDialog
           title={room.game ? "방에서 나갈까요?" : "대기실에서 나갈까요?"}
@@ -537,8 +612,14 @@ function AuthenticatedWaitingRoom({
 /** 빈 좌석은 참가자를 꾸며 넣지 않고 실제 입장을 기다리는 상태로 표시한다. */
 function ParticipantCard({
   participant,
+  canKick = false,
+  kickDisabled = false,
+  onKick,
 }: {
   participant?: WaitingParticipant;
+  canKick?: boolean;
+  kickDisabled?: boolean;
+  onKick?: () => void;
 }) {
   if (!participant)
     return (
@@ -556,6 +637,9 @@ function ParticipantCard({
       className={`${styles.playerCard} ${participant.self ? styles.selfCard : ""}`}
     >
       {participant.host && <span className={styles.hostBadge}>♛ 방장</span>}
+      {/* 본인 카드와 빈 좌석에는 강퇴 버튼을 표시하지 않는다. */}
+      {canKick && onKick && <button type="button" className={styles.kickButton}
+        aria-label={`${participant.nickname} 강퇴`} disabled={kickDisabled} onClick={onKick}>강퇴</button>}
       <div className={styles.avatarCircle}>
         <ProfileAvatar avatarId={participant.avatarId} size={256} />
       </div>

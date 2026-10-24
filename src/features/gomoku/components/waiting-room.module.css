@@ -183,6 +183,81 @@
   font-size: 0.8em;
   font-weight: 850;
 }
+/* 참가자 카드의 우측 상단에서만 노출되는 방장 전용 강퇴 버튼이다. */
+.kickButton {
+  position: absolute;
+  top: 0.65em;
+  right: 0.75em;
+  z-index: 1;
+  min-width: 3.4em;
+  min-height: 2.3em;
+  padding: 0.3em 0.65em;
+  border: 1px solid #fca5ad;
+  border-radius: 0.6em;
+  background: #fff8f9;
+  color: #c51c43;
+  font-size: 0.8em;
+  font-weight: 800;
+  cursor: pointer;
+}
+.kickButton:hover:not(:disabled) { background: #ffe6ea; }
+.kickButton:disabled { cursor: not-allowed; opacity: 0.55; }
+.kickButton:focus-visible { outline: 3px solid #a34de9; outline-offset: 3px; }
+@media (max-width: 700px) {
+  .kickButton { top: 0.5em; right: 0.45em; font-size: 0.72em; }
+}
+/* 강퇴 정책을 카드형 라디오로 명시적으로 선택하게 해 작은 화면에서도 실수로 영구 차단하지 않는다. */
+.kickChoices {
+  display: grid;
+  gap: 0.7em;
+  min-width: 0;
+  margin: 1em 0;
+  padding: 0;
+  border: 0;
+}
+.kickChoices legend {
+  margin-bottom: 0.6em;
+  font-size: 0.9em;
+  font-weight: 800;
+}
+.kickChoice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75em;
+  min-width: 0;
+  padding: 0.85em 0.95em;
+  border: 1px solid #ddd5ef;
+  border-radius: 0.75em;
+  background: #fff;
+  cursor: pointer;
+}
+.kickChoice[data-selected="true"] {
+  border-color: #8535e8;
+  background: #f8f1ff;
+  box-shadow: 0 0 0 1px #8535e8;
+}
+/* 공통 dialog의 텍스트 input 크기 규칙을 라디오 버튼에 적용하지 않는다. */
+.kickChoices .kickChoice input[type="radio"] {
+  flex: 0 0 auto;
+  width: 1.1em;
+  min-width: 1.1em;
+  height: 1.1em;
+  min-height: 1.1em;
+  margin: 0.2em 0 0;
+  padding: 0;
+  border-radius: 50%;
+  background: initial;
+  accent-color: #7629da;
+}
+.kickChoice span { display: grid; gap: 0.3em; min-width: 0; }
+.kickChoice strong { font-size: 0.95em; }
+.kickChoice small { color: #635a84; font-size: 0.82em; line-height: 1.5; }
+.kickChoice:focus-within { outline: 2px solid #8739e4; outline-offset: 2px; }
+.kickChoices:disabled .kickChoice { cursor: wait; opacity: 0.75; }
+.kickWarning { margin: 0.5em 0 1em; color: #89304b; font-size: 0.85em; line-height: 1.6; }
+@media (max-width: 480px) {
+  .kickChoice { padding: 0.75em; }
+}
 .avatarCircle {
   width: min(75%, 12em);
   aspect-ratio: 1;
@@ -468,6 +543,8 @@
 .fallback p {
   max-width: 32em;
   color: #85799f;
+  /* 강퇴 안내처럼 문장이 둘이면 마침표 뒤 줄바꿈을 유지한다. */
+  white-space: pre-line;
 }
 /* 채팅은 실제 참가자 두 명의 방 연결만 사용하며 작은 화면에서는 대기실 아래에 같은 패널을 배치한다. */
 .roomChat {

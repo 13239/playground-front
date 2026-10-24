@@ -44,6 +44,8 @@
   margin: 0;
   font-weight: 750;
   line-height: 1.6;
+  /* 강퇴 안내처럼 문장 사이 줄바꿈이 있으면 토스트 안에서도 문장마다 나눈다. */
+  white-space: pre-line;
   overflow-wrap: anywhere;
 }
 

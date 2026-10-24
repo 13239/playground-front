@@ -23,7 +23,7 @@ export type WaitingParticipant = Readonly<{
 export type WaitingRoom = Readonly<{
   id: number;
   title: string;
-  inviteCode: string;
+  inviteCode: string | null;
   visibility: RoomVisibility;
   undoLimit: 1 | 3 | 5;
   forbiddenRule: ForbiddenRule;
@@ -42,6 +42,14 @@ export type JoinRoomInput =
   | Readonly<{ roomId: number; password?: string }>
   | Readonly<{ inviteCode: string; password?: string }>;
 
+/** 참가 요청은 상세 대기실 데이터가 아닌 최소 성공 영수증만 반환한다. */
+export type JoinRoomReceipt = Readonly<{ roomId: number }>;
+export function isJoinRoomReceipt(value: unknown): value is JoinRoomReceipt {
+  return isObject(value) && typeof value.roomId === "number" &&
+    Number.isSafeInteger(value.roomId) && value.roomId > 0;
+}
+
+
 export function isWaitingRoom(value: unknown): value is WaitingRoom {
   if (
     !isObject(value) ||
@@ -54,8 +62,6 @@ export function isWaitingRoom(value: unknown): value is WaitingRoom {
     typeof value.title !== "string" ||
     !value.title.trim() ||
     value.title.length > 30 ||
-    typeof value.inviteCode !== "string" ||
-    !inviteCodePattern.test(value.inviteCode) ||
     !["PUBLIC", "PRIVATE"].includes(value.visibility as string) ||
     ![1, 3, 5].includes(value.undoLimit as number) ||
     !["NONE", "STANDARD"].includes(value.forbiddenRule as string) ||
@@ -91,6 +97,10 @@ export function isWaitingRoom(value: unknown): value is WaitingRoom {
     new Set(members.map((p) => p.seat)).size === members.length &&
     members.filter((p) => p.self).length === 1 &&
     members.filter((p) => p.host).length === 1 &&
+    // 서버와 BFF에서 방장 본인에게만 초대 코드를 제공하도록 응답 경계를 검증한다.
+    (members.some((p) => p.host && p.self)
+      ? typeof value.inviteCode === "string" && inviteCodePattern.test(value.inviteCode)
+      : value.inviteCode === null) &&
     (value.game === null || members.length === 2 && (value.game as MatchState).undoOne <= (value.undoLimit as number)
       && (value.game as MatchState).undoTwo <= (value.undoLimit as number)) &&
     value.allReady === (members.length === 2 && members.every((p) => p.ready))

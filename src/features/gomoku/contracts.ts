@@ -24,6 +24,11 @@ export type HostedRoom = Readonly<{
   title: string;
   inviteCode: string;
 }>;
+/** 참가자 복귀 링크에는 방장만 볼 수 있는 초대 코드를 포함하지 않는다. */
+export type JoinedRoom = Readonly<{
+  id: number;
+  title: string;
+}>;
 export type RoomSummary = Readonly<{
   id: number;
   title: string;
@@ -44,7 +49,7 @@ export type RoomPage = Readonly<{
   totalPages: number;
   hostedRoom: HostedRoom | null;
   // 방장이 아니어도 본인이 참가한 방으로 복귀할 수 있다.
-  joinedRoom: HostedRoom | null;
+  joinedRoom: JoinedRoom | null;
 }>;
 
 export const defaultRoomDraft: RoomDraft = {
@@ -113,6 +118,9 @@ export function isHostedRoom(value: unknown): value is HostedRoom {
     inviteCodePattern.test(value.inviteCode)
   );
 }
+export function isJoinedRoom(value: unknown): value is JoinedRoom {
+  return isObject(value) && integer(value.id, 1, Number.MAX_SAFE_INTEGER) && text(value.title, 30) && !Object.hasOwn(value, "inviteCode");
+}
 export function isRoomSummary(value: unknown): value is RoomSummary {
   return (
     isObject(value) &&
@@ -139,7 +147,7 @@ export function isRoomPage(value: unknown): value is RoomPage {
     integer(value.totalElements, 0, Number.MAX_SAFE_INTEGER) &&
     integer(value.totalPages, 0, Number.MAX_SAFE_INTEGER) &&
     (value.hostedRoom === null || isHostedRoom(value.hostedRoom)) &&
-    (value.joinedRoom === null || isHostedRoom(value.joinedRoom))
+    (value.joinedRoom === null || isJoinedRoom(value.joinedRoom))
   );
 }
 
@@ -166,6 +174,6 @@ export function publicRoomPage(value: RoomPage): RoomPage {
     totalElements: value.totalElements,
     totalPages: value.totalPages,
     hostedRoom: value.hostedRoom && publicHostedRoom(value.hostedRoom),
-    joinedRoom: value.joinedRoom && publicHostedRoom(value.joinedRoom),
+    joinedRoom: value.joinedRoom && { id: value.joinedRoom.id, title: value.joinedRoom.title },
   };
 }

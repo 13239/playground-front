@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { focusWithoutRing } from "@/lib/client/show-modal";
 
 /** 네이티브 details의 키보드 동작을 유지하면서 헤더 팝업에 바깥 클릭·터치·Escape 닫기를 공통 적용한다. */
 export function DismissibleDetails({
@@ -24,7 +25,8 @@ export function DismissibleDetails({
     function dismissOnEscape(event: KeyboardEvent) {
       if (details?.open && event.key === "Escape") {
         details.open = false;
-        details.querySelector("summary")?.focus();
+        const summary = details.querySelector("summary");
+        if (summary) focusWithoutRing(summary);
       }
     }
 

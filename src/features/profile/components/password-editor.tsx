@@ -14,8 +14,8 @@ const fields = [
   { name: "confirmation", label: "새 비밀번호 확인", autoComplete: "new-password" },
 ] as const;
 
-/** 현재 비밀번호·새 비밀번호 확인을 받고 현재 로그인을 유지한 채 변경 완료를 안내한다. */
-export function PasswordEditor({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
+/** 현재 비밀번호를 확인한 뒤 변경에 성공하면 창을 닫고 성공 알림만 남긴다. */
+export function PasswordEditor({ sessionId, onClose, onSaved }: { sessionId: string; onClose: () => void; onSaved: () => void }) {
   const id = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const submitting = useRef(false);
@@ -23,13 +23,12 @@ export function PasswordEditor({ sessionId, onClose }: { sessionId: string; onCl
   const [errors, setErrors] = useState<Partial<Record<PasswordField, string>>>({});
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => showModalWithoutCloseFocus(dialogRef.current), []);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting.current || saved) return;
+    if (submitting.current) return;
     const validation: Partial<Record<PasswordField, string>> = validatePasswordChange(values);
     if (!values.confirmation || values.confirmation !== values.newPassword) validation.confirmation = "새 비밀번호와 일치하도록 입력해 주세요.";
     setErrors(validation);
@@ -45,9 +44,8 @@ export function PasswordEditor({ sessionId, onClose }: { sessionId: string; onCl
       // 확인 입력은 서버로 보내지 않고 원문을 저장소·URL·알림에 남기지 않는다.
       await changePassword(sessionId, { currentPassword: values.currentPassword, newPassword: values.newPassword });
       setValues({ currentPassword: "", newPassword: "", confirmation: "" });
-      setSaved(true);
-      submitting.current = false;
-      setPending(false);
+      onSaved();
+      dialogRef.current?.close();
     } catch (error) {
       if (error instanceof AuthRequestError && error.code === "CURRENT_PASSWORD_INVALID") {
         setErrors({ currentPassword: error.message });
@@ -78,7 +76,7 @@ export function PasswordEditor({ sessionId, onClose }: { sessionId: string; onCl
           </button>
         </div>
         <div className={styles.dialogBody}>
-          <fieldset className={styles.passwordFields} disabled={pending || saved}>
+          <fieldset className={styles.passwordFields} disabled={pending}>
             {fields.map(field => (
               <div className={styles.passwordField} key={field.name}>
                 <label htmlFor={`${id}-${field.name}`}>{field.label}</label>
@@ -95,22 +93,14 @@ export function PasswordEditor({ sessionId, onClose }: { sessionId: string; onCl
               </div>
             ))}
           </fieldset>
-          {/* 변경 성공은 이동 없이 알리고 현재 화면·로그인 상태를 유지한다. */}
-          <p className={styles.passwordNotice} role="status">{saved ? "비밀번호를 변경했어요. 로그인은 그대로 유지돼요." : "비밀번호를 변경해도 현재 로그인은 유지돼요."}</p>
-          <p className={styles.error} role="alert">{error}</p>
+          {error && <p className={styles.error} role="alert">{error}</p>}
         </div>
         <div className={styles.dialogFooter}>
           <div className={styles.passwordActions}>
-            {saved ? (
-              <button type="button" className={styles.saveButton} autoFocus onClick={() => dialogRef.current?.close()}>확인</button>
-            ) : (
-              <>
-                <button type="button" className={styles.cancelButton} disabled={pending} onClick={() => dialogRef.current?.close()}>취소</button>
-                <button type="submit" className={styles.saveButton} disabled={pending}>
-                  <LobbyIcon name="lock" />{pending ? "변경 중…" : "비밀번호 변경"}
-                </button>
-              </>
-            )}
+            <button type="button" className={styles.cancelButton} disabled={pending} onClick={() => dialogRef.current?.close()}>취소</button>
+            <button type="submit" className={styles.saveButton} disabled={pending}>
+              <LobbyIcon name="lock" />{pending ? "변경 중…" : "비밀번호 변경"}
+            </button>
           </div>
         </div>
       </form>

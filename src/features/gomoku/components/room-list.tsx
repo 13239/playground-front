@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { RetryButton } from "@/app/_components/retry-button";
 import { AuthRequestError } from "@/features/auth/client/api";
@@ -20,6 +20,7 @@ import {
 } from "../contracts";
 import { HostedRoomDialog } from "./room-dialog";
 import { InviteRoomEntry, JoinRoomDialog, type JoinTarget } from "./join-room";
+import { RoomToast } from "./room-toast";
 import { RoomHero } from "./room-artwork";
 import { AiDifficultyDialog } from "./ai-difficulty-dialog";
 import styles from "./gomoku.module.css";
@@ -168,38 +169,53 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
   const [error, setError] = useState("");
   const [hostedRoom, setHostedRoom] = useState<HostedRoom>();
   const [joining, setJoining] = useState<JoinTarget>();
+  const [joinNotice, setJoinNotice] = useState<{ id: number; message: string }>();
+  const joinNoticeId = useRef(0);
+  // 조회 중 재렌더링돼도 같은 입장 요청의 effect를 재구독하지 않도록 콜백을 고정한다.
+  const refreshAfterJoin = useCallback(() => {
+    setJoining(undefined);
+    setRevision((value) => value + 1);
+  }, []);
+  const handleJoinFailure = useCallback((message: string) => {
+    // 입장 실패는 목록 위 문장 대신 상단 토스트로 보여주고, 닫힌 방은 목록을 바로 다시 읽는다.
+    setJoinNotice({ id: ++joinNoticeId.current, message });
+    setJoining(undefined);
+    setRevision((value) => value + 1);
+  }, []);
   useEffect(() => {
     let active = true;
-    // 자동 폴링 대신 입력을 짧게 모아 검색하고 복귀·계정 변경은 공통 세션 경계에서 재조회한다.
-    const timer = setTimeout(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let retries = 0;
+    const retryDelays = [1000, 2000, 4000] as const;
+    // 일시적인 게이트웨이/백엔드 응답 장애에는 최대 세 차례만 자동 재조회한다.
+    // 수동 새로고침이나 필터 변경 시 이전 요청 결과·재시도는 현재 화면에 반영하지 않는다.
+    const load = async () => {
+      if (!active) return;
       setLoading(true);
-      setError("");
-      void searchRooms(sessionId, filters)
-        .then((result) => {
-          if (active) setData(result);
-        })
-        .catch((failure) => {
-          if (!active) return;
-          setData(undefined);
-          if (
-            failure instanceof AuthRequestError &&
-            (failure.status === 401 || failure.code === "LOGIN_SESSION_CHANGED")
-          )
-            revalidateAuthSession();
-          setError(
-            failure instanceof AuthRequestError
-              ? failure.message
-              : "방 목록을 불러오지 못했습니다.",
-          );
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-    }, 250);
-    return () => {
-      active = false;
-      clearTimeout(timer);
+      try {
+        const result = await searchRooms(sessionId, filters);
+        if (!active) return;
+        setData(result);
+        setError("");
+        setLoading(false);
+      } catch (failure) {
+        if (!active) return;
+        const problem = failure instanceof AuthRequestError ? failure : null;
+        if (problem?.status === 401 || problem?.code === "LOGIN_SESSION_CHANGED")
+          revalidateAuthSession();
+        // 일시 오류로 이미 확인한 '내 방'과 복귀 링크를 지우지 않는다.
+        // 단, 오류 동안 목록 자체는 클릭할 수 없도록 아래 렌더에서 숨긴다.
+        const transient = !problem || [502, 503, 504].includes(problem.status);
+        if (transient && retries < retryDelays.length) {
+          timer = setTimeout(() => { void load(); }, retryDelays[retries++]);
+          return;
+        }
+        setError(problem?.message ?? "방 목록을 불러오지 못했습니다.");
+        setLoading(false);
+      }
     };
+    timer = setTimeout(() => { void load(); }, 250);
+    return () => { active = false; clearTimeout(timer); };
   }, [sessionId, filters, revision]);
 
   const change = (patch: Partial<RoomFilters>) =>
@@ -266,21 +282,29 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
             <strong>내 방</strong>
             <span>{data.hostedRoom.title}</span>
           </p>
-          <button
-            className={styles.textButton}
-            type="button"
-            onClick={() => setHostedRoom(data.hostedRoom ?? undefined)}
-          >
-            초대 코드 · 방 관리 <LobbyIcon name="chevron" />
-          </button>
+          <div className={styles.hostedNoticeActions}>
+            {/* 목록이 일시적으로 실패해도 방장은 이미 참가한 대기실로 바로 복귀할 수 있다. */}
+            {data.joinedRoom?.id === data.hostedRoom.id && (
+              <Link className={styles.textButton} href={`/games/gomoku/rooms/${data.hostedRoom.id}`}>
+                대기실로 돌아가기 <LobbyIcon name="arrow" />
+              </Link>
+            )}
+            <button
+              className={styles.textButton}
+              type="button"
+              onClick={() => setHostedRoom(data.hostedRoom ?? undefined)}
+            >
+              초대 코드 · 방 관리 <LobbyIcon name="chevron" />
+            </button>
+          </div>
         </div>
       )}
       <div className={styles.listStatus}>
         <span role="status">
           {loading
             ? "방 목록을 확인하고 있어요…"
-            : data
-              ? `${data.totalElements}개의 방`
+            : error ? "방 목록"
+              : data ? `${data.totalElements}개의 방`
               : "방 목록"}
         </span>
         <button
@@ -292,7 +316,8 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
           새로고침
         </button>
       </div>
-      {data?.joinedRoom && <p className={styles.muted}>참여 중인 방: <Link className={styles.textButton} href={`/games/gomoku/rooms/${data.joinedRoom.id}`}>{data.joinedRoom.title} · 대기실로 돌아가기</Link></p>}
+      {data?.joinedRoom && data.joinedRoom.id !== data.hostedRoom?.id && <p className={styles.muted}>참여 중인 방: <Link className={styles.textButton} href={`/games/gomoku/rooms/${data.joinedRoom.id}`}>{data.joinedRoom.title} · 대기실로 돌아가기</Link></p>}
+      {joinNotice && <RoomToast key={joinNotice.id} message={joinNotice.message} onDismiss={() => setJoinNotice(current => current?.id === joinNotice.id ? undefined : current)} />}
       <div
         aria-busy={loading}
         className={loading ? styles.loadingRows : undefined}
@@ -392,7 +417,7 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
                   className={styles.entryButton}
                   // 확인창 없는 공개 입장 중에도 다른 방의 중복 입장을 시작하지 않는다.
                   disabled={joining !== undefined || room.status !== "WAITING" || room.playerCount === 2 && data.joinedRoom?.id !== room.id}
-                  onClick={() => setJoining({ roomId: room.id, title: room.title, privateRoom: room.visibility === "PRIVATE" && data.joinedRoom?.id !== room.id })}
+                  onClick={() => { setJoinNotice(undefined); setJoining({ roomId: room.id, title: room.title, privateRoom: room.visibility === "PRIVATE" && data.joinedRoom?.id !== room.id }); }}
                   title={
                     room.owned
                       ? "내 대기실로 입장"
@@ -467,7 +492,8 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
           }}
         />
       )}
-      {joining && <JoinRoomDialog key={"roomId" in joining ? joining.roomId : joining.inviteCode} sessionId={sessionId} target={joining} onClose={() => { setJoining(undefined); setRevision((value) => value + 1); }} />}
+      {joining && <JoinRoomDialog key={"roomId" in joining ? joining.roomId : joining.inviteCode} sessionId={sessionId} target={joining}
+        onFailure={handleJoinFailure} onClose={refreshAfterJoin} />}
     </section>
   );
 }
