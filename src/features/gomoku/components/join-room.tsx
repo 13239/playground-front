@@ -195,7 +195,7 @@ export function JoinRoomDialog({
 }
 
 /** 초대 코드는 화면 메모리에서만 정규화하며 URL이나 브라우저 저장소에 비밀번호를 남기지 않는다. */
-export function InviteRoomEntry() {
+export function InviteRoomEntry({ disabled = false }: { disabled?: boolean }) {
   const auth = useAuthSession();
   const [code, setCode] = useState("");
   // 진행 중인 코드를 입력값·새 로그인과 분리해 타이핑이나 인증 변경이 같은 입장을 다시 실행하지 않게 한다.
@@ -234,7 +234,8 @@ export function InviteRoomEntry() {
   );
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (currentAttempt) return;
+    // 목록 표시 이후 정책이 바뀌어도 새 초대 입장은 막고 이미 진행한 요청의 완료 처리는 유지한다.
+    if (currentAttempt || disabled) return;
     if (auth.status !== "authenticated") return;
     if (!inviteCodePattern.test(code)) {
       setNotice({ id: ++noticeSequence.current, sessionId: auth.session.sessionId, message: "6자리 영문·숫자 방 코드를 확인해 주세요." });
@@ -264,7 +265,7 @@ export function InviteRoomEntry() {
           maxLength={6}
           autoComplete="off"
           spellCheck={false}
-          disabled={auth.status !== "authenticated" || Boolean(currentAttempt)}
+          disabled={disabled || auth.status !== "authenticated" || Boolean(currentAttempt)}
           onChange={(event) => {
             setCode(
               event.target.value
@@ -278,7 +279,7 @@ export function InviteRoomEntry() {
           className={styles.primaryButton}
           type="submit"
           disabled={
-            auth.status !== "authenticated" ||
+            disabled || auth.status !== "authenticated" ||
             code.length !== 6 ||
             Boolean(currentAttempt)
           }

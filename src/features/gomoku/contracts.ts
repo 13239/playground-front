@@ -53,7 +53,8 @@ export type RoomPage = Readonly<{
 }>;
 
 export const defaultRoomDraft: RoomDraft = {
-  title: "함께 즐기는 오목 한 판!",
+  // 방 제목은 게임 표시 이름과 별개인 사용자 입력이므로 특정 관리 이름을 기본값에 고정하지 않는다.
+  title: "함께 즐기는 한 판!",
   visibility: "PUBLIC",
   password: "",
   undoLimit: 1,

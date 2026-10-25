@@ -25,6 +25,7 @@ const errors = {
   AUTHORIZATION_SERVICE_UNAVAILABLE: [503, "관리 권한을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."],
   ACCESS_EXEMPTION_INVALID: [400, "접속을 허용할 권한을 다시 확인해 주세요."],
   CATALOG_GENRE_NOT_FOUND: [404, "게임 장르를 찾을 수 없습니다."],
+  CATALOG_GENRE_DISABLED: [409, "사용 중지된 장르는 새로 연결할 수 없습니다. 장르 선택을 확인해 주세요."],
   GAME_CONFIGURATION_INVALID: [400, "게임 설정이 지원 범위를 벗어났습니다. 입력값을 확인해 주세요."],
   GAME_CATALOG_CHANGED: [409, "게임 설정이 변경되었습니다. 최신 내용을 불러온 뒤 다시 편집해 주세요."],
   GAME_CATALOG_CONFLICT: [409, "이미 등록되어 있거나 다른 관리자가 변경한 설정입니다."],

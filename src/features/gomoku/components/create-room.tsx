@@ -22,13 +22,17 @@ import {
 } from "../contracts";
 import { RoomHero } from "./room-artwork";
 import styles from "./gomoku.module.css";
+import { useGomokuCatalog } from "../client/use-gomoku-catalog";
 
 /** 선택 중 미리보기만 바꾸고 저장은 인증된 서버 응답이 성공한 뒤 확정한다. */
 export function CreateRoom() {
   const auth = useAuthSession();
+  const { error, refresh } = useGomokuCatalog();
   return (
     <div className={styles.createPage}>
       <RoomHero create />
+      {/* 공개 정보 조회만 실패한 경우 폼·입력은 보존하고 표시 정보를 직접 다시 확인할 수 있게 한다. */}
+      {error && <div className={styles.catalogNotice}><button type="button" className={styles.secondaryButton} onClick={refresh}>게임 정보 다시 확인</button></div>}
       {auth.status === "authenticated" ? (
         <GameEntryGate key={auth.session.sessionId} game="GOMOKU" mode="ONLINE" sessionId={auth.session.sessionId}>
         <AuthenticatedCreateRoom
@@ -52,6 +56,7 @@ export function CreateRoom() {
 }
 
 function AuthenticatedCreateRoom({ sessionId }: { sessionId: string }) {
+  const { name, online } = useGomokuCatalog();
   const [draft, setDraft] = useState<RoomDraft>(defaultRoomDraft);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState("");
@@ -69,7 +74,8 @@ function AuthenticatedCreateRoom({ sessionId }: { sessionId: string }) {
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting.current) return;
+    // 생성 폼을 유지한 채 현재 표시 정책으로 신규 생성만 제한하며 서버에서도 다시 확인한다.
+    if (submitting.current || !online.available) return;
     const fieldErrors = validateRoomDraft(draft);
     if (Object.keys(fieldErrors).length) {
       setErrors(fieldErrors);
@@ -119,11 +125,12 @@ function AuthenticatedCreateRoom({ sessionId }: { sessionId: string }) {
           <LobbyIcon name="gear" />
           <div>
             <h2>방 설정</h2>
-            <p>원하는 규칙과 옵션을 선택하여 오목 방을 만들어보세요.</p>
+            <p>{online.mode?.name ?? "온라인"} · 원하는 규칙과 옵션을 선택하여 {name} 방을 만들어보세요.</p>
           </div>
         </div>
+        {!online.available && <p className={styles.error} role="status">{online.message}</p>}
         <fieldset
-          disabled={pending || Boolean(created)}
+          disabled={pending || Boolean(created) || !online.available}
           className={styles.formFields}
         >
           <div className={styles.formRow}>
@@ -309,7 +316,7 @@ function AuthenticatedCreateRoom({ sessionId }: { sessionId: string }) {
           <button
             className={styles.primaryButton}
             type="submit"
-            disabled={pending || Boolean(created)}
+            disabled={pending || Boolean(created) || !online.available}
           >
             <LobbyIcon name="plus" />
             {pending ? "방 만드는 중…" : "방 만들기"}

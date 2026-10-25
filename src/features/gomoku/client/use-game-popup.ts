@@ -42,7 +42,7 @@ function shareStyles(target: Document): () => void {
 }
 
 /** React 상태·서버 연결은 원본에 유지하고 같은 대국 UI를 한 개의 일반 팝업에만 표시한다. */
-export function useGamePopup(bodyClassName: string) {
+export function useGamePopup(bodyClassName: string, title = "게임 · Playground") {
   const supported = useSyncExternalStore(subscribeToInputChange, supportsGamePopup, () => false);
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [error, setError] = useState("");
@@ -53,6 +53,9 @@ export function useGamePopup(bodyClassName: string) {
   const sourceName = useRef<string | null>(null);
   const mounted = useRef(false);
   const disposeWindow = useRef<(() => void) | null>(null);
+
+  // 표시 이름만 바뀌면 열린 팝업의 제목만 갱신하고 판·창 수명은 그대로 유지한다.
+  useEffect(() => { const target = activeWindow.current; if (target && !target.closed) target.document.title = title; }, [title]);
 
   useEffect(() => {
     mounted.current = true;
@@ -156,7 +159,7 @@ export function useGamePopup(bodyClassName: string) {
       target.documentElement.lang = document.documentElement.lang || "ko";
       target.documentElement.className = document.documentElement.className;
       target.body.className = bodyClassName;
-      target.title = "오목 · Playground";
+      target.title = title;
       stopSharing = shareStyles(target);
       const root = target.createElement("div");
       target.body.append(root);
@@ -195,7 +198,7 @@ export function useGamePopup(bodyClassName: string) {
       disposeWindow.current?.();
       if (mounted.current) setError("팝업 창을 열지 못했어요. 브라우저 설정을 확인한 뒤 다시 시도해 주세요.");
     }
-  }, [bodyClassName, focus]);
+  }, [bodyClassName, focus, title]);
 
   return { supported, container, error, open, close, focus };
 }

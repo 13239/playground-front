@@ -108,7 +108,8 @@ export function LobbyShell({ account }: { account: ReactNode }) {
     };
   }, [categories.length]);
   const categoryLabel =
-    categories.find((value) => value.id === category)?.label ?? "전체";
+    // 복귀 후 첫 장르 페이지를 다시 읽을 때 아직 조회하지 않은 선택 장르를 전체 필터로 잘못 표시하지 않는다.
+    categories.find((value) => value.id === category)?.label ?? (category.startsWith("genre:") ? "선택한 장르" : "전체");
   const catalogTitle = normalizedQuery
     ? "검색 결과"
     : category === "all"
@@ -233,7 +234,8 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                       aria-label={`${game.title} 게임 보기`}
                     >
                       <div className={styles.gameCover}>
-                        {game.thumbnailKey === "GOMOKU" ? <GomokuCover /> : <div className={styles.genericCover}><LobbyIcon name="gamepad" /></div>}
+                        {/* 관리자 이미지 선택 없이 배포한 게임 코드에 맞는 기존 표지를 사용한다. */}
+                        {game.id === "GOMOKU" ? <GomokuCover /> : <div className={styles.genericCover}><LobbyIcon name="gamepad" /></div>}
                         <span className={styles.comingSoon}>{!gameHref(game.id) ? "준비 중" : game.available ? "게임 보기" : "이용 안내"}</span>
                         <span className={styles.gameHover}>
                           <LobbyIcon name="arrow" />
@@ -272,7 +274,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                 </button>
               </div>
             )}
-            {!catalog.loading && games.length > 0 && catalog.error && <p className={styles.catalogStatus} role="status">{catalog.error}</p>}
+            {!catalog.loading && games.length > 0 && catalog.error && <p className={styles.catalogStatus} role="status">{catalog.error} <button type="button" onClick={catalog.retry}>다시 확인</button></p>}
             {!catalog.loading && catalog.hasMore && <button type="button" className={styles.loadMoreGames} disabled={catalog.morePending} onClick={() => void catalog.loadMore()}>
               {catalog.morePending ? "불러오는 중…" : "게임 더 보기"}
             </button>}

@@ -202,6 +202,18 @@
   align-items: center;
   gap: 1.2em;
 }
+/* 관리자가 입력한 긴 이름·장르·줄바꿈 설명도 작은 화면의 본문 폭 안에서 읽힌다. */
+.heroHeading > div:not(.cover) { min-width: 0; }
+.hero h1, .hero p, .breadcrumb, .sidebar h2, .startCard button, .sectionHeading p, .catalogNotice { overflow-wrap: anywhere; }
+.catalogGenres { display: flex; flex-wrap: wrap; gap: 0.4em; margin-top: 0.65em; }
+.catalogGenres > span { max-width: 100%; padding: 0.25em 0.7em; border-radius: 1em; background: #eee5ff; color: #7042b5; font-size: 0.75em; overflow-wrap: anywhere; }
+.catalogDescription { margin-top: 0.65em; font-size: 0.85em; }
+.catalogDescription > summary { width: fit-content; cursor: pointer; color: #7042b5; }
+.catalogDescription > p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.catalogNotice { padding: 0.9em 1.1em; border: 1px solid #e4dcfa; border-radius: 1em; background: #faf7ff; }
+.catalogNotice p { margin: 0 0 0.35em; }
+.catalogNotice small { display: block; margin-top: 0.5em; color: #74749f; }
+.mobileActions :is(a, button) { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .cover {
   position: relative;
   flex: 0 0 auto;

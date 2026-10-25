@@ -1,0 +1,69 @@
+/* 관리자 공통 색상과 1px 포커스 규칙을 재사용하고 목록만 독립된 반응형 표로 구성한다. */
+.panel { padding: clamp(14px, 1.7vw, 28px); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.toolbar { display: flex; gap: 12px; margin-bottom: 18px; align-items: center; }
+.toolbar > form { flex: 1; max-width: 640px; }
+.pageSize { margin-left: auto; }
+.pageSize select { width: 110px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: #fff; }
+.scroll { min-width: 0; max-height: min(66dvh, 1100px); overflow: auto; border: 1px solid #ebe6f6; border-radius: 12px; overscroll-behavior: contain; }
+.scroll:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+.table { width: 100%; min-width: 780px; border-spacing: 0; border-collapse: separate; text-align: left; color: #51406e; font-size: clamp(0.82rem, 0.3vw + 0.5rem, 0.95rem); }
+.table th { position: sticky; top: 0; z-index: 2; background: #f3eeff; color: #87719f; font-size: 0.78rem; white-space: nowrap; }
+.table :is(th, td) { padding: 13px 16px; border-bottom: 1px solid #eee8fa; }
+.table td { height: 66px; background: #fff; overflow-wrap: anywhere; }
+.table th { height: 46px; }
+.table tr:last-child td { border-bottom: 0; }
+.table td:first-child { width: 72px; color: #92839f; font-variant-numeric: tabular-nums; }
+.table :is(th, td):nth-child(2) { position: sticky; left: 0; z-index: 1; min-width: 170px; max-width: 250px; }
+.table th:nth-child(2) { z-index: 3; }
+.table code { font-size: 0.76rem; color: #89749f; }
+.openRow { cursor: pointer; }
+.openRow:is(:hover, :focus-within) td, .table tr[data-selected="true"] td { background: #f7f2ff; }
+.table .openButton { border: 0; background: transparent; color: #4e3276; padding: 5px 0; text-align: left; font-weight: 750; overflow-wrap: anywhere; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; max-width: 320px; }
+.footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding-top: 16px; margin-top: 18px; border-top: 1px solid #eee8fa; }
+.footer p { margin: 0; }
+.orderNotice { margin-bottom: 18px; padding: 14px 16px; border: 1px solid #e9ddfc; border-radius: 12px; background: #fbf8ff; color: #806299; font-size: 0.82rem; line-height: 1.7; }
+.orderNotice p { margin: 0; }
+.pageMoves { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.pageMoves > span { margin-right: auto; overflow-wrap: anywhere; }
+.orderTable { min-width: 640px; }
+.orderTable :is(th, td):nth-child(2) { position: static; min-width: 60px; max-width: none; }
+.orderTable :is(th, td):nth-child(3) { min-width: 160px; }
+.orderTable td:first-child { width: 54px; }
+.table .grip { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 42px; padding: 5px; border-color: transparent; background: transparent; cursor: grab; touch-action: none; user-select: none; }
+.table .grip:active { cursor: grabbing; }
+.grip svg { width: 20px; height: 20px; }
+.rowMoves { display: flex; gap: 6px; }
+.rowMoves button { display: inline-flex; align-items: center; justify-content: center; width: 38px; padding: 5px; }
+.rowMoves svg { width: 18px; height: 18px; }
+.table tr[data-dragging="true"] td { background: #f0e6ff; }
+.table tr[data-drop-before="true"] td { box-shadow: inset 0 2px #9a4af0; }
+.table tr[data-drop-after="true"] td { box-shadow: inset 0 -2px #9a4af0; }
+/* 모달 본문만 스크롤하고 닫기 동작은 화면 크기에 관계없이 항상 접근 가능하게 둔다. */
+.dialog.dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; width: min(1040px, calc(100vw - 48px)); max-height: calc(100dvh - 48px); padding: 0; overflow: hidden; }
+.dialog[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.dialog:focus { outline: none; }
+.dialogTop { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 30px 18px; border-bottom: 1px solid #eee8fa; }
+.dialogTop span { color: #9c60ef; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; }
+.dialogTop h2 { margin: 5px 0 0; }
+.dialogBody { min-height: 0; padding: 24px 30px 28px; overflow-y: auto; overscroll-behavior: contain; }
+.dialogFooter { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 14px 30px; border-top: 1px solid #eee8fa; }
+.dialogFooter p { margin: 0 auto 0 0; color: #88749a; font-size: 0.8rem; }
+@media (max-width: 680px) {
+  .toolbar { flex-wrap: wrap; gap: 10px; }
+  .toolbar > form { flex-basis: calc(100% - 124px); }
+  .footer { justify-content: center; }
+  .footer > p { flex-basis: 100%; text-align: center; }
+  .table :is(th, td) { padding: 10px 12px; }
+  .pageMoves > span { flex-basis: 100%; }
+  .dialog.dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); border-radius: 16px; }
+  .dialogTop { padding: 18px; }
+  .dialogBody { padding: 20px 18px; }
+  .dialogFooter { padding: 12px 18px; }
+}
+@media (max-width: 380px) { .toolbar > form { flex-basis: 100%; } }
+@media (forced-colors: active) {
+  .table tr[data-drop-before="true"] td { border-top: 2px solid Highlight; }
+  .table tr[data-drop-after="true"] td { border-bottom: 2px solid Highlight; }
+}

@@ -1,0 +1,28 @@
+/* 공통 입력 프레임과 1px 포커스를 사용하고 선택 라벨은 검색 결과와 별도로 유지한다. */
+.root { min-width: 0; margin-top: 20px; }
+.label { display: block; margin-bottom: 8px; color: #51416f; font-size: 0.85rem; font-weight: 650; }
+.inputFrame { display: flex; align-items: center; min-width: 0; border: 1px solid #e0dcf0; border-radius: 9px; background: #fefeff; }
+.inputFrame input { flex: 1; width: 100%; min-width: 0; border: 0; border-radius: inherit; padding: 11px 13px; background: transparent; }
+.root .inputFrame > button { flex-shrink: 0; display: grid; place-items: center; min-width: 42px; padding: 6px; border: 0; background: transparent; }
+.inputFrame svg { width: 18px; height: 18px; }
+.hint { margin: 7px 0 10px; color: #8d859e; font-size: 0.74rem; line-height: 1.65; }
+.popup { box-sizing: border-box; width: 100%; max-height: var(--genre-popup-height, 320px); inset: auto; margin: 6px 0 0; padding: 6px; border: 1px solid #e1d5f3; border-radius: 12px; background: #fffdff; color: #513b70; box-shadow: 0 10px 30px #38205b1a; }
+.popup:popover-open { margin: 0; }
+.popup ul { max-height: calc(var(--genre-popup-height, 320px) - 52px); min-height: 0; margin: 0; padding: 0; overflow-y: auto; list-style: none; overscroll-behavior: contain; }
+.popup li { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 9px 10px; border-radius: 7px; font-size: 0.84rem; line-height: 1.4; cursor: pointer; overflow-wrap: anywhere; }
+.popup li[data-active="true"], .popup li:hover { background: #f3ebff; }
+.popup li[aria-disabled="true"] { color: #a196ae; cursor: not-allowed; }
+.popup li small { display: block; margin-top: 3px; color: #9c8cae; font-size: 0.68rem; }
+.check { flex-shrink: 0; display: grid; place-items: center; width: 18px; height: 18px; border: 1px solid #d4c7e4; border-radius: 4px; color: #fff; font-size: 0.75rem; }
+.popup li[aria-selected="true"] .check { background: #8b35ef; border-color: #8b35ef; }
+.disabledLabel { flex-shrink: 0; margin-left: auto; color: #a293ad; font-size: 0.68rem; }
+.message { margin: 0; padding: 14px 10px; color: #8b7c9a; font-size: 0.8rem; line-height: 1.7; }
+.message p { margin: 0 0 8px; }
+.popup .more { width: 100%; margin-top: 5px; border: 0; border-top: 1px solid #eee6f5; border-radius: 0 0 7px 7px; background: transparent; font-size: 0.78rem; color: #8550b7; }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; min-height: 30px; }
+.root .chips button { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; min-height: 30px; padding: 4px 9px; border: 1px solid #e7d7ff; border-radius: 7px; background: #f5eeff; color: #8950c8; font-size: 0.74rem; overflow-wrap: anywhere; }
+.chips button small { font-size: 0.66rem; color: #a58bb6; }
+.chips button > span { flex-shrink: 0; font-size: 1rem; line-height: 1; }
+.empty, .limit { color: #9c8da8; font-size: 0.74rem; line-height: 1.6; }
+@media (max-width: 480px) { .hint { font-size: 0.7rem; } .root .chips button { min-height: 34px; } }
+@media (forced-colors: active) { .popup li[data-active="true"] { outline: 1px solid Highlight; outline-offset: -1px; } .popup li[aria-selected="true"] .check { background: Highlight; color: HighlightText; } }

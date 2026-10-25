@@ -971,3 +971,6 @@
     scroll-behavior: auto;
   }
 }
+/* 관리자가 수정한 게임 이름은 모바일 대기실에서도 줄바꿈해 표시한다. */
+.scene h1 { overflow-wrap: anywhere; }
+.catalogModeName { max-width: 100%; overflow-wrap: anywhere; color: #74749f; font-size: .82em; }

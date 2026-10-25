@@ -23,12 +23,14 @@ import { GameRoom } from "./game-room";
 import gameStyles from "./game-room.module.css";
 import common from "./gomoku.module.css";
 import styles from "./waiting-room.module.css";
+import { useGomokuCatalog } from "../client/use-gomoku-catalog";
 
 // 인증 재확인으로 화면을 숨겨도 같은 문서·참가의 점유권은 유지하고, 새 로그인에는 이전 점유권을 넘기지 않는다.
 type RoomConnection = Readonly<{ roomId: number; sessionId: string; membershipId: string; pageId?: string; denial?: string; denialCode?: string; error?: string }>;
 
 /** 계정·방 경계가 바뀌면 준비 상태와 방 채팅도 새로 만들어 이전 사용자의 정보를 숨긴다. */
 export function WaitingRoomScreen({ roomId }: { roomId: number }) {
+  const { name } = useGomokuCatalog();
   const auth = useAuthSession();
   const router = useRouter();
   const [connection, setConnection] = useState<RoomConnection>();
@@ -95,7 +97,7 @@ export function WaitingRoomScreen({ roomId }: { roomId: number }) {
   return (
     <div className={styles.fallback} role="status">
       <LobbyIcon name="board" />
-      <h1>오목 대기실</h1>
+      <h1>{name} 대기실</h1>
       <p>
         {auth.status === "error"
           ? auth.message
@@ -134,6 +136,7 @@ function AuthenticatedWaitingRoom({
   onMembership: (sessionId: string, membershipId: string) => void;
   onComplete: (sessionId: string, membershipId: string) => void;
 }) {
+  const { name, online } = useGomokuCatalog();
   const router = useRouter();
   // 서버 응답과 수신 시각을 함께 보관해 팝업 이동으로 시계가 다시 만들어져도 경과 시간을 유지한다.
   const [snapshot, setSnapshot] = useState<{ room: WaitingRoom; receivedAt: number }>();
@@ -416,7 +419,7 @@ function AuthenticatedWaitingRoom({
         reconnectAttempt={sync.attempt} connectionLost={sync.lost} onAction={action => void gameAction(action)}
         onLeave={() => { setLeaveError(""); setConfirmLeave(true); }} onRecover={() => void recoverResult()}
         leaveConfirmation={leaveConfirmation} />
-        : <section className={styles.scene} aria-label="오목 대기실">
+        : <section className={styles.scene} aria-label={`${name} 대기실`}>
         <Image
           src="/images/gomoku/waiting-room-background.webp"
           alt=""
@@ -432,7 +435,8 @@ function AuthenticatedWaitingRoom({
             </span>
             <div>
               <div className={styles.titleRow}>
-                <h1>오목 대기실</h1>
+                <h1>{name} 대기실</h1>
+                {online.mode && <span className={styles.catalogModeName}>{online.mode.name}</span>}
                 <span className={styles.participantCount}>
                   <LobbyIcon name="users" /> 참가자 {room.participants.length}/2
                 </span>

@@ -6,7 +6,7 @@ export type CatalogMode = Readonly<{
   published: boolean; availability: "AVAILABLE" | "MAINTENANCE" | "DISABLED"; unavailableMessage: string; supported: boolean;
 }>;
 export type CatalogGame = Readonly<{
-  code: string; name: string; summary: string; description: string; thumbnailKey: string; published: boolean;
+  code: string; name: string; summary: string; description: string; published: boolean;
   availability: CatalogMode["availability"]; unavailableMessage: string; firstPublishedAt: string | null;
   genres: readonly CatalogGenre[]; modes: readonly CatalogMode[];
 }>;
@@ -34,7 +34,7 @@ function isGenre(value: unknown): value is CatalogGenre {
 }
 export function isCatalogGame(value: unknown): value is CatalogGame {
   return object(value) && code(value.code) && text(value.name, 100) && text(value.summary, 160) && text(value.description, 2000)
-    && code(value.thumbnailKey) && typeof value.published === "boolean" && availability(value.availability) && text(value.unavailableMessage, 300)
+    && typeof value.published === "boolean" && availability(value.availability) && text(value.unavailableMessage, 300)
     && (value.firstPublishedAt === null || typeof value.firstPublishedAt === "string" && Number.isFinite(Date.parse(value.firstPublishedAt)))
     && Array.isArray(value.genres) && value.genres.every(isGenre) && Array.isArray(value.modes) && value.modes.every(isCatalogMode);
 }
@@ -51,7 +51,7 @@ export function publicMode(mode: CatalogMode): CatalogMode {
     published: mode.published, availability: mode.availability, unavailableMessage: mode.unavailableMessage, supported: mode.supported };
 }
 export function publicGame(game: CatalogGame): CatalogGame {
-  return { code: game.code, name: game.name, summary: game.summary, description: game.description, thumbnailKey: game.thumbnailKey,
+  return { code: game.code, name: game.name, summary: game.summary, description: game.description,
     published: game.published, availability: game.availability, unavailableMessage: game.unavailableMessage, firstPublishedAt: game.firstPublishedAt,
     genres: game.genres.map(genre => ({ code: genre.code, name: genre.name, sortOrder: genre.sortOrder })), modes: game.modes.map(publicMode) };
 }

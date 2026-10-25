@@ -146,3 +146,6 @@
 /* 메뉴만 공통 1px 포커스를 명시해 기존 공유 팝업 메뉴의 굵은 링을 사용하지 않는다. */
 .popupPage details summary:focus-visible, .popupPage details button:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
 @media (prefers-reduced-motion: reduce) { .thinking i { animation: none; } }
+/* 관리 이름은 최대 길이에서도 난이도 배지·조작 버튼을 밀어 화면 밖으로 넘기지 않는다. */
+.heading > div { min-width: 0; flex-wrap: wrap; }
+.heading h1 { min-width: 0; overflow-wrap: anywhere; }

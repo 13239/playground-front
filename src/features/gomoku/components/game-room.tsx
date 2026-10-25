@@ -12,6 +12,7 @@ import { useGamePopup } from "../client/use-game-popup";
 import { GameResultDialog } from "./game-result-dialog";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import styles from "./game-room.module.css";
+import { useGomokuCatalog } from "../client/use-gomoku-catalog";
 
 const reasons = { FIVE: "다섯 돌을 완성했어요.", BOARD_FULL: "판이 모두 채워져 무승부예요.", RESIGN: "기권으로 대국이 끝났어요.",
   DISCONNECT: "연결을 복구하지 못해 대국이 끝났어요.", INTERRUPTED: "양쪽 연결이 끊겨 대국을 중단했어요." } as const;
@@ -23,6 +24,7 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
   // 방 컨트롤러의 퇴장 확인·오류·중복 요청 방지를 실제 대국이 표시되는 문서에서 그대로 사용한다.
   leaveConfirmation?: ReactNode;
 }) {
+  const { name, online } = useGomokuCatalog();
   const game = room.game;
   const self = room.participants.find(player => player.self)!;
   // 재대국은 팝업을 유지하고 확인·결과 창의 선택만 해당 대국 식별자에 묶는다.
@@ -34,7 +36,7 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
   const undoTitleId = useId();
   const undoDescriptionId = useId();
   const undoDialogRef = useRef<HTMLElement>(null);
-  const popup = useGamePopup(styles.popupDocument);
+  const popup = useGamePopup(styles.popupDocument, `${name} · ${online.mode?.name ?? "대국"} · Playground`);
   // 최신 명령 콜백만 교체하고 판에는 안정적인 함수 참조를 내려 주기 조회 시 전체 셀 렌더링을 막는다.
   const moveActionRef = useRef(onAction);
   useEffect(() => { moveActionRef.current = onAction; }, [onAction]);
@@ -59,9 +61,9 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
     onLeave();
   }
   const scene = (
-    <section className={`${styles.gameScene}${popup.container ? ` ${styles.popupScene}` : ""}`} aria-label="오목 대국">
+    <section className={`${styles.gameScene}${popup.container ? ` ${styles.popupScene}` : ""}`} aria-label={`${name} 대국`}>
       {popup.container && <header className={styles.popupHeading}>
-        <strong><LobbyIcon name="board" />오목</strong><span><i />대국 중</span>
+        <strong><LobbyIcon name="board" />{name}</strong><span><i />대국 중</span>
       </header>}
       <aside className={styles.players} aria-label="대국 참가자">
         {[self, ...room.participants.filter(player => !player.self)].map((player, index) => <div key={player.seat} className={styles.playerSlot}>

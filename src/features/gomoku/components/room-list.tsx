@@ -25,11 +25,40 @@ import { RoomToast } from "./room-toast";
 import { RoomHero } from "./room-artwork";
 import { AiDifficultyDialog } from "./ai-difficulty-dialog";
 import styles from "./gomoku.module.css";
+import { useGomokuCatalog } from "../client/use-gomoku-catalog";
+
+/** 모드 이름과 공개·점검 상태를 데스크톱·모바일의 동일한 새 실행 버튼에 반영한다. */
+function StartActions({ onAi }: { onAi: () => void }) {
+  const { ai, online } = useGomokuCatalog();
+  return <>
+    {ai.mode && <button className={styles.secondaryButton} type="button" disabled={!ai.available} title={ai.message || undefined} onClick={onAi}>
+      <LobbyIcon name="robot" />{ai.mode.name}
+    </button>}
+    {online.available ? <Link className={styles.primaryButton} href="/games/gomoku/create"><LobbyIcon name="plus" />방 만들기</Link>
+      : online.mode ? <button className={styles.primaryButton} type="button" disabled title={online.message}><LobbyIcon name="plus" />방 만들기</button> : null}
+  </>;
+}
+
+/** 조회 실패도 실행 가능 상태로 간주하지 않으며 기존 방 복귀·목록 조회는 계속 제공한다. */
+function CatalogNotice() {
+  const { game, ai, online, error, refresh } = useGomokuCatalog();
+  // 숨긴 모드 하나의 부재를 게임 전체 중단으로 안내하지 않고 실제 공개 모드의 제한만 표시한다.
+  const messages = [...new Set(error ? [error] : !game || game.availability !== "AVAILABLE" ? [ai.message]
+    : !ai.mode && !online.mode ? ["현재 이용할 수 있는 게임 모드가 없어요."]
+      : [ai.mode && ai.message, online.mode && online.message].filter((message): message is string => !!message))];
+  if (messages.length === 0) return null;
+  return <div className={styles.catalogNotice} role="status">
+    {messages.map(message => <p key={message}>{message}</p>)}
+    {error && <button type="button" className={styles.secondaryButton} onClick={refresh}>게임 정보 다시 확인</button>}
+    {game && <small>참가 중인 방은 목록에서 돌아갈 수 있어요.</small>}
+  </div>;
+}
 
 /** 초대 코드 입장은 실제 서버에 연결하고 AI 대전은 난이도 선택 후 로컬 대국으로 시작한다. */
 function RoomSidebar({ onAi }: { onAi: () => void }) {
+  const { name, online } = useGomokuCatalog();
   return (
-    <aside className={styles.sidebar} aria-label="오목 시작과 규칙">
+    <aside className={styles.sidebar} aria-label={`${name} 시작과 규칙`}>
       <section className={`${styles.panel} ${styles.startCard}`}>
         <Image
           src="/images/gomoku/cat-mascot.webp"
@@ -39,23 +68,13 @@ function RoomSidebar({ onAi }: { onAi: () => void }) {
           height={180}
           sizes="(max-width: 640px) 120px, 180px"
         />
-        <h2>오목 시작하기</h2>
+        <h2>{name} 시작하기</h2>
         <p>
           함께 둘 상대를 찾거나
           <br />
           직접 방을 만들어보세요.
         </p>
-        <button
-          className={styles.secondaryButton}
-          type="button"
-          onClick={onAi}
-        >
-          <LobbyIcon name="robot" />
-          혼자서(AI 대전)
-        </button>
-        <Link className={styles.primaryButton} href="/games/gomoku/create">
-          <LobbyIcon name="plus" />방 만들기
-        </Link>
+        <StartActions onAi={onAi} />
       </section>
       <section className={styles.panel}>
         <h2>
@@ -63,12 +82,12 @@ function RoomSidebar({ onAi }: { onAi: () => void }) {
           초대 코드로 입장
         </h2>
         <p className={styles.muted}>친구에게 받은 6자리 코드를 입력하세요.</p>
-        <InviteRoomEntry />
+        <InviteRoomEntry disabled={!online.available} />
       </section>
       <section className={`${styles.panel} ${styles.rules}`}>
         <h2>
           <LobbyIcon name="book" />
-          오목 게임 규칙 안내
+          {name} 게임 규칙 안내
         </h2>
         <dl>
           <div>
@@ -119,19 +138,10 @@ export function RoomList() {
     <div className={styles.listLayout}>
       <div className={styles.listMain}>
         <RoomHero />
+        <CatalogNotice />
         {/* 작은 화면에도 동일한 AI 대전 아이콘과 난이도 선택 팝업을 제공한다. */}
         <div className={styles.mobileActions}>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={() => setChoosingAi(true)}
-          >
-            <LobbyIcon name="robot" />
-            혼자서(AI 대전)
-          </button>
-          <Link className={styles.primaryButton} href="/games/gomoku/create">
-            <LobbyIcon name="plus" />방 만들기
-          </Link>
+          <StartActions onAi={() => setChoosingAi(true)} />
         </div>
         {auth.status === "authenticated" ? (
           <AuthenticatedRoomList
@@ -158,6 +168,7 @@ export function RoomList() {
 }
 
 function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
+  const { name, online } = useGomokuCatalog();
   const [filters, setFilters] = useState<RoomFilters>({
     query: "",
     publicOnly: false,
@@ -308,7 +319,7 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <section className={styles.roomSection} aria-label="오목 방 찾기">
+    <section className={styles.roomSection} aria-label={`${name} 방 찾기`}>
       <form className={styles.toolbar} role="search" onSubmit={submitSearch}>
         <button
           className={
@@ -435,7 +446,7 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
             <h2>
               {filters.query || filters.publicOnly || filters.waitingOnly
                 ? "조건에 맞는 방이 없어요"
-                : "첫 번째 오목 방을 만들어보세요"}
+                : `첫 번째 ${name} 방을 만들어보세요`}
             </h2>
             <p>
               {filters.query
@@ -496,8 +507,8 @@ function AuthenticatedRoomList({ sessionId }: { sessionId: string }) {
                 <button
                   type="button"
                   className={styles.entryButton}
-                  // 확인창 없는 공개 입장 중에도 다른 방의 중복 입장을 시작하지 않는다.
-                  disabled={joining !== undefined || room.status !== "WAITING" || room.playerCount === 2 && data.joinedRoom?.id !== room.id}
+                  // 확인창 없는 공개 입장 중에도 다른 방의 중복 입장을 시작하지 않는다. 점검 중에도 본인 방 복귀는 유지한다.
+                  disabled={joining !== undefined || room.status !== "WAITING" || data.joinedRoom?.id !== room.id && (!online.available || room.playerCount === 2)}
                   onClick={() => { setJoinNotice(undefined); setJoining({ roomId: room.id, title: room.title, privateRoom: room.visibility === "PRIVATE" && data.joinedRoom?.id !== room.id }); }}
                   title={
                     room.owned

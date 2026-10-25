@@ -7,6 +7,7 @@ import { AuthRequestError } from "@/features/auth/client/api";
 import { RetryButton } from "@/app/_components/retry-button";
 import { invalidateAdminAccess } from "../client/use-admin-access";
 import styles from "./admin.module.css";
+import { CatalogSaveScope } from "./catalog-dialog-state";
 
 export const AdminScope = createContext<{ sessionId: string; context: AdminContext; notifySaved: () => void } | null>(null);
 export function useAdminScope() {
@@ -31,20 +32,22 @@ export const formNumber = (form: FormData, key: string) => Number(form.get(key))
 /** 저장 실패 시 입력은 유지한다. 충돌은 재조회 후 다시 편집하게 하고, 권한 거절은 공통 진입 상태도 갱신한다. */
 export function useAdminMutation() {
   const { sessionId, notifySaved } = useAdminScope();
+  const catalogSave = useContext(CatalogSaveScope);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
   const active = useRef(false);
   async function run<T>(path: string, method: "POST" | "PUT" | "DELETE", body: object | undefined, saved: (value: T) => void) {
-    if (active.current) return;
+    // 카탈로그 상세의 두 폼도 저장을 직렬화한다. 다른 관리자 화면에서는 기존 폼별 동작을 유지한다.
+    if (active.current || catalogSave && !catalogSave.acquire()) return;
     active.current = true; setBusy(true); setError(undefined); setSuccess(undefined);
     try { const value = await adminRequest<T>(sessionId, path, method, body); saved(value); setSuccess("저장했어요."); notifySaved(); }
     catch (error) {
       setError(errorMessage(error));
       if (error instanceof AuthRequestError && error.status === 403) invalidateAdminAccess();
-    } finally { active.current = false; setBusy(false); }
+    } finally { active.current = false; setBusy(false); catalogSave?.release(); }
   }
-  return { run, busy, error, success };
+  return { run, busy: busy || catalogSave?.busy === true, error, success };
 }
 
 /** 파괴적인 운영 동작은 실행 직전 구체적인 안내로 확인하며 Escape·포커스 복귀를 기본 dialog에 맡긴다. */
@@ -52,7 +55,10 @@ export function ConfirmDialog({ title, children, confirm, close }: { title: stri
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
   useEffect(() => { const dialog = ref.current; dialog?.showModal(); return () => dialog?.close(); }, []);
-  return <dialog ref={ref} className={styles.dialog} aria-labelledby={id} onCancel={close} onClose={close}>
+  return <dialog ref={ref} className={styles.dialog} aria-labelledby={id} onCancel={close} onClose={event => {
+    // 개발 모드의 effect 재구독에서 예약된 이전 close 이벤트가 다시 열린 확인창을 닫지 않게 한다.
+    if (event.target === event.currentTarget && !event.currentTarget.open) close();
+  }}>
     <h2 id={id}>{title}</h2><div>{children}</div><div className={styles.actions}>
       <button type="button" autoFocus onClick={close}>취소</button><button type="button" className={styles.primary} onClick={() => { close(); confirm(); }}>확인하고 적용</button>
     </div>

@@ -1214,3 +1214,5 @@
 .popupDocument .resultDialog p { font-size: .85rem; }
 .popupDocument .resultActions { margin-top: 1rem; }
 .popupDocument .resultActions button { min-height: 42px; font-size: .8rem; }
+/* 팝업에서도 긴 관리 이름이 대국 상태와 버튼을 가리지 않게 줄바꿈한다. */
+.popupHeading strong { min-width: 0; overflow-wrap: anywhere; }

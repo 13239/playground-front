@@ -1,7 +1,15 @@
 import "server-only";
 import { backendRequest } from "@/lib/server/backend-client";
 import { ApiError } from "@/lib/server/api-error";
-import { gameCodePattern, isCatalogPage, isGenrePage, publicGame } from "../contracts";
+import { gameCodePattern, isCatalogGame, isCatalogPage, isGenrePage, publicGame } from "../contracts";
+
+/** 공개 상세도 고정 코드와 공개 필드만 전달한다. 브라우저의 URL·쿠키·관리용 버전은 전달하지 않는다. */
+export async function readPublicGame(code: string, signal?: AbortSignal) {
+  if (!gameCodePattern.test(code)) throw new ApiError("INVALID_REQUEST_BODY");
+  const result = await backendRequest(`/api/games/${code}`, { signal });
+  if (!isCatalogGame(result) || result.code !== code || !result.published) throw new ApiError("INVALID_BACKEND_RESPONSE");
+  return publicGame({ ...result, modes: result.modes.filter(mode => mode.published && mode.supported) });
+}
 
 /** 공개 검색은 허용된 작은 조건만 재구성한다. 요청 URL·헤더를 그대로 백엔드에 전달하지 않는다. */
 export async function catalogResponse(request: Request, genres = false): Promise<Response> {

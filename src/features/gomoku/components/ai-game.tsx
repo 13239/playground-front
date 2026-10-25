@@ -18,6 +18,7 @@ import { AuthRequestError } from "@/features/auth/client/api";
 import shared from "./gomoku.module.css";
 import boardStyles from "./game-room.module.css";
 import styles from "./ai-game.module.css";
+import { useGomokuCatalog } from "../client/use-gomoku-catalog";
 
 /** 기존 로그인 경계를 유지하고 계정이 바뀌면 이전 계정의 로컬 대국과 워커를 함께 정리한다. */
 export function AiGameScreen({ difficulty, rule }: { difficulty: AiDifficulty; rule: AiRule }) {
@@ -34,9 +35,11 @@ export function AiGameScreen({ difficulty, rule }: { difficulty: AiDifficulty; r
 
 /** 사람 대전의 판·터치 입력·결과 캐릭터를 재사용하고 AI 차례만 워커에 위임한다. */
 function AiGame({ difficulty, rule, sessionId }: { difficulty: AiDifficulty; rule: AiRule; sessionId: string }) {
+  const { name, ai } = useGomokuCatalog();
+  const title = `${name} · ${ai.mode?.name ?? "AI"}`;
   const { game, thinking, move, dispatch } = useAiGame(difficulty, rule);
   // 기존 사람 대전의 창 수명·스타일·복귀 처리를 공유하며 대국 상태와 AI 워커는 원본에 한 개만 유지한다.
-  const popup = useGamePopup(boardStyles.popupDocument);
+  const popup = useGamePopup(boardStyles.popupDocument, `${title} · Playground`);
   const [confirmation, setConfirmation] = useState<"leave" | "resign">();
   const [dismissedResult, setDismissedResult] = useState<number>();
   const [rematchPending, setRematchPending] = useState(false);
@@ -75,13 +78,13 @@ function AiGame({ difficulty, rule, sessionId }: { difficulty: AiDifficulty; rul
 
   const scene = <div className={`${styles.page}${popup.container ? ` ${boardStyles.popupScene} ${styles.popupPage}` : ""}`} data-gomoku-game={popup.container ? undefined : "ai"}>
     <header className={styles.heading}>
-      <div><h1><LobbyIcon name="robot" />AI 대전</h1><span className={styles.difficulty}><LobbyIcon name={difficulty === "normal" ? "swords" : "flame"} />{aiDifficulties[difficulty].label}</span><span className={styles.ruleBadge}>{aiRules[rule].label}</span></div>
+      <div><h1><LobbyIcon name="robot" />{title}</h1><span className={styles.difficulty}><LobbyIcon name={difficulty === "normal" ? "swords" : "flame"} />{aiDifficulties[difficulty].label}</span><span className={styles.ruleBadge}>{aiRules[rule].label}</span></div>
       {!popup.container && <div className={styles.displayActions}>
         {popup.supported && <button type="button" className={boardStyles.secondaryButton} onClick={popup.open}><LobbyIcon name="popup" />팝업 모드</button>}
         <button type="button" className={boardStyles.secondaryButton} onClick={leave}><LobbyIcon name="exit" />나가기</button>
       </div>}
     </header>
-    <section className={styles.scene} aria-label="AI 오목 대국">
+    <section className={styles.scene} aria-label={`${title} 대국`}>
       <aside className={`${boardStyles.players} ${styles.players}`} aria-label="대국 참가자">
         {([1, 2] as const).map(seat => <article key={seat} className={boardStyles.player} data-active={!finished && game.turnSeat === seat}>
           <span className={boardStyles.playerBadge}>{finished ? seat === 1 ? "나" : "AI" : game.turnSeat === seat ? seat === 1 ? "내 차례" : game.error ? "계산 중단" : "생각 중" : "대기 중"}</span>

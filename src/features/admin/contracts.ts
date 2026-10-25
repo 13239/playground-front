@@ -13,10 +13,11 @@ export type Role = RoleSummary & Readonly<{ editable: boolean; permissions: read
 export type Page<T> = Readonly<{ items: readonly T[]; nextCursor: string | null }>;
 export type AccessPolicy = Readonly<{ enabled: boolean; message: string; exemptRoleCodes: readonly string[]; version: number; changedAt: string }>;
 export type Genre = Readonly<{ code: string; name: string; enabled: boolean; sortOrder: number; version: number }>;
-export type Mode = CatalogMode & Readonly<{ sortOrder: number; version: number; definitionVersion: number }>;
+// 플레이 모드의 표시 순서는 백엔드 구현 정의에서 결정한다.
+export type Mode = CatalogMode & Readonly<{ version: number; definitionVersion: number }>;
 export type Game = Omit<CatalogGame, "genres" | "modes"> & Readonly<{ sortOrder: number; version: number; genres: readonly Genre[]; modes: readonly Mode[] }>;
 export type ModeDefinition = Pick<Mode, "code" | "graphicsType" | "connectionType" | "interactionType" | "minHumanPlayers" | "maxHumanPlayers"> & Readonly<{ version: number }>;
-export type Implementation = Readonly<{ code: string; thumbnailKeys: readonly string[]; modes: readonly ModeDefinition[] }>;
+export type Implementation = Readonly<{ code: string; registered: boolean; modes: readonly ModeDefinition[] }>;
 
 const object = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const text = (v: unknown, max: number): v is string => typeof v === "string" && v.length <= max;
@@ -55,8 +56,8 @@ export function parseGenre(v: unknown): Genre {
   return { code: v.code, name: v.name, enabled: v.enabled, sortOrder: v.sortOrder, version: v.version };
 }
 export function parseMode(v: unknown): Mode {
-  assert(object(v) && integer(v.sortOrder) && integer(v.version) && integer(v.definitionVersion));
-  const extra = { sortOrder: v.sortOrder, version: v.version, definitionVersion: v.definitionVersion };
+  assert(object(v) && integer(v.version) && integer(v.definitionVersion));
+  const extra = { version: v.version, definitionVersion: v.definitionVersion };
   assert(isCatalogMode(v));
   return { code: v.code, name: v.name, graphicsType: v.graphicsType, connectionType: v.connectionType, interactionType: v.interactionType,
     minHumanPlayers: v.minHumanPlayers, maxHumanPlayers: v.maxHumanPlayers, published: v.published, availability: v.availability,
@@ -66,13 +67,13 @@ export function parseGame(v: unknown): Game {
   assert(object(v) && integer(v.sortOrder) && integer(v.version));
   const extra = { sortOrder: v.sortOrder, version: v.version };
   assert(isCatalogGame(v));
-  return { code: v.code, name: v.name, summary: v.summary, description: v.description, thumbnailKey: v.thumbnailKey, published: v.published,
+  return { code: v.code, name: v.name, summary: v.summary, description: v.description, published: v.published,
     availability: v.availability, unavailableMessage: v.unavailableMessage, firstPublishedAt: v.firstPublishedAt, ...extra,
     genres: array(v.genres, parseGenre), modes: array(v.modes, parseMode) };
 }
 export function parseImplementation(v: unknown): Implementation {
-  assert(object(v) && code(v.code));
-  return { code: v.code, thumbnailKeys: array(v.thumbnailKeys, c => { assert(code(c)); return c; }), modes: array(v.modes, m => {
+  assert(object(v) && code(v.code) && typeof v.registered === "boolean");
+  return { code: v.code, registered: v.registered, modes: array(v.modes, m => {
     assert(object(m) && code(m.code) && ["TWO_D", "THREE_D"].includes(String(m.graphicsType)) && ["LOCAL", "ONLINE"].includes(String(m.connectionType))
       && ["SOLO", "COMPETITIVE", "COOPERATIVE"].includes(String(m.interactionType)) && integer(m.minHumanPlayers) && m.minHumanPlayers >= 1
       && integer(m.maxHumanPlayers) && m.maxHumanPlayers >= m.minHumanPlayers && m.maxHumanPlayers <= 10000 && integer(m.version));

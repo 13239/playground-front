@@ -14,17 +14,31 @@ import { parseActivityLogPage, parseAuditLogPage, parseActivityLogDetails, parse
 import { isLogDate } from "../log-search";
 import { parseAdminChatGames, parseAdminChatMessage, parseAdminChatPage } from "../chat-contracts";
 import { parseDashboard, parseServiceStatuses } from "../monitoring-contracts";
+import { parseCatalogOrderPage, parseCatalogOrderResult } from "../catalog-order-contracts";
+import { parseGameGridPage, parseGenreGridPage, parseAdminGenre } from "../catalog-grid-contracts";
+import { parseGenreOptionPage, MAX_GAME_GENRES } from "../genre-options-contracts";
 
-type Endpoint = Readonly<{ parse: (v: unknown) => unknown; fields?: readonly string[]; query?: "list" | "roles" | "delete" | "users" | "history" | "activity-logs" | "audit-logs" | "chat" | "dashboard"; status?: 200 | 204 }>;
+type Endpoint = Readonly<{ parse: (v: unknown) => unknown; fields?: readonly string[]; query?: "list" | "roles" | "delete" | "users" | "history" | "activity-logs" | "audit-logs" | "chat" | "dashboard" | "catalog-order" | "catalog-grid"; status?: 200 | 204 }>;
 const roleFields = ["name", "description", "permissions", "reason"];
-const availabilityFields = ["published", "availability", "message", "expectedVersion", "reason"];
-const modeFields = ["name", "minHumanPlayers", "maxHumanPlayers", "sortOrder", "expectedVersion", "reason"];
-const genreFields = ["name", "enabled", "sortOrder", "expectedVersion", "reason"];
-const gameFields = ["metadata", "expectedVersion", "reason"];
+const availabilityFields = ["published", "availability", "message", "expectedVersion"];
+// 수동 순서값은 일반 저장 경로에서 받지 않고 그리드 이동 요청으로만 변경한다.
+const modeFields = ["name", "minHumanPlayers", "maxHumanPlayers", "expectedVersion"];
+const genreFields = ["name", "enabled", "expectedVersion"];
+const gameFields = ["metadata", "expectedVersion"];
 
 /** 고정된 관리 기능만 전달한다. 임의 URL·메서드나 미래에 추가된 Spring API를 자동 공개하지 않는다. */
 function endpoint(segments: readonly string[], method: string): Endpoint {
   const [area, code, sub, mode, action] = segments;
+  // 장르 선택기의 커서 조회는 관리 그리드의 번호 페이지 조회와 분리한다.
+  if (area === "game-genres" && code === "options" && segments.length === 2 && method === "GET") {
+    return { parse: parseGenreOptionPage, query: "list" };
+  }
+  // 전체 순서 편집에는 검색·필터·커서를 전달하지 않으며 인증된 네 경로만 공개한다.
+  if ((area === "games" || area === "game-genres") && code === "order" && segments.length === 2) {
+    if (method === "GET") return { parse: parseCatalogOrderPage, query: "catalog-order" };
+    if (method === "PUT") return { parse: parseCatalogOrderResult, fields: ["expectedVersion", "moves"] };
+    throw new ApiError("INVALID_REQUEST_BODY");
+  }
   // 지표 기간과 고정 서비스 상태만 읽는다. 수집/진단/인프라 조작 경로는 공개하지 않는다.
   if (area === "dashboard" || area === "service-status") {
     if (segments.length !== 1 || method !== "GET") throw new ApiError("INVALID_REQUEST_BODY");
@@ -68,8 +82,8 @@ function endpoint(segments: readonly string[], method: string): Endpoint {
     if (area === "permissions") return { parse: parsePermissions };
     if (area === "roles") return { parse: v => parsePage(v, parseRoleSummary, true), query: "roles" };
     if (area === "access-policy") return { parse: parsePolicy };
-    if (area === "games") return { parse: v => parsePage(v, parseGame), query: "list" };
-    if (area === "game-genres") return { parse: v => parsePage(v, parseGenre), query: "list" };
+    if (area === "games") return { parse: parseGameGridPage, query: "catalog-grid" };
+    if (area === "game-genres") return { parse: parseGenreGridPage, query: "catalog-grid" };
     if (area === "game-implementations") return { parse: parseImplementations };
   }
   if (area === "roles") {
@@ -85,7 +99,7 @@ function endpoint(segments: readonly string[], method: string): Endpoint {
     if (segments.length === 2 && code === "exemptions") return { parse: parsePolicy, fields: ["roleCodes", "expectedVersion", "reason"] };
   }
   if (area === "games") {
-    if (segments.length === 1 && method === "POST") return { parse: parseGame, fields: ["code", "metadata", "reason"] };
+    if (segments.length === 1 && method === "POST") return { parse: parseGame, fields: ["code", "metadata"] };
     if (code && gameCodePattern.test(code)) {
       if (segments.length === 2 && method === "GET") return { parse: parseGame };
       if (segments.length === 2 && method === "PUT") return { parse: parseGame, fields: gameFields };
@@ -97,6 +111,7 @@ function endpoint(segments: readonly string[], method: string): Endpoint {
     }
   }
   if (area === "game-genres" && segments.length === 2 && gameCodePattern.test(code) && (method === "POST" || method === "PUT")) return { parse: parseGenre, fields: genreFields };
+  if (area === "game-genres" && segments.length === 2 && gameCodePattern.test(code) && method === "GET") return { parse: parseAdminGenre };
   throw new ApiError("INVALID_REQUEST_BODY");
 }
 
@@ -106,7 +121,7 @@ function assertFields(value: unknown, fields: readonly string[]): asserts value 
 /** 쿼리 중복·미등록 조건은 거절하고 서명한 인코딩/순서를 그대로 상위 서버에 전달한다. */
 function validateQuery(url: URL, kind: Endpoint["query"]): void {
   const keys = [...url.searchParams.keys()];
-  const allowed = kind === "dashboard" ? ["period"] : kind === "chat" ? ["from","to","query","scope","gameCode","roomId","page","size"] : kind === "delete" ? ["expectedVersion"] : kind === "users" ? ["query","page","size","status","roleCode"] : kind === "history" ? ["page","size"]
+  const allowed = kind === "catalog-grid" ? ["query", "page", "size"] : kind === "catalog-order" ? ["page", "size"] : kind === "dashboard" ? ["period"] : kind === "chat" ? ["from","to","query","scope","gameCode","roomId","page","size"] : kind === "delete" ? ["expectedVersion"] : kind === "users" ? ["query","page","size","status","roleCode"] : kind === "history" ? ["page","size"]
     : kind === "activity-logs" ? ["from","to","query","type","result","page","size"]
       : kind === "audit-logs" ? ["from","to","query","action","targetType","page","size"] : kind ? ["query", "cursor", "limit"] : [];
   if (new Set(keys).size !== keys.length || keys.some(k => !allowed.includes(k))) throw new ApiError("INVALID_REQUEST_BODY");
@@ -148,7 +163,25 @@ export async function handleAdminRequest(request: Request, segments: readonly st
     if (spec.fields) {
       const input = await readJsonBody(request, 16384);
       assertFields(input, spec.fields);
-      if ("metadata" in input) assertFields(input.metadata, ["name", "summary", "description", "thumbnailKey", "genreCodes", "sortOrder"]);
+      if ("metadata" in input) {
+        assertFields(input.metadata, ["name", "summary", "description", "genreCodes"]);
+        const codes = input.metadata.genreCodes;
+        // 폐기한 이미지·사유 필드를 전달하지 않고 장르 코드의 크기·문법·중복도 여기서 제한한다.
+        if (!Array.isArray(codes) || codes.length > MAX_GAME_GENRES || new Set(codes).size !== codes.length
+          || codes.some(code => typeof code !== "string" || !gameCodePattern.test(code))) throw new ApiError("INVALID_REQUEST_BODY");
+      }
+      // 중첩 이동 항목에도 허용 필드·개수·코드 문법을 적용해 임의 정렬값이나 대량 본문을 전달하지 않는다.
+      if ("moves" in input) {
+        if (!Number.isSafeInteger(input.expectedVersion) || (input.expectedVersion as number) < 0
+          || !Array.isArray(input.moves) || input.moves.length < 1 || input.moves.length > 100) throw new ApiError("INVALID_REQUEST_BODY");
+        for (const move of input.moves) {
+          assertFields(move, ["code", "beforeCode"]);
+          if (typeof move.code !== "string" || !gameCodePattern.test(move.code)
+            || move.beforeCode != null && (typeof move.beforeCode !== "string" || !gameCodePattern.test(move.beforeCode))
+            || move.code === move.beforeCode) throw new ApiError("INVALID_REQUEST_BODY");
+        }
+        if (new Set(input.moves.map(move => move.code)).size !== input.moves.length) throw new ApiError("INVALID_REQUEST_BODY");
+      }
       body = input;
     } else if (request.body !== null) {
       // Next의 DELETE는 본문이 없어도 빈 스트림을 제공할 수 있다. 실제 바이트가 있는 요청만 거절한다.

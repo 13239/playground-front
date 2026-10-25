@@ -33,7 +33,7 @@ export const gameCategories = [
 
 /** 오목 한 개로 시작하며 이후 게임도 같은 카드 계약을 사용한다. 출시 전 수치나 순위는 표시하지 않는다. */
 export type LobbyGame = Readonly<{
-  id: string; title: string; description: string; tags: readonly string[]; thumbnailKey: string;
+  id: string; title: string; description: string; tags: readonly string[];
   availability: CatalogGame["availability"]; available: boolean; unavailableMessage: string;
 }>;
 
@@ -42,7 +42,8 @@ export function lobbyGame(game: CatalogGame): LobbyGame {
   const graphics = [...new Set(modes.map(mode => mode.graphicsType === "TWO_D" ? "2D" : "3D"))];
   const playerTags = [...new Set(modes.map(mode => mode.maxHumanPlayers === 1 ? "1인" : mode.minHumanPlayers === mode.maxHumanPlayers
     ? `${mode.maxHumanPlayers}인` : `${mode.minHumanPlayers}~${mode.maxHumanPlayers}인`))];
-  return { id: game.code, title: game.name, description: game.summary, thumbnailKey: game.thumbnailKey,
+  // 카드 표지는 고정 게임 코드로 연결하므로 별도 이미지 선택값을 복제하지 않는다.
+  return { id: game.code, title: game.name, description: game.summary,
     availability: game.availability, available: game.availability === "AVAILABLE" && modes.some(mode => mode.availability === "AVAILABLE"),
     unavailableMessage: game.unavailableMessage,
     tags: [...graphics, ...game.genres.map(genre => genre.name), ...playerTags] };
