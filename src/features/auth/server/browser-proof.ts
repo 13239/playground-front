@@ -34,8 +34,9 @@ export async function readBrowserProof(request: Request): Promise<BrowserRequest
       const { value: chunk, done } = await reader.read();
       if (done) break;
       size += chunk.byteLength;
-      // 관리자 게임 설명의 한글 UTF-8 본문을 허용하되 기존 인증 본문의 제한은 유지한다.
-      if (size > (admin ? 16384 : 4096)) throw new ApiError("PAYLOAD_TOO_LARGE");
+      // 관리자 설명과 테트리스 종료 리플레이만 별도 상한을 쓴다. 인증·다른 게임의 작은 본문 제한은 유지한다.
+      const limit = url.pathname === "/api/tetris/finish" ? 300_000 : admin ? 16384 : 4096;
+      if (size > limit) throw new ApiError("PAYLOAD_TOO_LARGE");
       if (sensitiveBody) credentialBody.push(Buffer.from(chunk));
       else hash.update(chunk);
     }

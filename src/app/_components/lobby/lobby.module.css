@@ -871,33 +871,6 @@
   width: 1.2em;
   height: 1.2em;
 }
-/* 게임 목록과 채팅에 공통인 푸터의 구분선을 콘텐츠 전체 폭으로 연결한다. */
-/* 데스크톱의 푸터 간격은 본문 공통 여백으로 맞추고, 모바일의 위쪽 여백은 해당 미디어 쿼리에서 유지한다. */
-.footer {
-  display: flex;
-  align-items: center;
-  gap: 1.2em;
-  margin: 0 0 1.5em;
-  padding-top: 1.25em;
-  border-top: 1px solid #c9c5e64d;
-  color: #9592b4;
-  font-size: 0.75em;
-}
-.footer > span {
-  color: #8272ae;
-  font-size: 1.2em;
-  font-style: italic;
-  font-weight: 850;
-  letter-spacing: -0.04em;
-}
-.footer p {
-  margin: 0;
-}
-.footer small {
-  margin-left: auto;
-  font-size: 1em;
-}
-
 /* 데스크톱 채팅은 본문 열 높이에 맞추고 메시지 양과 관계없이 그 안에서만 스크롤한다. */
 .desktopChat {
   position: relative;
@@ -1356,7 +1329,8 @@
     width: 1.5em;
     height: 1.5em;
   }
-  .footer {
+  /* 떠 있는 채팅 버튼이 푸터를 가리지 않도록 홈에서만 아래 여백을 늘린다. */
+  .screen > .footerClearance {
     margin-top: 2.5em;
     margin-bottom: 6em;
   }
@@ -1533,17 +1507,6 @@
   }
   .catalog {
     min-height: 23em;
-  }
-  .footer {
-    flex-wrap: wrap;
-    gap: 0.7em 1em;
-    font-size: 0.67em;
-  }
-  .footer p {
-    flex-basis: 70%;
-  }
-  .footer small {
-    margin-left: 0;
   }
   .emptyResults {
     padding-block: 3em;

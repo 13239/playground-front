@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { SiteFooter } from "@/app/_components/lobby/site-footer";
 import { SiteHeader } from "@/app/_components/lobby/site-header";
 import lobby from "@/app/_components/lobby/lobby.module.css";
 import { RoomDialog } from "./room-dialog";
@@ -27,11 +28,7 @@ export function GomokuShell({
       <main id="gomoku-main" className={styles.main}>
         {children}
       </main>
-      <footer className={styles.footer}>
-        <strong>Playground</strong>
-        <span>함께라서 더 즐거운 우리들의 놀이터.</span>
-        <small>© {new Date().getFullYear()} Playground</small>
-      </footer>
+      <SiteFooter />
       {notice && (
         <RoomDialog title={notice.title} onClose={() => setNotice(undefined)}>
           <p>{notice.description}</p>

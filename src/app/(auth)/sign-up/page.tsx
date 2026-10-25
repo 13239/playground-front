@@ -17,7 +17,7 @@ export default function SignUpPage() {
     <>
       <div className={signUpStyles.brand}><Brand gradientId="sign-up-gamepad" /></div>
       <h1 id="auth-title" className={signUpStyles.title} tabIndex={-1}>회원가입</h1>
-      <p className={signUpStyles.description}>세 가지만 입력하고 시작하세요.</p>
+      <p className={signUpStyles.description}></p>
       <SignUpGate />
       <footer className={styles.cardFooter}>
         <span>이미 계정이 있으신가요?</span>

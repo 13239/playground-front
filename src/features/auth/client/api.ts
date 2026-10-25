@@ -25,7 +25,9 @@ type FeaturePath = "/api/auth/profile" | "/api/auth/profile/nickname" | "/api/go
   // 로비 SSE도 대국과 동일하게 인증된 POST 요청만 허용한다.
   | "/api/gomoku/rooms/events"
   // 공통 게임 시작도 별도 토큰 없이 기존 잠금·갱신·브라우저 키로 확인한다.
-  | `/api/games/${string}/modes/${string}/admission`;
+  | `/api/games/${string}/modes/${string}/admission`
+  // 테트리스도 기존 브라우저 증명·계정 변경·토큰 갱신 경계를 그대로 공유한다.
+  | "/api/tetris/overview" | "/api/tetris/start" | "/api/tetris/finish";
 type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | "/api/auth/password" | FeaturePath;
 
 async function authRequest(path: AuthPath, context: AuthRequestContext, input?: LoginInput | SessionMutationInput): Promise<Response> {

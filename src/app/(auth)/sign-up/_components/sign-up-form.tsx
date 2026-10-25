@@ -145,7 +145,7 @@ export function SignUpForm({ ready }: { ready: boolean }) {
               </div>
               {/* UTF-16 maxLength 대신 서버와 동일한 코드 포인트 길이를 제출 시 검증한다. */}
               <p id={`sign-up-${field}-hint`} className={signUpStyles.hint}>
-                {field === "nickname" ? `최대 ${rule.max}자 · 다른 사람에게 표시되는 이름` : `${rule.min}~${rule.max}자${password ? " · 다른 곳에서 쓰지 않는 비밀번호를 사용하세요." : " · 로그인할 때 사용하는 아이디"}`}
+                {field === "nickname" ? `최대 ${rule.max}자 · 다른 사람에게 표시되는 이름` : `${rule.min}~${rule.max}자${password ? " · 로그인할 때 사용하는 비밀번호" : " · 로그인할 때 사용하는 아이디"}`}
               </p>
               {errors[field] && <p id={`sign-up-${field}-error`} className={signUpStyles.error}>{errors[field]}</p>}
             </div>

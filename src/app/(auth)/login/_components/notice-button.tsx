@@ -6,7 +6,7 @@ import styles from "../../auth.module.css";
 const notices = {
   password: {
     title: "비밀번호 찾기를 준비하고 있어요",
-    description: "계정 복구 서비스를 준비 중이에요. 잠시 후 다시 방문해 주세요.",
+    description: "계정 복구 서비스를 준비 중이에요.",
   },
 } as const;
 

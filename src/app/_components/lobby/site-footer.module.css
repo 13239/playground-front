@@ -1,0 +1,41 @@
+/* 홈·오목·테트리스가 같은 푸터를 쓴다. 구분선은 콘텐츠 전체 폭으로 연결한다. */
+/* 기본 아래 간격은 본문 여백과 맞춘다. 홈의 채팅 버튼 여백은 로비에서만 더한다. */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 1.2em;
+  margin: 0 0 1.5em;
+  padding-top: 1.25em;
+  border-top: 1px solid #c9c5e64d;
+  color: #9592b4;
+  font-size: 0.75em;
+}
+.footer > span {
+  color: #8272ae;
+  font-size: 1.2em;
+  font-style: italic;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+.footer p {
+  margin: 0;
+}
+.footer small {
+  margin-left: auto;
+  font-size: 1em;
+}
+
+/* 좁은 화면에서도 문구가 잘리거나 가로 스크롤이 생기지 않도록 줄을 바꾼다. */
+@media (max-width: 600px) {
+  .footer {
+    flex-wrap: wrap;
+    gap: 0.7em 1em;
+    font-size: 0.67em;
+  }
+  .footer p {
+    flex-basis: 70%;
+  }
+  .footer small {
+    margin-left: 0;
+  }
+}

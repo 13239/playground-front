@@ -5,6 +5,11 @@ import { parseOperationalNotice } from "@/lib/operational-notice";
 
 // 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
 const errors = {
+  // 테트리스 기록 오류는 계정 만료와 구분해 게임 화면에서 재시도를 제공한다.
+  TETRIS_RUN_CHANGED: [409, "이전 게임의 기록입니다. 현재 화면에서 새 게임을 시작해 주세요."],
+  TETRIS_REPLAY_INVALID: [400, "플레이 기록을 검증하지 못했습니다."],
+  TETRIS_RATE_LIMIT_EXCEEDED: [429, "테트리스 요청이 많습니다. 잠시 후 다시 시도해 주세요."],
+  TETRIS_UNAVAILABLE: [503, "테트리스를 일시적으로 이용할 수 없습니다."],
   // 로그 저장소 오류는 로그인 만료와 구분하고 내부 SQL·JSON 원문을 공개하지 않는다.
   ADMIN_LOG_NOT_FOUND: [404, "로그 기록을 찾을 수 없습니다."],
   ADMIN_LOG_UNAVAILABLE: [503, "로그 기록을 일시적으로 조회할 수 없습니다."],

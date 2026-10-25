@@ -1,0 +1,1117 @@
+/* 밝은 공통 사이트와 LIGHTLINE 게임 무대를 분리한다. 본문은 초고해상도에서도 읽을 수 있는 최대 폭을 유지한다. */
+.screen {
+  width: min(100%, 2880px);
+  --tetris-border: #dfe3ff;
+}
+.main {
+  flex: 1;
+  padding: 1.1em 0 2em;
+  font-size: clamp(14px, 0.95vw, 22px);
+}
+.main svg,
+.dialog svg {
+  flex: 0 0 auto;
+  width: 1.35em;
+  height: 1.35em;
+}
+.main button,
+.dialog button {
+  font: inherit;
+  touch-action: manipulation;
+}
+.main :is(button, a):focus-visible,
+.dialog button:focus-visible {
+  outline: var(--control-focus-width) solid var(--control-focus-color);
+  outline-offset: var(--control-focus-offset);
+}
+.main button:disabled,
+.dialog button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.breadcrumb {
+  display: flex;
+  gap: 0.9em;
+  align-items: center;
+  color: #777cae;
+  font-size: 0.85em;
+  font-weight: 600;
+  margin-bottom: 0.65em;
+}
+.breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin-bottom: 0.9em;
+}
+.title h1 {
+  margin: 0;
+  color: #111247;
+  font-size: 2.05em;
+  line-height: 1.3;
+  letter-spacing: -0.06em;
+  font-weight: 850;
+}
+.title > span,
+.rankingTitle > span {
+  border: 1px solid #d8ceff;
+  background: #ece7ff;
+  color: #6730f4;
+  border-radius: 999px;
+  padding: 0.3em 0.85em;
+  font-size: 0.85em;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0.8em 1.5em;
+  margin-bottom: 1em;
+  border: 1px solid var(--tetris-border);
+  border-radius: 0.8em;
+  background: #ffffffdf;
+  box-shadow: 0 3px 9px #8270bb06;
+}
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  min-width: 0;
+  padding: 0 1em;
+  border-right: 1px solid #e3e5fa;
+}
+.stat:first-child {
+  padding-left: 0;
+}
+.stat:last-child {
+  border: 0;
+}
+.statIcon {
+  display: grid;
+  place-items: center;
+  width: 2.8em;
+  height: 2.8em;
+  border-radius: 0.65em;
+  color: #793cfa;
+  background: linear-gradient(135deg, #f0eeff, #f7f6ff);
+}
+.statIcon svg {
+  width: 1.65em;
+  height: 1.65em;
+}
+.stat > div {
+  display: grid;
+  gap: 0.15em;
+}
+.stat > div > span {
+  font-size: 0.8em;
+  color: #8283b0;
+  font-weight: 600;
+}
+.stat strong {
+  color: #121347;
+  font-size: 1.4em;
+  line-height: 1.35;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+/* 점수 랭킹 열은 기존 비율보다 약 40% 좁게 둔다. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.88fr) minmax(200px, 0.5fr);
+  align-items: stretch;
+  gap: 1em;
+}
+.gameCard,
+.rankingCard {
+  min-width: 0;
+  border: 1px solid var(--tetris-border);
+  border-radius: 0.8em;
+  background: #fffffff0;
+  padding: 1em 1.4em;
+  box-shadow: 0 5px 14px #6480c008;
+}
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-bottom: 0.7em;
+}
+.cardHeader h2,
+.rankingTitle h2 {
+  margin: 0;
+  color: #151348;
+  font-size: 1.35em;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+.tools {
+  display: flex;
+  gap: 0.55em;
+}
+.tools button {
+  display: grid;
+  place-items: center;
+  width: 2.5em;
+  height: 2.5em;
+  border: 1px solid #dcdcff;
+  border-radius: 0.45em;
+  color: #53518f;
+  background: #fafaff;
+}
+.tools button:hover {
+  background: #f1edff;
+  color: #7136f5;
+}
+/* 보드는 표준 10×20 비율을 유지한다. 좌우 정보가 줄어도 게임의 좌표·낙하 속도·시야는 바뀌지 않는다. */
+.stage {
+  --board-height: clamp(380px, 57svh, 800px);
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) auto minmax(95px, 0.9fr);
+  align-items: stretch;
+  gap: clamp(12px, 1.8vw, 42px);
+  padding: 0.85em;
+  border: 1px solid #1d2639;
+  border-radius: 0.65em;
+  background:
+    radial-gradient(ellipse at 70% 10%, #17223455, transparent 60%),
+    linear-gradient(110deg, #101724, #0b121e 60%, #101725);
+  color: #d8e9ff;
+}
+.leftRail,
+.rightRail {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.railHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3em 0.8em;
+  margin-bottom: 0.7em;
+  line-height: 1.3;
+}
+.railHeading strong {
+  font-size: 1.05em;
+  letter-spacing: 0.025em;
+  color: #c4e3ff;
+}
+.railHeading small {
+  flex-basis: 100%;
+  font-size: 0.85em;
+  color: #bad1f0;
+}
+.railHeading kbd {
+  padding: 0.1em 0.5em;
+  font: inherit;
+  font-weight: 700;
+  border: 1px solid #505978;
+  border-radius: 0.3em;
+  background: #28334c;
+  color: #e4e7ff;
+}
+.hold {
+  display: grid;
+  place-items: center;
+  min-height: 5.8em;
+  height: 17%;
+  border: 1px solid #223249;
+  border-radius: 0.65em;
+  background: #0b121b66;
+  color: #667b9e;
+}
+.hold[data-used="true"] {
+  opacity: 0.45;
+}
+.hold svg {
+  width: 72%;
+  max-width: 115px;
+  height: 75%;
+}
+.metrics {
+  display: grid;
+  flex: 1;
+  margin: 0.8em 0 0.7em;
+}
+.metrics > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.55em 0;
+  border-top: 1px solid #29394f;
+}
+.metrics dt {
+  color: #c5daf6;
+  font-size: 0.93em;
+}
+.metrics dd {
+  margin: 0.15em 0 0;
+  color: #f5f6fb;
+  font-size: 1.65em;
+  line-height: 1.1;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.metrics > div:first-child dd {
+  font-size: clamp(20px, 2.1vw, 42px);
+}
+.gameActions {
+  display: grid;
+  gap: 0.55em;
+}
+.gameActions button {
+  width: 100%;
+  min-height: 2.65em;
+  padding: 0.4em 0.25em;
+  font-size: 0.9em;
+}
+.primary,
+.secondary,
+.pause {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.55em;
+  min-height: 2.7em;
+  padding: 0.6em 1.1em;
+  border-radius: 0.5em;
+  border: 1px solid #7a3bfd;
+  font-weight: 750;
+  text-decoration: none;
+}
+.primary {
+  background: linear-gradient(135deg, #8543ff, #6321ef);
+  color: #fff;
+  box-shadow:
+    inset 0 1px #ffffff18,
+    0 3px 10px #742aff1a;
+}
+.primary:hover {
+  background: linear-gradient(135deg, #9458ff, #7233f7);
+}
+.secondary {
+  background: #f9f7ff;
+  color: #6a39dc;
+  border-color: #ded7f7;
+}
+.pause {
+  background: #251d3e44;
+  color: #f2eaff;
+  border-color: #ac76ff;
+}
+.boardWrap {
+  position: relative;
+  height: var(--board-height);
+  aspect-ratio: 1 / 2;
+  min-width: 0;
+  border: 1px solid #8cbcff;
+  border-radius: 0.25em;
+  box-shadow:
+    0 0 0 2px #9c79ff50,
+    0 0 10px #5e9cf644,
+    inset 0 0 8px #579ff522;
+  background: #09121d;
+  overflow: hidden;
+}
+.board {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  touch-action: none;
+}
+.board canvas {
+  display: block;
+}
+.overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9em;
+  padding: 1em 0.5em;
+  text-align: center;
+  color: #f2f2ff;
+  background: #080f1ce8;
+  backdrop-filter: blur(3px);
+}
+.overlay h3 {
+  margin: 0;
+  font-size: clamp(16px, 1.4vw, 28px);
+  letter-spacing: 0.035em;
+  font-weight: 850;
+}
+.overlay p {
+  margin: 0;
+  color: #aabedc;
+  font-size: 0.75em;
+  line-height: 1.7;
+}
+.overlay .primary {
+  font-size: 0.85em;
+}
+.overlayMark {
+  display: grid;
+  place-items: center;
+  width: 3em;
+  height: 3em;
+  margin-bottom: 0.3em;
+  color: #bb9cff;
+  border: 1px solid #9a72ff55;
+  border-radius: 1em;
+  background: #7c4aff22;
+}
+.overlayMark svg {
+  width: 1.6em;
+  height: 1.6em;
+}
+.next {
+  display: grid;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: 0.45em;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: 80%;
+}
+.next li {
+  display: grid;
+  grid-template-columns: 1.2em minmax(0, 1fr);
+  align-items: center;
+  gap: 0.2em;
+  min-height: 0;
+  padding: 0.45em;
+  border: 1px solid #223148;
+  border-radius: 0.65em;
+  background: #0b121b55;
+}
+.next li > span {
+  align-self: start;
+  color: #b2c8eb;
+  font-size: 0.7em;
+}
+.next svg {
+  justify-self: center;
+  width: 92%;
+  max-width: 110px;
+  height: 100%;
+  max-height: 72px;
+}
+.shortcuts {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7em 0.5em;
+  margin-top: 0.9em;
+  padding: 0.8em 0.5em;
+  border-radius: 0.8em;
+  color: #757bb4;
+  background: #f3f5ff;
+  font-size: 0.72em;
+  font-weight: 550;
+}
+.shortcuts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  white-space: nowrap;
+}
+.shortcuts kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.3em;
+  height: 2.2em;
+  padding: 0 0.4em;
+  border: 1px solid #d9dcff;
+  border-radius: 0.3em;
+  font: inherit;
+  background: #fafaff;
+  color: #252663;
+}
+.shortcuts kbd + kbd {
+  margin-left: -0.2em;
+}
+.touchControls,
+.mobileActions {
+  display: none;
+}
+/* 기록 행 수와 관계없이 랭킹 카드는 같은 줄의 게임 카드 높이를 따른다. 넘치는 표만 카드 안에서 스크롤한다. */
+.rankingCard {
+  display: flex;
+  flex-direction: column;
+  height: 0;
+  min-height: 100%;
+  overflow: hidden;
+  padding: 1.25em;
+}
+.rankingTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65em;
+}
+.rankingTitle > svg {
+  width: 1.8em;
+  height: 1.8em;
+  color: #843eff;
+}
+.rankingTitle > span {
+  font-size: 0.72em;
+}
+.subtitle {
+  margin: 0.55em 0 1em;
+  color: #8084b5;
+  font-size: 0.88em;
+}
+.tableWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 1px solid #e0e6ff;
+  border-radius: 0.55em;
+  overflow: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  text-align: left;
+  color: #202060;
+  font-size: 0.84em;
+}
+.table th {
+  padding: 0.8em 0.8em;
+  background: #f0f4ff;
+  font-weight: 650;
+  color: #636da8;
+}
+.table th:first-child {
+  width: 3.6em;
+  text-align: center;
+}
+.table th:last-child {
+  width: 7.1em;
+  text-align: right;
+}
+.table td {
+  height: 2.7em;
+  border-top: 1px solid #edf0ff;
+  padding: 0.45em 0.8em;
+  overflow-wrap: anywhere;
+}
+.table td:first-child {
+  text-align: center;
+  padding-inline: 0.4em;
+}
+.table td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.table tr[data-self="true"] {
+  background: #f4efff;
+}
+.rank {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.8em;
+  height: 1.5em;
+  color: #767db6;
+}
+.rank[data-medal] {
+  color: white;
+  font-weight: 800;
+  border-radius: 0.25em;
+  clip-path: polygon(
+    14% 0,
+    86% 0,
+    86% 15%,
+    100% 25%,
+    100% 75%,
+    86% 85%,
+    86% 100%,
+    14% 100%,
+    14% 85%,
+    0 75%,
+    0 25%,
+    14% 15%
+  );
+}
+.rank[data-medal="1"] {
+  background: linear-gradient(135deg, #ffd071, #f6a026);
+}
+.rank[data-medal="2"] {
+  background: linear-gradient(135deg, #ccd0e2, #9da5bb);
+}
+.rank[data-medal="3"] {
+  background: linear-gradient(135deg, #eeb49a, #c7795f);
+}
+.me {
+  display: inline-block;
+  margin-left: 0.4em;
+  padding: 0.05em 0.4em;
+  border-radius: 0.25em;
+  background: #e9deff;
+  color: #763fe5;
+  font-size: 0.7em;
+}
+.table .empty {
+  height: 16em;
+  text-align: center;
+  color: #898db2;
+  line-height: 1.7;
+  padding: 1em;
+}
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.22em;
+  margin-top: 1.2em;
+}
+.pagination button {
+  display: grid;
+  place-items: center;
+  min-width: 1.85em;
+  height: 2.1em;
+  padding: 0 0.35em;
+  border: 1px solid #e8eaff;
+  border-radius: 0.35em;
+  color: #7480ba;
+  background: #f8f9ff;
+  font-size: 0.82em;
+}
+.pagination button[aria-current="page"] {
+  color: #fff;
+  background: #7732fa;
+  border-color: #7732fa;
+  box-shadow: 0 2px 6px #7732fa22;
+}
+.error {
+  margin: 0.8em 0 0;
+  color: #aa3c66;
+  font-size: 0.85em;
+  line-height: 1.7;
+}
+.error p {
+  margin: 0 0 0.4em;
+}
+.retry {
+  border: 0;
+  padding: 0.35em 0;
+  background: transparent;
+  text-decoration: underline;
+  color: #8551ed;
+}
+.overlay .retry {
+  color: #c2a6ff;
+  font-size: 0.8em;
+}
+.dialog {
+  width: min(460px, calc(100% - 32px));
+  max-height: calc(100svh - 32px);
+  overflow: auto;
+  margin: auto;
+  padding: 1.5em;
+  border: 1px solid #dcd6f6;
+  border-radius: 1em;
+  background: #fff;
+  color: #242452;
+  box-shadow: 0 20px 80px #20104a33;
+  font-family: inherit;
+}
+.dialog::backdrop {
+  background: #17152c66;
+  backdrop-filter: blur(3px);
+}
+.dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1em;
+  gap: 1em;
+}
+.dialog h2 {
+  margin: 0;
+  font-size: 1.25em;
+}
+.dialog header > button {
+  display: grid;
+  place-items: center;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+  border: 1px solid #e8e3f7;
+  border-radius: 0.4em;
+  background: #f9f7ff;
+  color: #716c9a;
+  font-size: 1.3em;
+}
+.dialog p {
+  line-height: 1.8;
+}
+.dialog > .primary {
+  width: 100%;
+  margin-top: 0.8em;
+}
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7em;
+  margin-top: 1.5em;
+}
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 1em 0;
+  border-bottom: 1px solid #f0ecfa;
+  font-weight: 650;
+}
+.setting small {
+  display: block;
+  margin-top: 0.5em;
+  font-size: 0.75em;
+  font-weight: 400;
+  color: #8583a8;
+}
+.setting input {
+  width: 1.2em;
+  height: 1.2em;
+  accent-color: #7c3df4;
+}
+.help {
+  color: #8583a8;
+  font-size: 0.8em;
+}
+.status {
+  text-align: center;
+  padding: 5em 1em;
+}
+/* 전체 화면은 동일한 실행 인스턴스와 입력 로그를 유지하고 보드의 표시 높이만 다시 계산한다. */
+.gameCard:fullscreen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 1em max(1em, calc((100vw - 1600px) / 2));
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  background: #eef3ff;
+}
+.gameCard:fullscreen .stage {
+  --board-height: min(74svh, 1000px);
+  flex: 1;
+  justify-content: center;
+  align-content: center;
+  grid-template-columns: minmax(110px, 220px) auto minmax(100px, 200px);
+}
+.gameCard:fullscreen .boardWrap {
+  height: var(--board-height);
+}
+@media (min-width: 2200px) {
+  .stage {
+    --board-height: min(62svh, 1000px);
+  }
+  .main {
+    padding-top: 1.5em;
+  }
+  .screen {
+    padding-inline: 2em;
+  }
+}
+@media (max-width: 1150px) {
+  .columns {
+    grid-template-columns: minmax(0, 1.7fr) minmax(180px, 0.5fr);
+  }
+  .gameCard {
+    padding: 0.9em;
+  }
+  .stage {
+    --board-height: clamp(360px, 52svh, 540px);
+    gap: 12px;
+    padding: 0.7em;
+    grid-template-columns: minmax(80px, 1fr) auto minmax(72px, 0.8fr);
+  }
+  .metrics dd {
+    font-size: 1.5em;
+  }
+  .next li {
+    padding: 0.3em;
+    grid-template-columns: 1em minmax(0, 1fr);
+  }
+  .railHeading {
+    font-size: 0.9em;
+  }
+  .shortcuts {
+    font-size: 0.65em;
+  }
+  .rankingCard {
+    padding: 1em;
+  }
+  .rankingTitle {
+    gap: 0.4em;
+  }
+  .rankingTitle h2 {
+    font-size: 1.2em;
+  }
+  .table {
+    font-size: 0.8em;
+  }
+  .table th:last-child {
+    width: 6em;
+  }
+}
+@media (max-width: 950px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* 한 열로 쌓이면 랭킹이 자기 행 높이 0으로 접히지 않게 문서 흐름으로 되돌린다. */
+  .rankingCard {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .tableWrap {
+    flex: none;
+    overflow: visible;
+  }
+  .stage {
+    --board-height: min(64svh, 660px);
+    grid-template-columns: minmax(90px, 1fr) auto minmax(85px, 1fr);
+    gap: clamp(12px, 4vw, 50px);
+    padding: 1em;
+  }
+  .next {
+    height: 85%;
+  }
+  .next svg {
+    max-height: 84px;
+  }
+  .hold svg {
+    max-width: 130px;
+  }
+  .rankingCard {
+    padding: 1.2em;
+  }
+  .table .empty {
+    height: 9em;
+  }
+  .pagination {
+    justify-content: center;
+  }
+  .metrics > div:first-child dd {
+    font-size: 2em;
+  }
+}
+@media (pointer: coarse), (max-width: 950px) {
+  .touchControls {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.5em;
+    margin-top: 0.9em;
+  }
+  .touchControls button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2em;
+    min-height: 54px;
+    padding: 0.45em 0.2em;
+    border: 1px solid #dbdcff;
+    border-radius: 0.5em;
+    background: #f7f6ff;
+    color: #514a96;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .touchControls b {
+    font-size: 1.2em;
+  }
+  .touchControls small {
+    font-size: 0.65em;
+  }
+  .touchControls button:last-child {
+    background: #ece5ff;
+    color: #793bea;
+  }
+  .shortcuts {
+    display: none;
+  }
+}
+@media (max-width: 540px) {
+  .main {
+    padding-top: 0.9em;
+    font-size: 14px;
+  }
+  .title {
+    gap: 0.7em;
+  }
+  .title h1 {
+    font-size: 1.8em;
+  }
+  .stats {
+    padding: 0.8em 0.5em;
+  }
+  .stat {
+    gap: 0.45em;
+    padding-inline: 0.5em;
+  }
+  .statIcon {
+    width: 2em;
+    height: 2em;
+    border-radius: 0.5em;
+  }
+  .statIcon svg {
+    width: 1.2em;
+    height: 1.2em;
+  }
+  .stat > div > span {
+    font-size: 0.65em;
+  }
+  .stat strong {
+    font-size: 1.05em;
+  }
+  .gameCard {
+    padding: 0.7em;
+  }
+  .cardHeader h2 {
+    font-size: 1.2em;
+  }
+  .tools {
+    gap: 0.35em;
+  }
+  .tools button {
+    width: 2.3em;
+    height: 2.3em;
+  }
+  .stage {
+    --board-height: min(102vw, 55svh);
+    padding: 0.6em;
+    gap: 0.55em;
+    grid-template-columns: minmax(58px, 1fr) auto minmax(50px, 0.8fr);
+  }
+  .railHeading {
+    margin-bottom: 0.6em;
+    font-size: 0.8em;
+    gap: 0.3em;
+  }
+  .railHeading small {
+    font-size: 0.8em;
+  }
+  .hold {
+    height: 16%;
+    min-height: 3.3em;
+    border-radius: 0.4em;
+  }
+  .hold svg {
+    width: 90%;
+  }
+  .metrics {
+    margin-top: 0.6em;
+  }
+  .metrics dt {
+    font-size: 0.7em;
+  }
+  .metrics dd,
+  .metrics > div:first-child dd {
+    font-size: 1.15em;
+  }
+  .gameActions {
+    gap: 0.4em;
+  }
+  .gameActions button {
+    min-height: 40px;
+    gap: 0.2em;
+    font-size: 0.62em;
+    padding: 0.35em 0.15em;
+  }
+  .gameActions svg {
+    width: 1em;
+    height: 1em;
+  }
+  .next {
+    gap: 0.35em;
+    height: 85%;
+  }
+  .next li {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    padding: 0.45em 0.2em 0.2em;
+    border-radius: 0.4em;
+  }
+  .next li > span {
+    position: absolute;
+    left: 0.3em;
+    top: 0.3em;
+    font-size: 0.5em;
+  }
+  .next svg {
+    width: 92%;
+    max-height: 50px;
+  }
+  .overlay {
+    gap: 0.7em;
+    font-size: 12px;
+  }
+  .overlay h3 {
+    font-size: 1.2em;
+  }
+  .overlay .primary {
+    font-size: 0.9em;
+    min-height: 42px;
+    padding-inline: 0.7em;
+  }
+  .overlayMark {
+    width: 2.6em;
+    height: 2.6em;
+  }
+  .touchControls {
+    gap: 0.35em;
+  }
+  .touchControls button {
+    min-height: 52px;
+  }
+  .rankingTitle h2 {
+    font-size: 1.25em;
+  }
+  .pagination {
+    gap: 0.3em;
+  }
+  .pagination button {
+    min-width: 30px;
+    min-height: 36px;
+  }
+  .pagination button[data-near="false"] {
+    display: none;
+  }
+  .gameCard:fullscreen {
+    padding: 0.8em;
+  }
+  .gameCard:fullscreen .stage {
+    --board-height: min(104vw, 65svh);
+    grid-template-columns: minmax(55px, 1fr) auto minmax(50px, 0.8fr);
+    gap: 0.5em;
+  }
+}
+@media (max-width: 360px) {
+  .statIcon {
+    display: none;
+  }
+  .stage {
+    --board-height: min(98vw, 53svh);
+  }
+  .touchControls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .railHeading kbd {
+    display: none;
+  }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .stage {
+    --board-height: max(240px, 72svh);
+  }
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rankingCard {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .tableWrap {
+    flex: none;
+    overflow: visible;
+  }
+  .gameCard:fullscreen .stage {
+    --board-height: 64svh;
+  }
+  .gameCard:fullscreen .touchControls {
+    min-height: 45px;
+  }
+  .gameCard:fullscreen .touchControls button {
+    min-height: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .main *,
+  .dialog * {
+    scroll-behavior: auto;
+    transition: none;
+    animation: none;
+  }
+}
+/* 작은 전화기에서는 좌우 조작 정보의 최소 폭을 먼저 확보한 뒤 보드를 1:2 비율로 줄인다. */
+.stage {
+  container-type: inline-size;
+}
+@media (max-width: 540px) {
+  .boardWrap,
+  .gameCard:fullscreen .boardWrap {
+    height: min(var(--board-height), calc((100cqw - 8.8em) * 2));
+  }
+}
+/* 공통 로비 버튼의 font 단축 속성보다 구체적으로 지정해 게임 조작·페이지 버튼의 크기를 유지한다. */
+.screen .gameActions button {
+  font-size: 0.9em;
+}
+.screen .pagination button {
+  font-size: 0.82em;
+}
+.screen .overlay .primary {
+  font-size: 0.85em;
+}
+.leftRail,
+.rightRail {
+  height: var(--board-height);
+  min-height: 0;
+}
+.rightRail .next {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  padding-bottom: 1.6em;
+}
+@media (max-width: 540px) {
+  .leftRail,
+  .rightRail {
+    height: min(var(--board-height), calc((100cqw - 8.8em) * 2));
+  }
+  .leftRail .gameActions {
+    display: none;
+  }
+  .mobileActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6em;
+    margin-top: 0.8em;
+  }
+  .mobileActions button {
+    min-height: 44px;
+  }
+  .rightRail .next {
+    padding-bottom: 0;
+  }
+  .screen .overlay .primary {
+    font-size: 0.9em;
+  }
+}

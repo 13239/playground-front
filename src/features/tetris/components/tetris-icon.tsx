@@ -1,0 +1,70 @@
+import type { CSSProperties } from "react";
+
+const paths = {
+  crown: (
+    <>
+      <path d="m3 6 4 4 5-7 5 7 4-4-3 13H6L3 6Z" />
+      <path d="M6 22h12" />
+    </>
+  ),
+  chart: (
+    <>
+      <path d="M5 21V12m7 9V7m7 14V3" strokeWidth="4" />
+    </>
+  ),
+  trophy: (
+    <>
+      <path d="M8 3h8v8a4 4 0 0 1-8 0V3Zm4 12v5m-4 1h8M8 5H3v3a5 5 0 0 0 5 5m8-8h5v3a5 5 0 0 1-5 5" />
+    </>
+  ),
+  sound: (
+    <>
+      <path d="m11 5-5 4H3v6h3l5 4V5Zm4 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" />
+    </>
+  ),
+  muted: (
+    <>
+      <path d="m11 5-5 4H3v6h3l5 4V5Zm5 4 6 6m0-6-6 6" />
+    </>
+  ),
+  /* 상대 좌표로 이은 이전 외곽선은 톱니가 찌그러졌다. 가운데 축이 있는 대칭 톱니바퀴를 쓴다. */
+  settings: (
+    <>
+      <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37 1 .608 2.296.07 2.572-1.065z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  expand: <path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6" />,
+  pause: <path d="M8 5v14M16 5v14" strokeWidth="4" />,
+  play: <path d="m8 4 12 8-12 8V4Z" />,
+  restart: <path d="M4 10a8 8 0 1 1 2 8M4 4v6h6" />,
+  gamepad: (
+    <>
+      <path d="M7 6h10c4 0 6 12 3 13-2 1-4-3-5-3H9c-1 0-3 4-5 3C1 18 3 6 7 6Z" />
+      <path d="M6 10v5m-2-2.5h4m8-2h.1m2 3h.1" />
+    </>
+  ),
+};
+/** 테트리스 전용 동작 아이콘은 같은 선 굵기와 크기를 사용한다. */
+export function TetrisIcon({
+  name,
+  style,
+}: {
+  name: keyof typeof paths;
+  style?: CSSProperties;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={style}
+    >
+      {paths[name]}
+    </svg>
+  );
+}

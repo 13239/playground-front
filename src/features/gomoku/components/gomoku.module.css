@@ -988,24 +988,8 @@
   max-width: 60%;
 }
 
-.footer {
-  display: flex;
-  align-items: center;
-  gap: 1em;
-  padding-block: 1.2em;
-  border-top: 1px solid #dddef0;
-  color: #9792b5;
-  font-size: 0.78em;
-}
-.footer strong {
-  color: #826cac;
-  font-weight: 850;
-}
-.footer small {
-  margin-left: auto;
-  font-size: inherit;
-}
 /* 데스크톱 대국은 실제 표시 높이를 헤더·본문·푸터로 나눈다. 본문 컨테이너의 cqh로 판 크기를 계산한다.
+   공통 푸터의 아래 간격은 이 높이 계산에서 빼 판 영역을 유지한다.
    목록·대기실·작은 터치 화면은 기존 문서 흐름을 유지하고 확대·키보드 탐색을 제한하지 않는다. */
 @media (min-width: 1101px) and (min-height: 600px) {
   .screen:has([data-gomoku-game]) {
@@ -1014,14 +998,17 @@
     font-size: clamp(14px, .88vw, 18px);
   }
   .screen:has([data-gomoku-game]) > header,
-  .screen:has([data-gomoku-game]) > .footer { flex: 0 0 auto; }
+  .screen:has([data-gomoku-game]) > footer { flex: 0 0 auto; }
   .screen:has([data-gomoku-game]) > .main {
     flex: 1 1 0%;
     min-height: 0;
     padding-block: .25em .5em;
     container-type: size;
   }
-  .screen:has([data-gomoku-game]) > .footer { padding-block: .8em; }
+  .screen:has([data-gomoku-game]) > footer {
+    margin: 0;
+    padding-block: .8em;
+  }
 }
 .dialog {
   position: fixed;
@@ -1334,14 +1321,6 @@
   }
   .summary {
     margin-top: 1em;
-  }
-  .footer {
-    flex-wrap: wrap;
-    line-height: 1.8;
-  }
-  .footer small {
-    width: 100%;
-    margin-left: 0;
   }
   .copyRow {
     flex-wrap: wrap;
