@@ -35,6 +35,8 @@ const paths = {
     </>
   ),
   expand: <path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6" />,
+  // 사각 창과 바깥 화살표로 전체 화면 아이콘 옆의 팝업 동작을 구분한다.
+  popup: <path d="M14 3h7v7m0-7L11 13M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" />,
   pause: <path d="M8 5v14M16 5v14" strokeWidth="4" />,
   play: <path d="m8 4 12 8-12 8V4Z" />,
   restart: <path d="M4 10a8 8 0 1 1 2 8M4 4v6h6" />,

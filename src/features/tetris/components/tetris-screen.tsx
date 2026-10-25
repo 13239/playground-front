@@ -5,21 +5,27 @@ import { createUuidV4 } from "@/lib/client/uuid";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   revalidateAuthSession,
   useAuthSession,
 } from "@/features/auth/client/session-store";
 import { AuthRequestError } from "@/features/auth/client/api";
 import { GameEntryGate } from "@/features/games/components/game-entry-gate";
+import { useGamePopup } from "@/features/games/client/use-game-popup";
+import { getGamePopup, subscribeToGamePopup } from "@/features/games/client/game-popup";
 import { useGameDetails } from "@/features/games/components/game-catalog-provider";
 import type { Overview, TetrisRun } from "../contracts";
 import { finishRun, readOverview, startRun } from "../client/api";
 import { TetrisRuntime, type GameView } from "../engine/runtime";
-import type { Action } from "../engine/rules";
+import type { TetrisBoard } from "../engine/phaser-board";
+import { VISIBLE_HEIGHT, WIDTH, type Action } from "../engine/rules";
 import { PiecePreview } from "./piece-preview";
 import { TetrisIcon } from "./tetris-icon";
 import { TetrisDialog } from "./tetris-dialog";
@@ -74,6 +80,7 @@ export function TetrisScreen() {
 function TetrisGame({ sessionId }: { sessionId: string }) {
   const details = useGameDetails();
   const name = details.game?.name ?? "테트리스";
+  const popup = useGamePopup(styles.popupDocument, `${name} · Playground`, { width: 900, height: 1000 });
   const [view, setView] = useState(INITIAL);
   const [runtime] = useState(() => new TetrisRuntime(setView));
   const [overview, setOverview] = useState<Overview>();
@@ -85,7 +92,7 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
   const [engineAttempt, setEngineAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [saveState, setSaveState] = useState<
-    "none" | "saving" | "saved" | "error" | "unavailable"
+    "none" | "saving" | "saved" | "error" | "unavailable" | "discarded"
   >("none");
   const [dialog, setDialog] = useState<"settings" | "restart">();
   const [sound, setSound] = useState(true);
@@ -101,6 +108,29 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
   const startId = useRef<string | undefined>(undefined);
   const query = useRef<AbortController | undefined>(undefined);
   const resumeAfterDialog = useRef(false);
+  const surfaceMount = useRef<HTMLDivElement>(null);
+  const board = useRef<TetrisBoard | undefined>(undefined);
+  // 인증·입장 확인 뒤 클라이언트에서만 생성한다. 포털 대상을 고정해 창 전환이 캔버스·모달 상태를 재생성하지 않게 한다.
+  const [surface] = useState(() => document.createElement("div"));
+
+  useLayoutEffect(() => {
+    const target = popup.container ?? surfaceMount.current;
+    if (!target) return;
+    target.append(surface);
+    const display = surface.ownerDocument.defaultView ?? window;
+    // 외부 문서로 옮기는 동안 낙하·눌린 키를 멈추고 실제 표시 창에 그리기 시계를 인계한다.
+    runtime.pause();
+    board.current?.setDisplayWindow(display);
+    const frame = display.requestAnimationFrame(() => host.current?.focus({ preventScroll: true }));
+    return () => display.cancelAnimationFrame(frame);
+  }, [popup.container, runtime, surface]);
+  useEffect(() => subscribeToGamePopup(() => {
+    if (getGamePopup() || !surfaceMount.current) return;
+    // 닫기·새로고침의 문서 해제 전에 동기 복귀해 캔버스와 React의 위임 이벤트가 함께 해제되지 않게 한다.
+    runtime.pause();
+    surfaceMount.current.append(surface);
+    board.current?.setDisplayWindow(window);
+  }), [runtime, surface]);
 
   const loadRecords = useCallback(
     async (page = 1) => {
@@ -131,7 +161,8 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
 
   const save = useCallback((): Promise<boolean> => {
     if (saving.current) return saving.current;
-    if (!run.current || !runtime.game.ticks || saved.current)
+    // 화면의 종료 상태와 실제 게임 오버를 구분해 재시작·입력 한도로 중단한 점수는 제출하지 않는다.
+    if (!run.current || !runtime.game.over || !runtime.game.ticks || saved.current)
       return Promise.resolve(true);
     setSaveState("saving");
     const current = run.current;
@@ -180,6 +211,11 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     runtime.onFinished(() => {
+      // 중도 종료는 저장 성공으로 안내하지 않으며 서버 요청 없이 새 게임을 시작할 수 있다.
+      if (!runtime.game.over) {
+        setSaveState("discarded");
+        return;
+      }
       void save();
     });
   }, [runtime, save]);
@@ -193,35 +229,46 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
       void import("../engine/phaser-board")
         .then((module) => {
           if (!canceled) {
-            destroy = module.createBoard(parent, runtime);
+            const renderer = module.createBoard(parent, runtime);
+            board.current = renderer;
+            renderer.setDisplayWindow(parent.ownerDocument.defaultView ?? window);
+            destroy = () => {
+              renderer.destroy();
+              if (board.current === renderer) board.current = undefined;
+            };
             setReady(true);
           }
         })
         .catch(() => {
           if (!canceled) setEngineError("게임 화면을 불러오지 못했습니다.");
         });
-    const keydown = (event: KeyboardEvent) => runtime.keyDown(event),
-      keyup = (event: KeyboardEvent) => runtime.keyUp(event);
-    const pause = () => runtime.pause();
-    const visibility = () => {
-      if (document.hidden) pause();
-    };
-    window.addEventListener("keydown", keydown);
-    window.addEventListener("keyup", keyup);
-    window.addEventListener("blur", pause);
-    document.addEventListener("visibilitychange", visibility);
     return () => {
       canceled = true;
       mounted.current = false;
       destroy?.();
       runtime.dispose();
       query.current?.abort();
-      window.removeEventListener("keydown", keydown);
-      window.removeEventListener("keyup", keyup);
-      window.removeEventListener("blur", pause);
-      document.removeEventListener("visibilitychange", visibility);
     };
   }, [runtime, engineAttempt]);
+  useEffect(() => {
+    // 입력·자동 일시정지는 실제 게임이 있는 문서만 구독한다. 원본 탭의 숨김이 팝업 플레이를 멈추지 않는다.
+    const display = host.current?.ownerDocument.defaultView ?? window;
+    const keydown = (event: KeyboardEvent) => runtime.keyDown(event);
+    const keyup = (event: KeyboardEvent) => runtime.keyUp(event);
+    const pause = () => runtime.pause();
+    const visibility = () => { if (display.document.hidden) pause(); };
+    display.addEventListener("keydown", keydown);
+    display.addEventListener("keyup", keyup);
+    display.addEventListener("blur", pause);
+    display.document.addEventListener("visibilitychange", visibility);
+    return () => {
+      display.removeEventListener("keydown", keydown);
+      display.removeEventListener("keyup", keyup);
+      display.removeEventListener("blur", pause);
+      display.document.removeEventListener("visibilitychange", visibility);
+      runtime.clearInput();
+    };
+  }, [popup.container, runtime]);
   useEffect(() => {
     // 최초 조회는 응답 구독에서만 상태를 바꾸고 렌더 직후 동기 상태 갱신을 만들지 않는다.
     const controller = new AbortController();
@@ -267,7 +314,7 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
       setSaveState("none");
       setMessage("");
       runtime.begin(value.seed);
-      // 시작 횟수는 서버에서 읽으며 로컬에서 추정해 누적하지 않는다.
+      // 통계는 서버에서 읽으며 시작만으로 횟수를 누적하지 않는다. 게임 오버 저장 응답에서 횟수가 갱신된다.
       void loadRecords(overview?.page ?? 1);
       host.current?.focus({ preventScroll: true });
     } catch (error) {
@@ -294,16 +341,27 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
     if (resumeAfterDialog.current && runtime.phase === "paused")
       runtime.togglePause();
     // 모달이 닫힌 다음 프레임에 게임판으로 돌아가야 네이티브 포커스 복원과 충돌하지 않는다.
-    requestAnimationFrame(() => host.current?.focus({ preventScroll: true }));
+    (host.current?.ownerDocument.defaultView ?? window).requestAnimationFrame(() => host.current?.focus({ preventScroll: true }));
   }
   async function fullscreen() {
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
+      const displayDocument = panel.current?.ownerDocument ?? document;
+      if (displayDocument.fullscreenElement) await displayDocument.exitFullscreen();
       else if (panel.current?.requestFullscreen)
         await panel.current.requestFullscreen();
       else setMessage("이 브라우저에서는 전체 화면을 지원하지 않습니다.");
     } catch {
       setMessage("전체 화면을 열지 못했습니다. 브라우저 설정을 확인해 주세요.");
+    }
+  }
+  function togglePopup() {
+    runtime.pause();
+    if (popup.container) popup.close();
+    else {
+      // 팝업은 클릭 안에서 즉시 열어 차단을 피하고 전체 화면 종료는 동시에 요청한다.
+      const displayDocument = panel.current?.ownerDocument;
+      if (displayDocument?.fullscreenElement) void displayDocument.exitFullscreen().catch(() => {});
+      popup.open();
     }
   }
   function press(event: PointerEvent<HTMLButtonElement>, action: Action) {
@@ -312,7 +370,7 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
     runtime.press(action);
   }
   const active = view.phase === "playing" || view.phase === "paused";
-  return (
+  const scene = (
     <>
       <nav className={styles.breadcrumb} aria-label="현재 위치">
         <Link href="/">홈</Link>
@@ -323,23 +381,6 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
         <h1>{name}</h1>
         <span>1인 플레이</span>
       </div>
-      <section className={styles.stats} aria-label="내 테트리스 통계">
-        <Stat
-          icon="crown"
-          label="내 최고 점수"
-          value={overview ? format(overview.bestScore) : "—"}
-        />
-        <Stat
-          icon="chart"
-          label="내 순위"
-          value={overview?.rank ? `${format(overview.rank)}위` : "—"}
-        />
-        <Stat
-          icon="gamepad"
-          label="플레이 횟수"
-          value={overview ? `${format(overview.plays)}회` : "—"}
-        />
-      </section>
       <div className={styles.columns}>
         <section
           className={styles.gameCard}
@@ -368,16 +409,37 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
               >
                 <TetrisIcon name="settings" />
               </button>
+              {/* 팝업을 전체 화면 왼쪽에 둔다. 팝업 안에서는 같은 버튼으로 원래 화면으로 돌아온다. */}
+              {(popup.supported || popup.container) && (
+                <button
+                  type="button"
+                  aria-label={popup.container ? "원래 화면으로 돌아가기" : "팝업 화면으로 열기"}
+                  title={popup.container ? "원래 화면으로 돌아가기" : "팝업 화면으로 열기"}
+                  aria-pressed={!!popup.container}
+                  disabled={!ready || !!dialog || busy}
+                  onClick={togglePopup}
+                >
+                  <TetrisIcon name="popup" />
+                </button>
+              )}
               <button
                 type="button"
                 aria-label="전체 화면 전환"
+                title="전체 화면 전환"
                 onClick={() => void fullscreen()}
               >
                 <TetrisIcon name="expand" />
               </button>
             </div>
           </header>
-          <div className={styles.stage}>
+          {/* 화면 비율도 규칙의 행·열 수를 공유해 반응형 크기에서 격자 왜곡을 막는다. */}
+          <div
+            className={styles.stage}
+            style={{
+              "--board-columns": WIDTH,
+              "--board-rows": VISIBLE_HEIGHT,
+            } as CSSProperties}
+          >
             <aside className={styles.leftRail} aria-label="홀드와 현재 점수">
               <div className={styles.railHeading}>
                 <strong>HOLD</strong>
@@ -456,6 +518,7 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
                       }
                     />
                   </span>
+                  {/* 중도 중단은 실제 게임 오버와 구분해 기록 저장 기준을 명확히 안내한다. */}
                   <h3>
                     {engineError
                       ? "화면을 확인해 주세요"
@@ -465,7 +528,9 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
                           ? "READY TO PLAY"
                           : view.phase === "paused"
                             ? "잠시 쉬어가요"
-                            : "GAME OVER"}
+                            : saveState === "discarded"
+                              ? "게임 종료"
+                              : "GAME OVER"}
                   </h3>
                   <p>
                     {engineError ||
@@ -519,7 +584,9 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
                             ? "기록 저장을 다시 시도해 주세요"
                             : saveState === "unavailable"
                               ? "이 게임의 기록을 저장할 수 없어요"
-                              : ""}
+                              : saveState === "discarded"
+                                ? "끝까지 플레이하지 않은 게임은 기록에 반영되지 않아요"
+                                : ""}
                     </p>
                   )}
                   {saveState === "error" && (
@@ -651,6 +718,24 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
             <h2 id="tetris-ranking-title">점수 랭킹</h2>
             <span>TOP 100</span>
           </header>
+          {/* 개인 기록은 B안처럼 랭킹 안에서 한 번만 표시해 게임 위의 공간을 확보한다. */}
+          <section className={styles.stats} aria-label="내 테트리스 통계">
+            <Stat
+              icon="crown"
+              label="내 최고 점수"
+              value={overview ? format(overview.bestScore) : "—"}
+            />
+            <Stat
+              icon="chart"
+              label="내 순위"
+              value={overview?.rank ? `${format(overview.rank)}위` : "—"}
+            />
+            <Stat
+              icon="gamepad"
+              label="플레이 횟수"
+              value={overview ? `${format(overview.plays)}회` : "—"}
+            />
+          </section>
           <p className={styles.subtitle}>유저별 최고 기록</p>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
@@ -713,7 +798,7 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
         </section>
       </div>
       {dialog === "settings" && (
-        <TetrisDialog title="게임 설정" close={closeDialog}>
+        <TetrisDialog key={popup.container ? "popup" : "page"} title="게임 설정" close={closeDialog}>
           <label className={styles.setting}>
             <span>
               게임 소리<small>블록을 놓거나 줄을 지울 때 소리를 재생해요</small>
@@ -752,8 +837,13 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
         </TetrisDialog>
       )}
       {dialog === "restart" && (
-        <TetrisDialog title="다시 시작할까요?" close={closeDialog}>
-          <p>현재 점수를 기록하고 새 게임을 시작해요.</p>
+        <TetrisDialog key={popup.container ? "popup" : "page"} title="다시 시작할까요?" close={closeDialog}>
+          {/* 문장마다 줄을 바꿔 단어 중간에서 끊기지 않게 한다. */}
+          <p>
+            현재 게임을 종료하고 새 게임을 시작해요.
+            <br />
+            중단한 게임의 점수와 플레이 횟수는 기록에 반영되지 않아요.
+          </p>
           <div className={styles.dialogActions}>
             <button className={styles.secondary} onClick={closeDialog}>
               계속 플레이
@@ -769,6 +859,27 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
             </button>
           </div>
         </TetrisDialog>
+      )}
+    </>
+  );
+  return (
+    <>
+      <div ref={surfaceMount} hidden={!!popup.container} />
+      {popup.container && (
+        <section className={styles.popupPlaceholder} aria-label="팝업 게임 안내">
+          <TetrisIcon name="popup" />
+          <h2>팝업 화면에서 플레이 중이에요</h2>
+          <p>이 탭은 열어 두세요. 팝업을 닫으면 진행 중인 게임이 이 화면으로 돌아와요.</p>
+          <div>
+            <button type="button" className={styles.primary} onClick={popup.focus}>팝업 창 보기</button>
+            <button type="button" className={styles.secondary} onClick={popup.close}>원래 화면으로</button>
+          </div>
+        </section>
+      )}
+      {popup.error && <p className={styles.error} role="alert">{popup.error}</p>}
+      {createPortal(
+        <div className={`${styles.screen} ${styles.main} ${styles.popupSurface}${popup.container ? ` ${styles.popupScene}` : ""}`}>{scene}</div>,
+        surface,
       )}
     </>
   );

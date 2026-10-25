@@ -3,10 +3,17 @@
   width: min(100%, 2880px);
   --tetris-border: #dfe3ff;
 }
+/* 로비 글자는 창 너비에 비례한다. 테트리스는 최대화해도 헤더·본문·푸터가 커지지 않게 덮어쓴다. */
+.screen.screen {
+  font-size: 15px;
+}
 .main {
   flex: 1;
   padding: 1.1em 0 2em;
-  font-size: clamp(14px, 0.95vw, 22px);
+  /* 창을 최대화해도 본문 글자가 뷰포트에 비례해 커지지 않게 고정한다. */
+  font-size: 15px;
+  /* 보드 최대 높이에 맞춘 게임·랭킹 묶음 너비. 더 넓은 화면에서는 이 너비로 가운데에 둔다. */
+  --play-width: 1100px;
 }
 .main svg,
 .dialog svg {
@@ -33,6 +40,8 @@
   display: flex;
   gap: 0.9em;
   align-items: center;
+  width: min(100%, var(--play-width));
+  margin-inline: auto;
   color: #777cae;
   font-size: 0.85em;
   font-weight: 600;
@@ -46,6 +55,8 @@
   display: flex;
   align-items: center;
   gap: 1em;
+  width: min(100%, var(--play-width));
+  margin-inline: auto;
   margin-bottom: 0.9em;
 }
 .title h1 {
@@ -67,26 +78,28 @@
   font-weight: 750;
   white-space: nowrap;
 }
+/* 개인 통계는 랭킹 카드 안의 세 칸으로 모아 게임 위에 별도 높이를 차지하지 않는다. */
 .stats {
   display: grid;
+  flex: 0 0 auto;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 0.8em 1.5em;
-  margin-bottom: 1em;
-  border: 1px solid var(--tetris-border);
-  border-radius: 0.8em;
-  background: #ffffffdf;
-  box-shadow: 0 3px 9px #8270bb06;
+  padding: 0.85em 0.4em;
+  margin: 1em 0 0.5em;
+  border: 1px solid #eee9ff;
+  border-radius: 0.55em;
+  background: linear-gradient(135deg, #f6f2ff, #f4f5ff);
 }
 .stat {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1em;
+  gap: 0.4em;
   min-width: 0;
-  padding: 0 1em;
+  padding: 0 0.35em;
   border-right: 1px solid #e3e5fa;
 }
 .stat:first-child {
-  padding-left: 0;
+  padding-left: 0.35em;
 }
 .stat:last-child {
   border: 0;
@@ -94,22 +107,23 @@
 .statIcon {
   display: grid;
   place-items: center;
-  width: 2.8em;
-  height: 2.8em;
-  border-radius: 0.65em;
+  width: 1.8em;
+  height: 1.8em;
   color: #793cfa;
-  background: linear-gradient(135deg, #f0eeff, #f7f6ff);
 }
 .statIcon svg {
-  width: 1.65em;
-  height: 1.65em;
+  width: 1.4em;
+  height: 1.4em;
 }
 .stat > div {
   display: grid;
-  gap: 0.15em;
+  gap: 0.3em;
+  min-width: 0;
+  max-width: 100%;
+  text-align: center;
 }
 .stat > div > span {
-  font-size: 0.8em;
+  font-size: clamp(12px, 0.72em, 16px);
   color: #8283b0;
   font-weight: 600;
 }
@@ -119,11 +133,14 @@
   line-height: 1.35;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
-/* 점수 랭킹 열은 기존 비율보다 약 40% 좁게 둔다. */
+/* 게임과 랭킹은 보드가 커지는 상한까지만 넓어지고, 남는 화면은 묶음 양쪽에 둬 항상 가운데에 둔다. */
 .columns {
   display: grid;
-  grid-template-columns: minmax(0, 1.88fr) minmax(200px, 0.5fr);
+  width: min(100%, var(--play-width));
+  margin-inline: auto;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
   align-items: stretch;
   gap: 1em;
 }
@@ -169,13 +186,21 @@
   background: #f1edff;
   color: #7136f5;
 }
-/* 보드는 표준 10×20 비율을 유지한다. 좌우 정보가 줄어도 게임의 좌표·낙하 속도·시야는 바뀌지 않는다. */
+/* 15×25 보드를 중심에 두고 좌우 정보는 고정 폭으로 둔다. 창 높이가 늘어도 보드 표시 높이는 상한에서 멈춘다. */
 .stage {
-  --board-height: clamp(380px, 57svh, 800px);
+  --board-height: clamp(500px, 74svh, 680px);
+  --rail-width: 140px;
+  --stage-gap: 20px;
+  /* 컨테이너의 남는 폭으로 높이를 제한해 정사각형 셀과 양쪽 정보의 최소 폭을 함께 확보한다. */
+  --playfield-height: min(var(--board-height), calc((100cqw - var(--rail-width) * 2 - var(--stage-gap) * 2) * var(--board-rows) / var(--board-columns)));
+  --board-width: calc(var(--playfield-height) * var(--board-columns) / var(--board-rows));
+  container-type: inline-size;
   display: grid;
-  grid-template-columns: minmax(100px, 1fr) auto minmax(95px, 0.9fr);
+  /* 가운데 열을 판 너비로 고정해 점수와 다음 블록이 화면이 넓어져도 판에서 간격 이상 떨어지지 않게 한다. */
+  grid-template-columns: var(--rail-width) var(--board-width) var(--rail-width);
+  justify-content: center;
   align-items: stretch;
-  gap: clamp(12px, 1.8vw, 42px);
+  gap: var(--stage-gap);
   padding: 0.85em;
   border: 1px solid #1d2639;
   border-radius: 0.65em;
@@ -186,6 +211,8 @@
 }
 .leftRail,
 .rightRail {
+  height: var(--playfield-height);
+  min-height: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -220,8 +247,8 @@
 .hold {
   display: grid;
   place-items: center;
-  min-height: 5.8em;
-  height: 17%;
+  min-height: 4.5em;
+  height: clamp(72px, 16%, 130px);
   border: 1px solid #223249;
   border-radius: 0.65em;
   background: #0b121b66;
@@ -237,14 +264,14 @@
 }
 .metrics {
   display: grid;
-  flex: 1;
+  flex: 0 0 auto;
   margin: 0.8em 0 0.7em;
 }
 .metrics > div {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0.55em 0;
+  padding: 0.9em 0;
   border-top: 1px solid #29394f;
 }
 .metrics dt {
@@ -260,11 +287,12 @@
   font-variant-numeric: tabular-nums;
 }
 .metrics > div:first-child dd {
-  font-size: clamp(20px, 2.1vw, 42px);
+  font-size: 1.9em;
 }
 .gameActions {
   display: grid;
   gap: 0.55em;
+  margin-top: auto;
 }
 .gameActions button {
   width: 100%;
@@ -308,8 +336,9 @@
 }
 .boardWrap {
   position: relative;
-  height: var(--board-height);
-  aspect-ratio: 1 / 2;
+  justify-self: center;
+  height: var(--playfield-height);
+  aspect-ratio: var(--board-columns) / var(--board-rows);
   min-width: 0;
   border: 1px solid #8cbcff;
   border-radius: 0.25em;
@@ -348,7 +377,7 @@
 }
 .overlay h3 {
   margin: 0;
-  font-size: clamp(16px, 1.4vw, 28px);
+  font-size: 1.35em;
   letter-spacing: 0.035em;
   font-weight: 850;
 }
@@ -449,6 +478,8 @@
 }
 /* 기록 행 수와 관계없이 랭킹 카드는 같은 줄의 게임 카드 높이를 따른다. 넘치는 표만 카드 안에서 스크롤한다. */
 .rankingCard {
+  /* 화면 폭 대신 카드의 실제 폭으로 통계 배치를 바꿔 좁은 태블릿 열에서도 숫자가 겹치지 않게 한다. */
+  container: tetris-ranking / inline-size;
   display: flex;
   flex-direction: column;
   height: 0;
@@ -662,6 +693,8 @@
 }
 .dialog p {
   line-height: 1.8;
+  /* 문장 안에서는 한글 단어 중간이 아니라 어절 경계에서만 줄바꿈한다. */
+  word-break: keep-all;
 }
 .dialog > .primary {
   width: 100%;
@@ -702,6 +735,90 @@
   text-align: center;
   padding: 5em 1em;
 }
+/* 하나의 포털 컨테이너를 문서 사이로 옮겨 캔버스·입력 로그·진행 상태를 유지한다. */
+.main.popupSurface {
+  padding: 0;
+  min-width: 0;
+}
+.popupDocument {
+  margin: 0;
+  background: #eef3ff;
+  color: #151348;
+}
+.popupScene {
+  width: 100%;
+  font-size: 14px;
+}
+.popupScene .breadcrumb,
+.popupScene .title,
+.popupScene .rankingCard,
+.popupScene .touchControls {
+  display: none;
+}
+.popupScene .columns {
+  width: 100%;
+  margin-inline: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.popupScene .gameCard {
+  padding: 0.75em;
+  border: 0;
+  border-radius: 0;
+}
+.popupScene .stage {
+  --board-height: max(240px, calc(100svh - 150px));
+}
+.popupScene .shortcuts {
+  display: flex;
+  gap: 0.5em;
+  font-size: 0.72em;
+}
+.tools button[aria-pressed="true"] {
+  color: #7136f5;
+  background: #eee7ff;
+}
+.popupPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1em;
+  min-height: min(65svh, 700px);
+  padding: 2em;
+  border: 1px solid var(--tetris-border);
+  border-radius: 0.8em;
+  background: #fffffff0;
+  text-align: center;
+}
+.popupPlaceholder > svg {
+  width: 3em;
+  height: 3em;
+  color: #793cfa;
+}
+.popupPlaceholder h2,
+.popupPlaceholder p {
+  margin: 0;
+}
+.popupPlaceholder p {
+  color: #777cae;
+  line-height: 1.8;
+}
+.popupPlaceholder > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75em;
+}
+.popupPlaceholder button {
+  min-height: 44px;
+}
+@media (max-width: 540px) {
+  /* 사용자가 데스크톱 팝업을 좁히면 NEXT와 바깥 조작 버튼이 차지하는 높이도 확보한다. */
+  .popupScene .stage {
+    --board-height: max(200px, calc(100svh - 260px));
+  }
+}
 /* 전체 화면은 동일한 실행 인스턴스와 입력 로그를 유지하고 보드의 표시 높이만 다시 계산한다. */
 .gameCard:fullscreen {
   display: flex;
@@ -715,19 +832,16 @@
   background: #eef3ff;
 }
 .gameCard:fullscreen .stage {
-  --board-height: min(74svh, 1000px);
+  --board-height: min(80svh, 1440px);
   flex: 1;
   justify-content: center;
   align-content: center;
-  grid-template-columns: minmax(110px, 220px) auto minmax(100px, 200px);
 }
 .gameCard:fullscreen .boardWrap {
-  height: var(--board-height);
+  height: var(--playfield-height);
 }
 @media (min-width: 2200px) {
-  .stage {
-    --board-height: min(62svh, 1000px);
-  }
+  /* 넓은 화면에서도 보드와 글자를 키우지 않고 여백만 맞춘다. */
   .main {
     padding-top: 1.5em;
   }
@@ -743,10 +857,10 @@
     padding: 0.9em;
   }
   .stage {
-    --board-height: clamp(360px, 52svh, 540px);
-    gap: 12px;
+    --board-height: clamp(430px, 68svh, 775px);
+    --rail-width: 100px;
+    --stage-gap: 12px;
     padding: 0.7em;
-    grid-template-columns: minmax(80px, 1fr) auto minmax(72px, 0.8fr);
   }
   .metrics dd {
     font-size: 1.5em;
@@ -792,9 +906,9 @@
     overflow: visible;
   }
   .stage {
-    --board-height: min(64svh, 660px);
-    grid-template-columns: minmax(90px, 1fr) auto minmax(85px, 1fr);
-    gap: clamp(12px, 4vw, 50px);
+    --board-height: min(77svh, 930px);
+    --rail-width: clamp(88px, 14vw, 130px);
+    --stage-gap: clamp(12px, 2vw, 24px);
     padding: 1em;
   }
   .next {
@@ -883,12 +997,6 @@
     width: 1.2em;
     height: 1.2em;
   }
-  .stat > div > span {
-    font-size: 0.65em;
-  }
-  .stat strong {
-    font-size: 1.05em;
-  }
   .gameCard {
     padding: 0.7em;
   }
@@ -903,10 +1011,30 @@
     height: 2.3em;
   }
   .stage {
-    --board-height: min(102vw, 55svh);
+    --board-height: min(136vw, 73svh);
+    --rail-width: 66px;
+    --stage-gap: 10px;
+    /* 휴대폰은 NEXT를 판 아래로 옮겨 15칸 보드의 가독성과 터치 폭을 확보한다. */
+    --playfield-height: min(var(--board-height), calc((100cqw - var(--rail-width) - var(--stage-gap)) * var(--board-rows) / var(--board-columns)));
     padding: 0.6em;
-    gap: 0.55em;
-    grid-template-columns: minmax(58px, 1fr) auto minmax(50px, 0.8fr);
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    grid-template-areas: "hold board" "next next";
+  }
+  .leftRail {
+    grid-area: hold;
+  }
+  .boardWrap {
+    grid-area: board;
+  }
+  .rightRail {
+    grid-area: next;
+    height: auto;
+  }
+  .rightRail .railHeading {
+    margin-bottom: 0.5em;
+  }
+  .rightRail .railHeading small {
+    flex-basis: auto;
   }
   .railHeading {
     margin-bottom: 0.6em;
@@ -949,7 +1077,9 @@
   }
   .next {
     gap: 0.35em;
-    height: 85%;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: minmax(50px, auto);
+    height: auto;
   }
   .next li {
     position: relative;
@@ -1007,17 +1137,13 @@
     padding: 0.8em;
   }
   .gameCard:fullscreen .stage {
-    --board-height: min(104vw, 65svh);
-    grid-template-columns: minmax(55px, 1fr) auto minmax(50px, 0.8fr);
-    gap: 0.5em;
+    --board-height: min(136vw, 73svh);
   }
 }
 @media (max-width: 360px) {
-  .statIcon {
-    display: none;
-  }
   .stage {
-    --board-height: min(98vw, 53svh);
+    --rail-width: 58px;
+    --stage-gap: 8px;
   }
   .touchControls {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1060,16 +1186,7 @@
     animation: none;
   }
 }
-/* 작은 전화기에서는 좌우 조작 정보의 최소 폭을 먼저 확보한 뒤 보드를 1:2 비율로 줄인다. */
-.stage {
-  container-type: inline-size;
-}
-@media (max-width: 540px) {
-  .boardWrap,
-  .gameCard:fullscreen .boardWrap {
-    height: min(var(--board-height), calc((100cqw - 8.8em) * 2));
-  }
-}
+/* 작은 전화기는 위 컨테이너 계산으로 HOLD 최소 폭을 확보하고 보드를 15:25 비율로 줄인다. */
 /* 공통 로비 버튼의 font 단축 속성보다 구체적으로 지정해 게임 조작·페이지 버튼의 크기를 유지한다. */
 .screen .gameActions button {
   font-size: 0.9em;
@@ -1080,11 +1197,6 @@
 .screen .overlay .primary {
   font-size: 0.85em;
 }
-.leftRail,
-.rightRail {
-  height: var(--board-height);
-  min-height: 0;
-}
 .rightRail .next {
   flex: 1;
   min-height: 0;
@@ -1092,10 +1204,6 @@
   padding-bottom: 1.6em;
 }
 @media (max-width: 540px) {
-  .leftRail,
-  .rightRail {
-    height: min(var(--board-height), calc((100cqw - 8.8em) * 2));
-  }
   .leftRail .gameActions {
     display: none;
   }
@@ -1113,5 +1221,32 @@
   }
   .screen .overlay .primary {
     font-size: 0.9em;
+  }
+}
+/* 폭이 좁은 랭킹 카드에서는 라벨과 큰 숫자를 세로 행으로 배치해 세 통계를 모두 읽을 수 있게 한다. */
+@container tetris-ranking (max-width: 260px) {
+  .stats {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0.25em 0.65em;
+  }
+  .stat {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.6em;
+    padding: 0.65em 0;
+    border-right: 0;
+    border-bottom: 1px solid #e3e5fa;
+  }
+  .stat:first-child {
+    padding-left: 0;
+  }
+  .stat > div {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5em;
+    text-align: left;
+  }
+  .stat strong {
+    text-align: right;
   }
 }

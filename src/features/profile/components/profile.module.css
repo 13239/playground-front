@@ -1,11 +1,13 @@
-/* 캐릭터는 정적 이미지로 제공하며 원형 헤더·큰 미리보기·선택 목록에서 같은 비율을 유지한다. */
+/* 고해상도 투명 캐릭터를 정적으로 제공하며 원형 헤더·큰 미리보기·선택 목록에서 같은 비율을 유지한다. */
 
 .avatarImage {
   display: block;
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  object-fit: cover;
+  /* 잎·모자·날개가 원형 가장자리에 잘리지 않도록 전체 그림과 작은 안전 여백을 유지한다. */
+  object-fit: contain;
+  padding: 4%;
 }
 
 /* 대화상자 내부만 스크롤하고 닫기·저장 영역을 유지해 작은 화면과 큰 글꼴에서도 선택을 완료할 수 있다. */
@@ -322,6 +324,8 @@
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 50%;
+  /* 투명 원본에는 배경이 없으므로 선택 목록에서만 연한 원형 바탕을 제공한다. */
+  background: radial-gradient(circle at 50% 38%, #f0faff, #f5f0ff);
 }
 
 .choiceName {

@@ -1,6 +1,6 @@
 import { cells, COLORS } from "../engine/rules";
 
-/** 홀드·다음 블록은 작은 SVG로 그려 React 영역에 추가 엔진이나 캔버스를 만들지 않는다. */
+/** 홀드·다음 블록은 작은 SVG로 그려 React 영역에 추가 엔진이나 캔버스를 만들지 않는다. 게임판과 같은 진한 채움으로 표시한다. */
 export function PiecePreview({ type }: { type: number }) {
   if (!type) return <span aria-label="보관한 블록 없음">—</span>;
   const points = cells(type),
@@ -26,7 +26,7 @@ export function PiecePreview({ type }: { type: number }) {
             height="21"
             rx="1"
             fill={color}
-            fillOpacity=".06"
+            fillOpacity="1"
             stroke={color}
             strokeWidth="5"
             strokeOpacity=".12"

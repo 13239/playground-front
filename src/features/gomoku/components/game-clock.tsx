@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import styles from "./game-room.module.css";
-import { getGameDisplayWindow } from "../client/game-popup";
+import { getGameDisplayWindow } from "@/features/games/client/game-popup";
 
 // 팝업 전환으로 하위 시계를 다시 만들어도 마지막 서버 응답 이후 경과 시간을 잃지 않는다.
 const GameClockContext = createContext<{ serverTime: string; receivedAt: number } | null>(null);

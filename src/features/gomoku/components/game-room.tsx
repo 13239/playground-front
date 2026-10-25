@@ -8,7 +8,7 @@ import type { GameAction, MatchState } from "../game-contracts";
 import { RoomDialog } from "./room-dialog";
 import { GameBoard } from "./game-board";
 import { ActiveTurnCountdown, CountdownSeconds, GameClockProvider, PopupTurn, PlayerTurnTimer } from "./game-clock";
-import { useGamePopup } from "../client/use-game-popup";
+import { useGamePopup } from "@/features/games/client/use-game-popup";
 import { GameResultDialog } from "./game-result-dialog";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import styles from "./game-room.module.css";

@@ -1,8 +1,11 @@
 /** 렌더러와 독립된 60Hz 정수 규칙이다. 서버의 TetrisReplay와 같은 버전·난수·명령 순서를 사용한다. */
-export const RULE_VERSION = 1;
-export const WIDTH = 10;
-export const HEIGHT = 22;
+export const RULE_VERSION = 3;
+// 보이는 15×25칸과 생성용 숨김 행을 분리해 렌더러와 서버가 같은 크기를 사용한다.
+export const WIDTH = 15;
+export const VISIBLE_HEIGHT = 25;
 export const HIDDEN = 2;
+export const HEIGHT = VISIBLE_HEIGHT + HIDDEN;
+const SPAWN_X = Math.floor(WIDTH / 2) - 2;
 export const MAX_TICKS = 216_000;
 export const MAX_INPUTS = 24_000;
 export const ACTIONS = [
@@ -168,7 +171,7 @@ export function cells(type: number, rotation = 0): number[][] {
 
 export class TetrisRules {
   board = Array<number>(WIDTH * HEIGHT).fill(0);
-  piece: Piece = { type: 1, rotation: 0, x: 3, y: 1 };
+  piece: Piece = { type: 1, rotation: 0, x: SPAWN_X, y: 1 };
   queue: number[] = [];
   hold = 0;
   holdUsed = false;
@@ -230,8 +233,8 @@ export class TetrisRules {
     return y;
   }
   private spawn(type?: number) {
-    // 숨김 행 한 줄 아래에서 생성해 첫 프레임부터 블록의 일부를 볼 수 있게 한다.
-    this.piece = { type: type ?? this.queue.shift()!, rotation: 0, x: 3, y: 1 };
+    // 숨김 행 한 줄 아래, 넓어진 판의 중앙에서 생성해 첫 프레임부터 블록 일부를 보여 준다.
+    this.piece = { type: type ?? this.queue.shift()!, rotation: 0, x: SPAWN_X, y: 1 };
     this.fillQueue();
     this.gravity = 0;
     this.grounded = 0;

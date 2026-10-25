@@ -5,7 +5,7 @@ import { AuthRequestError } from "@/features/auth/client/api";
 import { authRetryDelay } from "@/features/auth/client/request-cooldown";
 import type { WaitingRoom } from "../waiting-contracts";
 import { readWaitingRoom, watchRoom } from "./api";
-import { getGameDisplayWindow, getGamePopup, subscribeToGamePopup } from "./game-popup";
+import { getGameDisplayWindow, getGamePopup, subscribeToGamePopup } from "@/features/games/client/game-popup";
 
 const RETRY_DELAYS = [1000, 2000, 4000, 8000, 10_000] as const;
 

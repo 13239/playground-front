@@ -8,7 +8,7 @@ import { RetryButton } from "@/app/_components/retry-button";
 import { revalidateAuthSession, useAuthSession } from "@/features/auth/client/session-store";
 import { aiDifficulties, aiRules, type AiDifficulty, type AiRule } from "../ai/contracts";
 import { useAiGame } from "../client/use-ai-game";
-import { useGamePopup } from "../client/use-game-popup";
+import { useGamePopup } from "@/features/games/client/use-game-popup";
 import { GameBoard } from "./game-board";
 import { GameResultDialog } from "./game-result-dialog";
 import { RoomDialog } from "./room-dialog";

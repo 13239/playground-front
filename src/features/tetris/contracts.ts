@@ -1,3 +1,5 @@
+import { RULE_VERSION } from "./engine/rules";
+
 /** BFF와 브라우저가 공유하는 공개 계약이다. 서버 시드 외에 내부 계정·로그인 정보는 전달하지 않는다. */
 export type TetrisRun = Readonly<{
   runId: string;
@@ -32,7 +34,8 @@ export function isRun(value: unknown): value is TetrisRun {
     nonnegative(value.seed) &&
     value.seed > 0 &&
     value.seed <= 0xffffffff &&
-    value.ruleVersion === 1
+    // 판 크기가 다른 구버전 서버의 시드로 게임을 시작하지 않는다.
+    value.ruleVersion === RULE_VERSION
   );
 }
 export function isOverview(value: unknown): value is Overview {

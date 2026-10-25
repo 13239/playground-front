@@ -1,6 +1,6 @@
 type DeviceNavigator = Navigator & { userAgentData?: { mobile: boolean; platform: string } };
 
-// 팝업은 원본 문서의 대국 UI만 표시한다. 같은 방의 연결과 재접속 상태는 원본에 한 번만 둔다.
+// 오목·테트리스 팝업은 원본 문서의 게임 UI만 표시한다. 연결·게임 상태는 원본에 한 번만 둔다.
 let activePopup: Window | null = null;
 const listeners = new Set<() => void>();
 

@@ -98,7 +98,9 @@ export class TetrisRuntime {
     this.held.delete(action);
   }
   keyDown(event: KeyboardEvent) {
-    const element = event.target instanceof HTMLElement ? event.target : null;
+    // 팝업의 HTMLElement는 원본 창과 생성자가 다르므로 노드 종류로 판별해 모달·버튼 입력을 보호한다.
+    const target = event.target as HTMLElement | null;
+    const element = target?.nodeType === 1 ? target : null;
     if (
       element?.closest("input,select,textarea,[contenteditable=true],dialog") ||
       event.altKey ||

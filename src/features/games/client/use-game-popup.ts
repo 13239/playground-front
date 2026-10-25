@@ -23,9 +23,60 @@ function subscribeToInputChange(onChange: () => void): () => void {
 /** 원본의 CSS·폰트와 nonce를 복사한다. 스크립트나 인증 정보를 별도 문서에 다시 생성하지 않는다. */
 function shareStyles(target: Document): () => void {
   let copies: Element[] = [];
+  let active = true;
+  const controller = new AbortController();
+  const fonts = new Map<string, Promise<FontFace>>();
+  const cssText = (rule: CSSRule, base: string) => {
+    if (rule.type === CSSRule.FONT_FACE_RULE) {
+      const face = rule as CSSFontFaceRule;
+      const path = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/i.exec(face.style.getPropertyValue("src"));
+      if (path) {
+        const url = new URL(path[1] ?? path[2] ?? path[3], base);
+        if (url.origin === location.origin) {
+          // 로컬 폰트는 원본 창에서 한 번 읽고 버퍼를 공유해 빈 팝업 문서의 네트워크 로딩에 의존하지 않는다.
+          const family = face.style.getPropertyValue("font-family").replace(/^['"]|['"]$/g, "");
+          const key = `${family}:${face.cssText}`;
+          if (!fonts.has(key)) {
+            const loading = fetch(url, { signal: controller.signal, credentials: "same-origin" })
+              .then(response => { if (!response.ok) throw new Error("Font unavailable"); return response.arrayBuffer(); })
+              .then(buffer => new FontFace(family, buffer, {
+                weight: face.style.getPropertyValue("font-weight") || "normal",
+                style: face.style.getPropertyValue("font-style") || "normal",
+                stretch: face.style.getPropertyValue("font-stretch") || "normal",
+                unicodeRange: face.style.getPropertyValue("unicode-range") || "U+0-10FFFF",
+                display: "swap",
+              }).load());
+            fonts.set(key, loading);
+            void loading.then(font => { if (active) target.fonts.add(font); }).catch(() => { /* 폰트 로딩 실패 시 기존 시스템 대체 글꼴로 플레이를 유지한다. */ });
+          }
+          return "";
+        }
+      }
+    }
+    return rule.cssText;
+  };
   const sync = () => {
     const next = Array.from(document.head.querySelectorAll<HTMLLinkElement | HTMLStyleElement>('link[rel="stylesheet"], style'), source => {
-      const copy = source.cloneNode(true) as HTMLLinkElement | HTMLStyleElement;
+      // about:blank에서는 링크의 로드 수명에 의존하지 않고 이미 검증·로드된 같은 출처 CSS를 즉시 공유한다.
+      // 상대 폰트·이미지 URL은 원본 스타일시트 기준으로 고정하고 원본 문서의 CSP nonce를 유지한다.
+      if (source.sheet) {
+        try {
+          const copy = target.createElement("style");
+          copy.nonce = document.querySelector<HTMLScriptElement>("script[nonce]")?.nonce || source.nonce;
+          copy.media = source.media;
+          const base = source.sheet.href ?? document.baseURI;
+          copy.textContent = Array.from(source.sheet.cssRules, rule => cssText(rule, base)).join("\n")
+            .replace(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/gi, (match, doubleQuoted, singleQuoted, unquoted) => {
+              try { return `url(${JSON.stringify(new URL((doubleQuoted ?? singleQuoted ?? unquoted).trim(), base).href)})`; }
+              catch { return match; }
+            });
+          return copy;
+        } catch { /* CSSOM을 읽을 수 없는 외부 스타일시트는 아래의 원래 링크 속성을 유지한다. */ }
+      }
+      // 새 문서에서 노드를 만들어 원본 link의 로드 상태를 가져오지 않고 팝업에서도 CSS를 정상 로드한다.
+      const copy = target.createElement(source.tagName.toLowerCase()) as HTMLLinkElement | HTMLStyleElement;
+      for (const attribute of source.attributes) copy.setAttribute(attribute.name, attribute.value);
+      copy.textContent = source.textContent;
       if (source.nonce) copy.nonce = source.nonce;
       if (source instanceof HTMLLinkElement) (copy as HTMLLinkElement).href = source.href;
       return copy;
@@ -38,11 +89,19 @@ function shareStyles(target: Document): () => void {
   // 지연 로드된 스타일과 개발 중 스타일 변경도 같은 팝업 문서에 반영한다.
   const observer = new MutationObserver(sync);
   observer.observe(document.head, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["href", "media", "disabled"] });
-  return () => observer.disconnect();
+  // 게임을 지연 로드할 때 아직 로딩 중이던 스타일시트도 완료 직후 반영한다.
+  document.head.addEventListener("load", sync, true);
+  return () => {
+    active = false;
+    controller.abort();
+    fonts.clear();
+    observer.disconnect();
+    document.head.removeEventListener("load", sync, true);
+  };
 }
 
-/** React 상태·서버 연결은 원본에 유지하고 같은 대국 UI를 한 개의 일반 팝업에만 표시한다. */
-export function useGamePopup(bodyClassName: string, title = "게임 · Playground") {
+/** React 상태·서버 연결은 원본에 유지하고 같은 게임 UI를 한 개의 일반 팝업에만 표시한다. */
+export function useGamePopup(bodyClassName: string, title = "게임 · Playground", { width: preferredWidth = 520, height: preferredHeight = 720 }: { width?: number; height?: number } = {}) {
   const supported = useSyncExternalStore(subscribeToInputChange, supportsGamePopup, () => false);
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [error, setError] = useState("");
@@ -127,11 +186,12 @@ export function useGamePopup(bodyClassName: string, title = "게임 · Playgroun
       // 사용자 클릭 직후 호출해야 하므로 이 호출 앞에서 비동기 작업을 기다리지 않는다.
       // 기본 OS 창 장식을 유지해 사용자가 제목 표시줄의 최소화·최대화 버튼을 사용할 수 있다.
       const display = window.screen as PopupScreen;
-      const width = Math.min(520, display.availWidth);
-      const height = Math.min(720, display.availHeight);
+      // 오목의 기본 크기는 유지하고 세로가 긴 테트리스는 게임에 맞는 최초 크기만 지정한다.
+      const width = Math.min(preferredWidth, display.availWidth);
+      const height = Math.min(preferredHeight, display.availHeight);
       const position = centeredPopupPosition(display, width, height);
       // 재표시에는 이 팝업만 다시 선택하며, 새 팝업을 열 때마다 이름을 새로 발급한다.
-      const name = `playground-gomoku-${createUuidV4()}`;
+      const name = `playground-game-${createUuidV4()}`;
       popupWindow = window.open("about:blank", name, `popup,width=${width},height=${height},left=${position.left},top=${position.top},resizable=yes,scrollbars=yes`);
       if (!popupWindow) {
         setError("팝업이 차단됐어요. 주소창에서 이 사이트의 팝업을 허용한 뒤 다시 눌러 주세요.");
@@ -198,7 +258,7 @@ export function useGamePopup(bodyClassName: string, title = "게임 · Playgroun
       disposeWindow.current?.();
       if (mounted.current) setError("팝업 창을 열지 못했어요. 브라우저 설정을 확인한 뒤 다시 시도해 주세요.");
     }
-  }, [bodyClassName, focus, title]);
+  }, [bodyClassName, focus, title, preferredWidth, preferredHeight]);
 
   return { supported, container, error, open, close, focus };
 }
