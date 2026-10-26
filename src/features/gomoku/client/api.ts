@@ -126,7 +126,7 @@ export async function closeRoom(
 }
 
 /** 대기실 조회·준비 결과를 같은 계약으로 검증하고 이전 계정의 늦은 응답을 사용하지 않는다. */
-async function waitingRequest(path: "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/kick",
+async function waitingRequest(path: "/api/gomoku/rooms/state" | "/api/gomoku/rooms/ready" | "/api/gomoku/rooms/kick" | "/api/gomoku/rooms/settings",
   sessionId: string, body: Readonly<Record<string, unknown>>): Promise<WaitingRoom> {
   const value = await readResponse(await requestAuthenticatedApi(path, { sessionId, ...body }), sessionId);
   if (!isWaitingRoom(value)) throw new AuthRequestError("대기실 정보를 확인하지 못했습니다.", 502);
@@ -143,6 +143,9 @@ export async function joinRoom(sessionId: string, input: JoinRoomInput): Promise
 }
 export const readWaitingRoom = (sessionId: string, roomId: number, pageId?: string) => waitingRequest("/api/gomoku/rooms/state", sessionId, { roomId, ...(pageId ? { pageId } : {}) });
 export const readyRoom = (sessionId: string, roomId: number, ready: boolean, pageId: string) => waitingRequest("/api/gomoku/rooms/ready", sessionId, { roomId, ready, pageId });
+/** 편집을 시작한 순서로 저장해 중간에 바뀐 방·준비 상태를 덮어쓰지 않는다. */
+export const updateRoomSettings = (sessionId: string, roomId: number, revision: number, pageId: string, draft: RoomDraft) =>
+  waitingRequest("/api/gomoku/rooms/settings", sessionId, { roomId, revision, pageId, ...draft });
 /** 서버는 방장·현재 페이지·좌석·revision과 선택한 재참가 정책을 모두 재검증한다. */
 export const kickRoom = (sessionId: string, roomId: number, seat: 1 | 2, revision: number, pageId: string, blockRejoin: boolean) =>
   waitingRequest("/api/gomoku/rooms/kick", sessionId, { roomId, seat, revision, pageId, blockRejoin });

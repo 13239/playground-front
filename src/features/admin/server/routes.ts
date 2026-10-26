@@ -7,7 +7,10 @@ import { ApiError, apiErrorResponse } from "@/lib/server/api-error";
 import { backendRequest } from "@/lib/server/backend-client";
 import { readJsonBody } from "@/lib/server/request-body";
 import { assertSameOrigin } from "@/lib/server/request-security";
+import { parseAdminGameFilter, parseFilterGrid } from "../filter-contracts";
+import { parseGameFilterPage } from "@/features/games/filter-contracts";
 import { gameCodePattern } from "@/features/games/contracts";
+import { isCardLabelCodes } from "@/features/games/card-labels";
 import { parseContext, parsePermissions, parseRole, parseRoleSummary, parsePolicy, parsePage, parseGame, parseMode, parseGenre, parseImplementations } from "../contracts";
 import { parseUserPage, parseUserDetails, parseSensitive, parseUserRole, parseNicknamePage, parseUserRoleOptions } from "../user-contracts";
 import { parseActivityLogPage, parseAuditLogPage, parseActivityLogDetails, parseAuditLogDetails, parseLogOptions } from "../log-contracts";
@@ -18,7 +21,7 @@ import { parseCatalogOrderPage, parseCatalogOrderResult } from "../catalog-order
 import { parseGameGridPage, parseGenreGridPage, parseAdminGenre } from "../catalog-grid-contracts";
 import { parseGenreOptionPage, MAX_GAME_GENRES } from "../genre-options-contracts";
 
-type Endpoint = Readonly<{ parse: (v: unknown) => unknown; fields?: readonly string[]; query?: "list" | "roles" | "delete" | "users" | "history" | "activity-logs" | "audit-logs" | "chat" | "dashboard" | "catalog-order" | "catalog-grid"; status?: 200 | 204 }>;
+type Endpoint = Readonly<{ parse: (v: unknown) => unknown; fields?: readonly string[]; query?: "filter-grid" | "list" | "roles" | "delete" | "users" | "history" | "activity-logs" | "audit-logs" | "chat" | "dashboard" | "catalog-order" | "catalog-grid"; status?: 200 | 204 }>;
 const roleFields = ["name", "description", "permissions", "reason"];
 const availabilityFields = ["published", "availability", "message", "expectedVersion"];
 // 수동 순서값은 일반 저장 경로에서 받지 않고 그리드 이동 요청으로만 변경한다.
@@ -29,6 +32,21 @@ const gameFields = ["metadata", "expectedVersion"];
 /** 고정된 관리 기능만 전달한다. 임의 URL·메서드나 미래에 추가된 Spring API를 자동 공개하지 않는다. */
 function endpoint(segments: readonly string[], method: string): Endpoint {
   const [area, code, sub, mode, action] = segments;
+  // 공통 필터의 CRUD·순서·선택 조회만 기존 관리자 인증 경계에 공개한다.
+  if (area === "game-filters") {
+    if (code === "order" && segments.length === 2) {
+      if (method === "GET") return { parse: parseCatalogOrderPage, query: "catalog-order" };
+      if (method === "PUT") return { parse: parseCatalogOrderResult, fields: ["expectedVersion", "moves"] };
+    }
+    if (code === "options" && segments.length === 2 && method === "GET") return { parse: parseGameFilterPage, query: "list" };
+    if (segments.length === 1 && method === "GET") return { parse: parseFilterGrid, query: "filter-grid" };
+    if (segments.length === 2 && gameCodePattern.test(code)) {
+      if (method === "GET") return { parse: parseAdminGameFilter };
+      if (method === "POST" || method === "PUT") return { parse: parseAdminGameFilter, fields: ["name", "type", "icon", "enabled", "minPlayers", "maxPlayers", "graphicsType", "expectedVersion"] };
+      if (method === "DELETE") return { parse: () => undefined, query: "delete", status: 204 };
+    }
+    throw new ApiError("INVALID_REQUEST_BODY");
+  }
   // 장르 선택기의 커서 조회는 관리 그리드의 번호 페이지 조회와 분리한다.
   if (area === "game-genres" && code === "options" && segments.length === 2 && method === "GET") {
     return { parse: parseGenreOptionPage, query: "list" };
@@ -121,7 +139,7 @@ function assertFields(value: unknown, fields: readonly string[]): asserts value 
 /** 쿼리 중복·미등록 조건은 거절하고 서명한 인코딩/순서를 그대로 상위 서버에 전달한다. */
 function validateQuery(url: URL, kind: Endpoint["query"]): void {
   const keys = [...url.searchParams.keys()];
-  const allowed = kind === "catalog-grid" ? ["query", "page", "size"] : kind === "catalog-order" ? ["page", "size"] : kind === "dashboard" ? ["period"] : kind === "chat" ? ["from","to","query","scope","gameCode","roomId","page","size"] : kind === "delete" ? ["expectedVersion"] : kind === "users" ? ["query","page","size","status","roleCode"] : kind === "history" ? ["page","size"]
+  const allowed = kind === "filter-grid" ? ["query", "type", "enabled", "page", "size"] : kind === "catalog-grid" ? ["query", "page", "size"] : kind === "catalog-order" ? ["page", "size"] : kind === "dashboard" ? ["period"] : kind === "chat" ? ["from","to","query","scope","gameCode","roomId","page","size"] : kind === "delete" ? ["expectedVersion"] : kind === "users" ? ["query","page","size","status","roleCode"] : kind === "history" ? ["page","size"]
     : kind === "activity-logs" ? ["from","to","query","type","result","page","size"]
       : kind === "audit-logs" ? ["from","to","query","action","targetType","page","size"] : kind ? ["query", "cursor", "limit"] : [];
   if (new Set(keys).size !== keys.length || keys.some(k => !allowed.includes(k))) throw new ApiError("INVALID_REQUEST_BODY");
@@ -141,7 +159,9 @@ function validateQuery(url: URL, kind: Endpoint["query"]): void {
       || key === "targetType" && !/^[A-Z][A-Z0-9_]{0,31}$/.test(value)
       // 회원/이력/로그는 양의 페이지 번호와 네 가지 표시 개수만 전달한다.
       || key === "page" && (!/^[1-9]\d{0,9}$/.test(value) || Number(value) > 2147483647)
-      || key === "size" && !/^(?:10|20|30|50)$/.test(value)
+      || key === "enabled" && !["true", "false"].includes(value)
+      || key === "type" && kind === "filter-grid" && !["GENRE", "PLAYERS", "GRAPHICS"].includes(value)
+      || key === "size" && !(kind === "filter-grid" ? /^(?:20|30|40|50)$/ : kind === "catalog-order" ? /^(?:10|20|30|40|50)$/ : /^(?:10|20|30|50)$/).test(value)
       || key === "cursor" && !(kind === "roles" ? gameCodePattern : kind === "users" || kind === "history" ? /^[1-9]\d{0,18}$/ : /^\d{1,7}:\d{1,19}$/).test(value)) throw new ApiError("INVALID_REQUEST_BODY");
   }
   if (kind === "delete" && !url.searchParams.has("expectedVersion")) throw new ApiError("INVALID_REQUEST_BODY");
@@ -161,14 +181,17 @@ export async function handleAdminRequest(request: Request, segments: readonly st
     const proof = await readBrowserProof(request.clone());
     let body: Record<string, unknown> | undefined;
     if (spec.fields) {
-      const input = await readJsonBody(request, 16384);
+      // 최대 장르 연결·카드 라벨·한글 설명을 함께 저장할 수 있게 게임 정보만 32KiB까지 허용한다.
+      const input = await readJsonBody(request, spec.fields.includes("metadata") ? 32768 : 16384);
       assertFields(input, spec.fields);
       if ("metadata" in input) {
-        assertFields(input.metadata, ["name", "summary", "description", "genreCodes"]);
+        assertFields(input.metadata, ["name", "summary", "description", "genreCodes", "cardLabelCodes"]);
         const codes = input.metadata.genreCodes;
         // 폐기한 이미지·사유 필드를 전달하지 않고 장르 코드의 크기·문법·중복도 여기서 제한한다.
         if (!Array.isArray(codes) || codes.length > MAX_GAME_GENRES || new Set(codes).size !== codes.length
           || codes.some(code => typeof code !== "string" || !gameCodePattern.test(code))) throw new ApiError("INVALID_REQUEST_BODY");
+        // 카드 라벨도 크기·형식·중복을 먼저 검사하고 실제 장르·모드와의 일치는 Spring이 검증한다.
+        if (!isCardLabelCodes(input.metadata.cardLabelCodes)) throw new ApiError("INVALID_REQUEST_BODY");
       }
       // 중첩 이동 항목에도 허용 필드·개수·코드 문법을 적용해 임의 정렬값이나 대량 본문을 전달하지 않는다.
       if ("moves" in input) {

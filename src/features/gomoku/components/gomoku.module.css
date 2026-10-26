@@ -1,12 +1,34 @@
 /* 오목 전용 배치를 격리하고 공통 헤더·계정의 기존 스타일은 그대로 공유한다. */
+/* 본문 글자를 창 너비에 묶으면 em으로 만든 버튼·간격·아이콘이 페이지째 커진다. */
 .screen {
   width: min(100%, 2880px);
-  font-size: clamp(15px, 0.88vw, 21px);
+}
+.screen[data-gomoku-screen] {
+  /* 로비 화면의 유동 글자 크기보다 우선해 창을 넓혀도 오목 본문이 확대되지 않게 한다. */
+  font-size: 16px;
+}
+@media (min-width: 1280px) {
+  .screen[data-gomoku-screen] {
+    /* 바깥 여백은 더 늘리지 않고, 넓어진 창의 남는 폭은 본문 밖에 둔다. */
+    --gutter: 24px;
+    --gap: 20px;
+  }
+}
+@media (min-width: 1600px) {
+  .screen > header {
+    /* 공통 헤더의 vw 글자·간격이 넓은 오목 화면에서 같이 커지지 않게 한다. */
+    font-size: 16px;
+    gap: 2rem;
+  }
 }
 .main {
   flex: 1;
   min-width: 0;
   padding-block: 0.25em 2em;
+  /* 테트리스 본문처럼 목록·생성·대기실·대국은 이 폭 이후 가운데에 두고 더 넓히지 않는다. */
+  --content-width: 1880px;
+  width: min(100%, var(--content-width));
+  margin-inline: auto;
 }
 /* 공통 헤더 아이콘은 홈 크기를 유지하고, 오목 본문과 대화창 아이콘만 이 크기를 쓴다. */
 .screen > :not(header) svg,
@@ -159,7 +181,7 @@
 /* 제목·배경 이미지를 분리하고 이미지의 왼쪽은 읽기 쉬운 밝은 그라데이션으로 덮는다. */
 .hero {
   position: relative;
-  min-height: clamp(165px, 11vw, 250px);
+  min-height: 200px;
   overflow: hidden;
   border: 1px solid #ffffffd6;
   border-radius: 1.3em;
@@ -235,7 +257,8 @@
 .hero h1 {
   margin: 0 0 0.18em;
   color: #130b4d;
-  font-size: clamp(1.85em, 2.6vw, 3em);
+  /* 제목은 창 너비와 따로 두어 큰 화면에서 본문보다 더 커지지 않게 한다. */
+  font-size: 2.75em;
   font-weight: 900;
   letter-spacing: -0.055em;
   line-height: 1.2;
@@ -274,9 +297,10 @@
   padding-inline: 0;
 }
 
+/* 사이드바 너비는 고정해 창을 넓혀도 시작 카드가 함께 커지지 않게 한다. */
 .listLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(300px, 22vw, 430px);
+  grid-template-columns: minmax(0, 1fr) 320px;
   align-items: start;
   gap: 1.35em;
 }
@@ -722,8 +746,9 @@
 }
 
 /* 생성 폼은 고정 규칙·고급 설정 없이 사용자가 고를 수 있는 다섯 행만 표시한다. */
+/* 페이지 폭은 본문 상한을 따르고, 넓은 화면에서 폼과 미리보기가 따로 늘어나지 않는다. */
 .createPage {
-  max-width: 2400px;
+  width: 100%;
   margin-inline: auto;
 }
 .createGrid {
@@ -735,7 +760,8 @@
 .roomForm {
   display: flex;
   flex-direction: column;
-  padding: clamp(22px, 2vw, 46px);
+  /* 안쪽 여백을 창 너비에 묶지 않는다. 1200px 이하에서는 더 줄인다. */
+  padding: 2em;
 }
 .sectionHeading {
   display: flex;
@@ -988,14 +1014,14 @@
   max-width: 60%;
 }
 
-/* 데스크톱 대국은 실제 표시 높이를 헤더·본문·푸터로 나눈다. 본문 컨테이너의 cqh로 판 크기를 계산한다.
+/* 데스크톱 대국은 실제 표시 높이를 헤더·본문·푸터로 나눈다. 짧은 창에서만 본문 높이로 판을 줄이고 글자는 키우지 않는다.
    공통 푸터의 아래 간격은 이 높이 계산에서 빼 판 영역을 유지한다.
-   목록·대기실·작은 터치 화면은 기존 문서 흐름을 유지하고 확대·키보드 탐색을 제한하지 않는다. */
+   목록·대기실·작은 터치 화면은 기존 문서 흐름을 유지하고 브라우저 확대·키보드 탐색을 제한하지 않는다. */
 @media (min-width: 1101px) and (min-height: 600px) {
   .screen:has([data-gomoku-game]) {
     height: 100dvh;
     min-height: 100dvh;
-    font-size: clamp(14px, .88vw, 18px);
+    font-size: 16px;
   }
   .screen:has([data-gomoku-game]) > header,
   .screen:has([data-gomoku-game]) > footer { flex: 0 0 auto; }
@@ -1078,7 +1104,7 @@
   border-top: 1px solid #e8def7;
 }
 
-/* 화면 폭이 줄면 표를 카드로 전환한다. 큰 화면은 최대 폭과 유동 글자 크기로 과도한 확장을 막는다. */
+/* 화면 폭이 줄면 표를 카드로 전환한다. 큰 화면은 같은 글자 크기를 유지하고 최대 폭만 제한한다. */
 @media (max-width: 1400px) {
   .listLayout {
     grid-template-columns: minmax(0, 1fr) 285px;

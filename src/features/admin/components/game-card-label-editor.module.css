@@ -1,0 +1,18 @@
+/* 기본 체크박스와 전역 1px 포커스를 유지하고 긴 장르명·작은 화면에서도 선택 영역을 줄바꿈한다. */
+.editor { min-width: 0; margin: 22px 0 0; padding: 16px; border: 1px solid #e5dcf7; border-radius: 12px; }
+.editor > legend { padding: 0 7px; color: #49315f; font-size: 0.9rem; font-weight: 750; }
+.description, .empty { margin: 0; color: #887991; font-size: 0.76rem; line-height: 1.7; overflow-wrap: anywhere; }
+.description { margin-bottom: 16px; }
+.group { min-width: 0; margin: 0 0 14px; padding: 0; border: 0; }
+.group legend { margin-bottom: 7px; color: #695577; font-size: 0.78rem; font-weight: 650; }
+.options { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; max-width: 100%; padding: 8px 12px; border: 1px solid #e5ddf1; border-radius: 9px; background: #fff; color: #685477; font-size: 0.82rem; cursor: pointer; }
+.choice:has(:checked) { border-color: #b08ae7; background: #f4edff; color: #7433be; }
+.choice:has(:disabled) { cursor: not-allowed; opacity: 0.65; }
+.choice input { flex: 0 0 auto; width: 18px; height: 18px; accent-color: #8b32f5; }
+.choice span { overflow-wrap: anywhere; }
+.previewHeading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 18px; color: #695577; font-size: 0.78rem; }
+.previewHeading button { min-height: 36px; font-size: 0.75rem; }
+.preview { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 48px; margin-top: 8px; padding: 12px; border-radius: 9px; background: #faf7ff; }
+.preview > span { max-width: 100%; padding: 4px 8px; border-radius: 999px; background: #eee5ff; color: #7c3aed; font-size: 0.75rem; font-weight: 650; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .editor { padding: 12px; } .choice { padding-inline: 10px; } }

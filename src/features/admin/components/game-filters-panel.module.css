@@ -1,0 +1,43 @@
+/* 공통 관리자 테마와 1px 포커스를 공유하고 이 화면만 요청한 목록·툴팁·중앙 페이징을 적용한다. */
+.headingTitle { position: relative; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.headingTitle h2 { white-space: nowrap; }
+.help { display: inline-flex; align-items: center; }
+.headingTitle .infoButton { display: inline-grid; place-items: center; width: 38px; height: 38px; min-height: 38px; padding: 8px; border: 0; background: transparent; color: #8b35f1; }
+.infoButton svg { width: 19px; height: 19px; }
+.tooltip { position: absolute; z-index: 5; top: calc(100% + 5px); left: 0; width: min(360px, calc(100vw - 80px)); padding: 12px 14px; border: 1px solid #e1d1fb; border-radius: 10px; background: #fffdff; color: #685178; box-shadow: 0 8px 28px #39205b20; font-size: 0.8rem; line-height: 1.7; visibility: hidden; opacity: 0; overflow-wrap: anywhere; }
+.help:not([data-dismissed="true"]):is(:hover, :focus-within, [data-open="true"]) .tooltip { visibility: visible; opacity: 1; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.tabs button { display: inline-flex; gap: 7px; align-items: center; }
+.tabs button span { font-size: 0.72rem; opacity: 0.75; }
+.tabs button[aria-pressed="true"] { border-color: #8b35f1; background: #8b35f1; color: white; }
+.toolbar { flex-wrap: wrap; }
+.toolbar > form { min-width: 180px; }
+.status { margin-left: auto; }
+.status select { width: 130px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: white; }
+.table { min-width: 950px; }
+/* 아이콘 열의 가로 고정은 해제하되 헤더의 세로 고정은 유지하고 본문 셀만 일반 배치한다. */
+.table :is(th,td):nth-child(2) { min-width: 54px; max-width: none; }
+.table thead th:nth-child(2) { left: auto; z-index: 2; }
+.table tbody td:nth-child(2) { position: static; }
+.table :is(th,td):nth-child(3) { min-width: 140px; }
+.table td { height: 54px; }
+.filterIcon { display: inline-flex; color: #56308b; }
+.filterIcon svg { width: 22px; height: 22px; }
+.typeBadge { display: inline-block; padding: 5px 10px; border-radius: 8px; font-size: 0.73rem; white-space: nowrap; background: #f3eaff; color: #8b45d3; }
+.typeBadge[data-type="PLAYERS"] { background: #eaf1ff; color: #637cc4; }
+.typeBadge[data-type="GRAPHICS"] { background: #fff0e7; color: #c57742; }
+.rowActions { display: flex; gap: 6px; }
+.rowActions button { display: inline-grid; place-items: center; width: 38px; padding: 7px; border-color: transparent; background: transparent; }
+.rowActions svg { width: 19px; height: 19px; }
+.preview { margin-top: 20px; padding: 16px; border: 1px solid #e8def9; border-radius: 12px; background: #faf7ff; }
+.preview h3 { margin: 0 0 12px; }
+.previewItems { display: flex; flex-wrap: wrap; gap: 9px; }
+.previewItems > span { display: inline-flex; align-items: center; gap: 9px; max-width: 100%; min-height: 44px; padding: 10px 14px; border: 1px solid #e9dfff; border-radius: 10px; background: white; color: #674091; font-size: 0.8rem; overflow-wrap: anywhere; }
+.previewItems svg { flex: 0 0 auto; width: 22px; height: 22px; color: #8b35f1; }
+.pagination { display: flex; justify-content: center; padding-top: 18px; margin-top: 18px; border-top: 1px solid #eee8fa; }
+.iconPicker { display: flex; align-items: center; gap: 12px; }
+.iconPicker svg { width: 25px; height: 25px; color: #8b35f1; }
+.iconPicker select { flex: 1; }
+/* 공통 순서 편집도 필터 화면에 한해서 개수 표기를 없애고 탐색을 중앙에 둔다. */
+.orderPanel > div:last-of-type { justify-content: center; }
+@media (max-width: 680px) { .toolbar > form { flex-basis: 100%; max-width: none; } .status { margin-left: 0; } .preview { padding: 12px; } .tabs button { flex: 1 1 auto; justify-content: center; } }

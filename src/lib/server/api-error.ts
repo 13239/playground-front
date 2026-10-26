@@ -32,6 +32,11 @@ const errors = {
   CATALOG_GENRE_NOT_FOUND: [404, "게임 장르를 찾을 수 없습니다."],
   CATALOG_GENRE_DISABLED: [409, "사용 중지된 장르는 새로 연결할 수 없습니다. 장르 선택을 확인해 주세요."],
   GAME_CONFIGURATION_INVALID: [400, "게임 설정이 지원 범위를 벗어났습니다. 입력값을 확인해 주세요."],
+  // 관리 카드 라벨의 지원 범위 오류를 임의 서버 메시지 없이 공개한다.
+  GAME_FILTER_NOT_FOUND: [404, "게임 필터를 찾을 수 없습니다."],
+  GAME_FILTER_CONFIGURATION_INVALID: [400, "필터 유형과 조건을 확인해 주세요."],
+  GAME_FILTER_IN_USE: [409, "연결된 게임이 있어 삭제하거나 조건을 변경할 수 없습니다. 게임 연결을 먼저 해제해 주세요."],
+  GAME_CARD_LABEL_INVALID: [400, "선택한 카드 라벨이 현재 게임 정보와 맞지 않습니다. 라벨을 다시 선택해 주세요."],
   GAME_CATALOG_CHANGED: [409, "게임 설정이 변경되었습니다. 최신 내용을 불러온 뒤 다시 편집해 주세요."],
   GAME_CATALOG_CONFLICT: [409, "이미 등록되어 있거나 다른 관리자가 변경한 설정입니다."],
   VALIDATION_FAILED: [400, "입력값이 올바르지 않습니다."],
@@ -62,6 +67,9 @@ const errors = {
   ROOM_KICKED_REJOIN_ALLOWED: [403, "방장에 의해 강퇴되었습니다."],
   ROOM_KICK_FORBIDDEN: [403, "상대 강퇴는 대기 중인 방장만 할 수 있습니다."],
   ROOM_KICK_TARGET_CHANGED: [409, "참가자 정보가 변경되었습니다. 확인 후 다시 시도해 주세요."],
+  // 방 설정의 권한·편집 충돌은 서버 원문 없이 공개 안내로만 전달한다.
+  ROOM_SETTINGS_FORBIDDEN: [403, "방 설정은 현재 방장만 변경할 수 있습니다."],
+  ROOM_SETTINGS_CHANGED: [409, "방 상태가 변경되었습니다. 최신 설정을 확인한 뒤 다시 저장해 주세요."],
   // 대국 상태 충돌은 최신 판을 다시 조회하고 금수·무르기는 구체적인 안내를 제공한다.
   GAME_STATE_CHANGED: [409, "대국 상태가 변경되었습니다. 현재 판을 확인하고 다시 시도해 주세요."],
   GAME_NOT_YOUR_TURN: [409, "상대의 차례입니다."],

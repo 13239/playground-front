@@ -69,6 +69,7 @@ export function parseGame(v: unknown): Game {
   assert(isCatalogGame(v));
   return { code: v.code, name: v.name, summary: v.summary, description: v.description, published: v.published,
     availability: v.availability, unavailableMessage: v.unavailableMessage, firstPublishedAt: v.firstPublishedAt, ...extra,
+    cardLabelCodes: [...v.cardLabelCodes], cardLabels: v.cardLabels.map(label => ({ ...label })),
     genres: array(v.genres, parseGenre), modes: array(v.modes, parseMode) };
 }
 export function parseImplementation(v: unknown): Implementation {

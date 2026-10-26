@@ -12,12 +12,14 @@ import {
   useAuthSession,
 } from "@/features/auth/client/session-store";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
-import { kickRoom, leaveRoom, newRoomRequestId, readWaitingRoom, readyRoom, sendGameAction } from "../client/api";
+import { kickRoom, leaveRoom, newRoomRequestId, readWaitingRoom, readyRoom, sendGameAction, updateRoomSettings } from "../client/api";
 import { useRoomSync } from "../client/use-room-sync";
 import { useRoomDeparture } from "../client/use-room-departure";
 import type { GameAction } from "../game-contracts";
+import type { RoomDraft } from "../contracts";
 import type { WaitingParticipant, WaitingRoom } from "../waiting-contracts";
 import { RoomDialog } from "./room-dialog";
+import { RoomSettingsDialog } from "./room-settings-dialog";
 import { RoomChatPanel } from "./room-chat-panel";
 import { GameRoom } from "./game-room";
 import gameStyles from "./game-room.module.css";
@@ -143,7 +145,9 @@ function AuthenticatedWaitingRoom({
   const room = snapshot?.room;
   const [error, setError] = useState("");
   const [fatal, setFatal] = useState(false);
-  const [pending, setPending] = useState<"ready" | "leave" | "kick" | "game" | null>(null);
+  const [pending, setPending] = useState<"ready" | "leave" | "kick" | "game" | "settings" | null>(null);
+  // 설정 폼은 현재 스냅샷과 별개로 입력을 보존하며 대국 시작·방장 변경 시 화면에서 해제한다.
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // 확인 중 다른 사용자가 같은 좌석에 들어오면 이전 선택을 취소하도록 당시 revision을 함께 보관한다.
   const [kickTarget, setKickTarget] = useState<Readonly<{ participant: WaitingParticipant; revision: number }>>();
   const [kickMode, setKickMode] = useState<"allow" | "block" | null>(null);
@@ -174,6 +178,7 @@ function AuthenticatedWaitingRoom({
     // 인증 재확인 뒤에도 바깥 수명 관리자가 같은 참가·pageId를 재사용하도록 본인의 참가 정보만 전달한다.
     onMembership(sessionId, next.membershipId);
     setSnapshot({ room: next, receivedAt: performance.now() });
+    if (next.status !== "WAITING" || !next.participants.some(p => p.self && p.host)) setSettingsOpen(false);
     // 좌석이 같아도 revision이 변경되면 재확인을 받아 새 참가자를 잘못 강퇴하지 않는다.
     setKickTarget(current => current && next.revision === current.revision && next.participants.some(
       p => p.seat === current.participant.seat && p.nickname === current.participant.nickname && !p.self,
@@ -272,6 +277,27 @@ function AuthenticatedWaitingRoom({
       // 전송 성공 여부가 불명확한 경우 새 참가자가 대상인지 재확인한 후에만 다시 시도할 수 있게 한다.
       if (mounted.current) setKickError(failure instanceof AuthRequestError ? failure.message : "강퇴하지 못했습니다. 다시 확인해 주세요.");
       try { accept(await readWaitingRoom(sessionId, roomId, pageId)); } catch { /* 다음 동기화 주기가 복구한다. */ }
+    } finally {
+      busy.current = false;
+      if (mounted.current) setPending(null);
+    }
+  }
+
+  /** 준비·퇴장·강퇴와 같은 요청 잠금을 사용하고 불명확한 저장 결과는 조회로 복구한다. */
+  async function saveSettings(draft: RoomDraft, expectedRevision: number) {
+    if (!room || !pageId || busy.current || room.game || !room.participants.some(p => p.self && p.host)) {
+      throw new AuthRequestError("방 상태를 확인한 뒤 다시 시도해 주세요.", 409);
+    }
+    busy.current = true;
+    setPending("settings");
+    try {
+      accept(await updateRoomSettings(sessionId, roomId, expectedRevision, pageId, draft));
+      if (mounted.current) setSettingsOpen(false);
+    } catch (failure) {
+      try { accept(await readWaitingRoom(sessionId, roomId, pageId)); }
+      catch (recoveryFailure) { fail(recoveryFailure); }
+      if (failure instanceof AuthRequestError && (failure.status === 401 || failure.code === "LOGIN_SESSION_CHANGED")) fail(failure);
+      throw failure;
     } finally {
       busy.current = false;
       if (mounted.current) setPending(null);
@@ -482,10 +508,16 @@ function AuthenticatedWaitingRoom({
             onKick={() => selectKickTarget(ordered[1])} />
         </div>
         <section className={styles.rules} aria-labelledby="waiting-rules-title">
-          <h2 id="waiting-rules-title">
-            <LobbyIcon name="book" />
-            규칙
-          </h2>
+          <div className={styles.rulesHeading}>
+            <h2 id="waiting-rules-title">
+              <LobbyIcon name="book" />
+              규칙
+            </h2>
+            {/* 규칙 영역의 우측 아이콘은 대기 중인 방장에게만 표시한다. */}
+            {self.host && <button type="button" className={styles.settingsButton} aria-label="방 설정 변경"
+              title="방 설정 변경" aria-haspopup="dialog" disabled={!pageId || pending !== null}
+              onClick={() => setSettingsOpen(true)}><LobbyIcon name="gear" /></button>}
+          </div>
           <dl className={styles.ruleGrid}>
             <Rule
               icon="board"
@@ -576,6 +608,10 @@ function AuthenticatedWaitingRoom({
         </div>
       </section>}
       <RoomChatPanel key={`${room.id}:${room.membershipId}`} room={room} />
+      {settingsOpen && !room.game && self.host && (
+        <RoomSettingsDialog room={room} busy={pending === "settings"}
+          onSave={saveSettings} onClose={() => setSettingsOpen(false)} />
+      )}
       {kickTarget && !room.game && self.host && (
         <RoomDialog
           title="강퇴 방식 선택"

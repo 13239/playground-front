@@ -111,7 +111,7 @@ export function CatalogOrderEditor({ area, label, size, cancel, saved }: {
           </tr>)}</tbody>
       </table>
     </div>
-    <div className={grid.footer}><p className={styles.hint}>{order.count.toLocaleString()}개 · {order.dirty ? "저장하지 않은 순서 변경이 있어요." : "전체 노출 순서"}</p>
+    <div className={area === "game-filters" ? grid.centeredFooter : grid.footer}>{area !== "game-filters" && <p className={styles.hint}>{order.count.toLocaleString()}개 · {order.dirty ? "저장하지 않은 순서 변경이 있어요." : "전체 노출 순서"}</p>}
       <NumberedPagination page={order.page} totalPages={order.totalPages} loading={order.busy || order.loading || order.conflict}
         change={order.setPage} label={`${label} 순서 변경 페이지 탐색`} /></div>
     {confirmCancel && <ConfirmDialog title="순서 변경을 취소할까요?" close={() => setConfirmCancel(false)} confirm={cancel}><p>저장하지 않은 순서 변경을 버리고 목록으로 돌아가요.</p></ConfirmDialog>}

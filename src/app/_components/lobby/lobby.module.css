@@ -623,7 +623,9 @@
 .gameGrid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  align-items: start;
+  /* 줄마다 가장 긴 내용에 끌려가지 않도록 모든 행과 카드를 같은 높이로 맞춘다. */
+  grid-auto-rows: 1fr;
+  align-items: stretch;
   gap: 1em;
 }
 .gameCard {
@@ -642,8 +644,11 @@
   box-shadow: 0 9px 22px #8771cf24;
 }
 .gameCardButton {
-  display: block;
+  display: grid;
+  grid-template-rows: auto 1fr;
   width: 100%;
+  height: 100%;
+  min-width: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -699,25 +704,55 @@
   height: 1.15em;
 }
 .gameInfo {
+  /* 제목 1줄·소개 2줄·라벨 2줄을 항상 확보해 내용과 라벨 유무가 카드 높이를 바꾸지 않게 한다. */
+  --card-title-size: 1em;
+  --card-copy-size: max(11px, 0.67em);
+  --card-tag-size: max(11px, 0.67em);
+  --card-tag-gap: 0.4em;
+  display: grid;
+  grid-template-rows:
+    calc(1.5 * var(--card-title-size))
+    calc(3 * var(--card-copy-size))
+    calc(3.6 * var(--card-tag-size) + var(--card-tag-gap));
+  align-content: start;
+  gap: 0.35em;
+  min-width: 0;
   padding: 0.6em 0.8em 0.75em;
 }
 .gameInfo h3 {
   margin: 0;
-  font-size: 1em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--card-title-size);
+  line-height: 1.5;
   font-weight: 850;
   letter-spacing: -0.04em;
 }
 .gameInfo > p {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.35em;
-  margin: 0.35em 0 0.6em;
+  min-width: 0;
+  margin: 0;
   color: #7675a1;
-  font-size: max(11px, 0.67em);
+  font-size: var(--card-copy-size);
   line-height: 1.5;
+}
+/* 아이콘과 별개인 텍스트에만 2줄 말줄임을 적용해 긴 한국어·공백 없는 소개도 넘치지 않게 한다. */
+.gameDescription {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 .gameInfo > p svg {
   flex: 0 0 auto;
+  margin-top: 0.15em;
   width: 1.2em;
   height: 1.2em;
 }
@@ -734,6 +769,21 @@
   font-size: max(11px, 0.67em);
   font-weight: 700;
   line-height: 1.5;
+}
+/* 대화창의 전체 라벨 목록은 유지하고 홈 카드 안에서만 두 줄 높이와 긴 라벨 말줄임을 적용한다. */
+.gameInfo > .gameTags {
+  align-content: start;
+  gap: var(--card-tag-gap);
+  min-width: 0;
+  overflow: hidden;
+}
+.gameInfo > .gameTags > span {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--card-tag-size);
 }
 
 /* 바둑판 좌표는 장식용 CSS 변수로만 사용하며 사용자 입력이나 실행 코드로 해석하지 않는다. */
@@ -1494,13 +1544,17 @@
     aspect-ratio: 1.5;
   }
   .gameInfo {
+    /* 작은 화면에서도 같은 슬롯 계산을 사용하고 표지 비율·글자 크기만 기존 모바일 기준에 맞춘다. */
+    --card-title-size: 1.02em;
+    --card-copy-size: max(11px, 0.65em);
+    --card-tag-size: max(11px, 0.65em);
     padding: 0.7em 0.75em 0.8em;
   }
   .gameInfo h3 {
-    font-size: 1.02em;
+    font-size: var(--card-title-size);
   }
   .gameInfo > p {
-    font-size: max(11px, 0.65em);
+    font-size: var(--card-copy-size);
   }
   .gameTags > span {
     font-size: max(11px, 0.65em);

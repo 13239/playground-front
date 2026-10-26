@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { requireSuccess, AuthRequestError } from "@/features/auth/client/error";
-import { isCatalogPage, isGenrePage, type CatalogGame, type CatalogGenre } from "../contracts";
+import { isCatalogPage, type CatalogGame } from "../contracts";
+import { parseGameFilterPage, type GameFilter } from "../filter-contracts";
 import type { GameCategoryId } from "@/features/lobby/catalog";
 import { useCatalogResume } from "./use-catalog-resume";
 
@@ -10,11 +11,8 @@ type Page = Readonly<{ key: string; items: readonly CatalogGame[]; nextCursor: s
 function queryFor(category: GameCategoryId, search: string): string {
   const query = new URLSearchParams({ limit: "40" });
   if (search.trim()) query.set("query", search.trim());
-  if (category === "2d" || category === "3d") query.set("graphics", category === "2d" ? "TWO_D" : "THREE_D");
-  if (category === "singleplayer" || category === "multiplayer") query.set("players", category === "singleplayer" ? "SINGLE" : "MULTIPLAYER");
-  if (category === "twoplayer" || category === "group") query.set("players", category === "twoplayer" ? "TWO" : "GROUP");
   if (category === "new") query.set("newOnly", "true");
-  if (category.startsWith("genre:")) query.set("genre", category.slice(6));
+  if (category.startsWith("filter:")) query.set("filter", category.slice(7));
   return query.toString();
 }
 
@@ -67,38 +65,33 @@ export function useGameCatalog(category: GameCategoryId, search: string) {
     morePending: moreState?.key === key && moreState.pending, loadMore, retry };
 }
 
-/** 장르도 커서로 확장한다. 아직 읽지 않은 장르가 있으면 목록에서 이어서 요청한다. */
-export function useGameGenres() {
+/** 사용 중인 필터는 커서를 자동으로 이어 읽어 홈 탐색에 전체 항목을 제공한다. */
+export function useGameFilters() {
   const [attempt, setAttempt] = useState(0);
-  const [page, setPage] = useState<{ attempt: number; items: readonly CatalogGenre[]; nextCursor: string | null; error?: string }>();
-  const [moreState, setMoreState] = useState<{ attempt: number; pending: boolean }>();
-  const running = useRef<AbortController | undefined>(undefined);
+  const [page, setPage] = useState<{ attempt: number; items: readonly GameFilter[]; error?: string }>();
   const retry = useCallback(() => setAttempt(value => value + 1), []);
   useCatalogResume(retry);
   useEffect(() => {
-    const controller = new AbortController(); running.current = controller;
-    void fetch("/api/game-genres?limit=50", { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]) })
-      .then(requireSuccess).then(response => response.json()).then((value: unknown) => {
-        if (!isGenrePage(value)) throw new AuthRequestError("장르 응답을 확인할 수 없습니다.", 502);
-        if (!controller.signal.aborted) setPage({ attempt, ...value });
-      }).catch(error => { if (!controller.signal.aborted) setPage({ attempt, items: [], nextCursor: null, error: error instanceof AuthRequestError ? error.message : "장르를 불러오지 못했습니다." }); })
-      .finally(() => { if (running.current === controller) running.current = undefined; });
-    return () => { controller.abort(); running.current?.abort(); running.current = undefined; };
+    const controller = new AbortController();
+    void (async () => {
+      const items = new Map<string, GameFilter>(), cursors = new Set<string>();
+      let cursor: string | null = null;
+      do {
+        const params = new URLSearchParams({ limit: "100" });
+        if (cursor) params.set("cursor", cursor);
+        const response = await requireSuccess(await fetch(`/api/game-filters?${params}`, {
+          cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]),
+        }));
+        const parsed = parseGameFilterPage(await response.json());
+        for (const item of parsed.items) items.set(item.code, item);
+        cursor = parsed.nextCursor;
+        if (cursor && (cursors.has(cursor) || items.size >= 10000)) throw new AuthRequestError("필터 목록을 확인할 수 없습니다. 다시 확인해 주세요.", 502);
+        if (cursor) cursors.add(cursor);
+      } while (cursor);
+      if (!controller.signal.aborted) setPage({ attempt, items: [...items.values()] });
+    })().catch(error => { if (!controller.signal.aborted) setPage({ attempt, items: [], error: error instanceof AuthRequestError ? error.message : "필터를 불러오지 못했습니다." }); });
+    return () => controller.abort();
   }, [attempt]);
-  async function loadMore() {
-    if (running.current || page?.attempt !== attempt || !page.nextCursor) return;
-    const controller = new AbortController(); running.current = controller; setMoreState({ attempt, pending: true });
-    try {
-      const response = await requireSuccess(await fetch(`/api/game-genres?limit=50&cursor=${encodeURIComponent(page.nextCursor)}`, { cache: "no-store", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]) }));
-      const value: unknown = await response.json();
-      if (!isGenrePage(value)) throw new AuthRequestError("장르 응답을 확인할 수 없습니다.", 502);
-      if (value.nextCursor === page.nextCursor) throw new AuthRequestError("장르 목록을 이어서 불러올 수 없습니다. 다시 확인해 주세요.", 502);
-      if (!controller.signal.aborted) setPage(current => current?.attempt === attempt ? { attempt,
-        items: [...new Map([...current.items, ...value.items].map(genre => [genre.code, genre])).values()], nextCursor: value.nextCursor } : current);
-    } catch (error) { if (!controller.signal.aborted) setPage(current => current?.attempt === attempt ? { ...current, error: error instanceof AuthRequestError ? error.message : "장르를 불러오지 못했습니다." } : current); }
-    finally { if (running.current === controller) { running.current = undefined; setMoreState({ attempt, pending: false }); } }
-  }
   const current = page?.attempt === attempt ? page : undefined;
-  return { items: current?.items ?? [], error: current?.error, hasMore: !!current?.nextCursor,
-    pending: !current || moreState?.attempt === attempt && moreState.pending, loadMore, retry };
+  return { items: current?.items ?? [], error: current?.error, pending: !current, retry };
 }

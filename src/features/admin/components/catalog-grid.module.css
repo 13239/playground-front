@@ -67,3 +67,6 @@
   .table tr[data-drop-before="true"] td { border-top: 2px solid Highlight; }
   .table tr[data-drop-after="true"] td { border-bottom: 2px solid Highlight; }
 }
+
+/* 필터 순서 편집의 페이지 탐색은 개수 표기 없이 중앙 정렬한다. */
+.centeredFooter { display: flex; justify-content: center; padding-top: 16px; margin-top: 18px; border-top: 1px solid #eee8fa; }

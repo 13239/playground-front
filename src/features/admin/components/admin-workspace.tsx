@@ -12,7 +12,7 @@ import { AdminScope, Loading } from "./admin-ui";
 import { RolesPanel } from "./roles-panel";
 import { AccessPanel } from "./access-panel";
 import { GamesPanel } from "./games-panel";
-import { GenresPanel } from "./genres-panel";
+import { GameFiltersPanel } from "./game-filters-panel";
 import { UsersPanel } from "./users-panel";
 import { LogsPanel } from "./logs-panel";
 import { ChatHistoryPanel } from "./chat-history-panel";
@@ -28,7 +28,7 @@ const sections = [
   { key: "roles", name: "권한 관리", icon: "users", permissions: ["ROLE_READ"], description: "역할별로 사용할 수 있는 기능을 설정하세요." },
   { key: "operations", name: "운영 설정", icon: "gear", permissions: ["ACCESS_POLICY_READ"], description: "로그인과 기존 접속의 운영 정책을 관리하세요." },
   { key: "games", name: "게임 관리", icon: "gamepad", permissions: ["GAME_READ"], description: "게임 정보, 플레이 모드와 공개 상태를 관리하세요." },
-  { key: "genres", name: "장르 관리", icon: "grid", permissions: ["GAME_READ"], description: "게임을 찾기 쉬운 분류로 정리하세요." },
+  { key: "filters", name: "게임 필터 관리", icon: "grid", permissions: ["GAME_READ"], description: "장르 · 플레이 인원 · 그래픽을 한곳에서 관리하세요." },
   { key: "logs", name: "로그 조회", icon: "book", permissions: ["ACTIVITY_LOG_READ", "ADMIN_AUDIT_READ"], description: "사용자 활동과 관리자 작업 기록을 확인하세요." },
   // 채팅 기록은 USER_READ와 무관하게 별도 조회 권한을 따른다.
   { key: "chat", name: "채팅 내역", icon: "chat", permissions: ["CHAT_HISTORY_READ"], description: "공용 채팅과 게임방의 저장된 메시지를 확인하세요." },
@@ -71,7 +71,7 @@ export function AdminWorkspace({ section }: { section?: string }) {
             {savedSession === access.sessionId && <div className={styles.savedNotice} role="status">저장했어요.<button type="button" aria-label="저장 안내 닫기" onClick={() => setSavedSession(undefined)}>×</button></div>}
             {/* 세션별로 편집 상태를 격리해 다른 계정 로그인 후 이전 입력이 제출되지 않게 한다. */}
             <div key={`${access.sessionId}:${selected.key}`}>
-              {selected.key === "dashboard" ? <DashboardPanel /> : selected.key === "service-status" ? <ServiceStatusPanel /> : selected.key === "users" ? <UsersPanel /> : selected.key === "roles" ? <RolesPanel /> : selected.key === "operations" ? <AccessPanel /> : selected.key === "games" ? <GamesPanel /> : selected.key === "logs" ? <LogsPanel /> : selected.key === "chat" ? <ChatHistoryPanel /> : <GenresPanel />}
+              {selected.key === "dashboard" ? <DashboardPanel /> : selected.key === "service-status" ? <ServiceStatusPanel /> : selected.key === "users" ? <UsersPanel /> : selected.key === "roles" ? <RolesPanel /> : selected.key === "operations" ? <AccessPanel /> : selected.key === "games" ? <GamesPanel /> : selected.key === "logs" ? <LogsPanel /> : selected.key === "chat" ? <ChatHistoryPanel /> : <GameFiltersPanel />}
             </div>
           </AdminScope>}
       </main>

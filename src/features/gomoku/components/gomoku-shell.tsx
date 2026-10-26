@@ -7,7 +7,7 @@ import lobby from "@/app/_components/lobby/lobby.module.css";
 import { RoomDialog } from "./room-dialog";
 import styles from "./gomoku.module.css";
 
-/** 공개 화면 틀과 인증 계정 영역을 분리하며 목록·생성 화면이 같은 헤더와 전체 폭 푸터를 공유한다. */
+/** 공개 화면 틀과 인증 계정 영역을 분리하며 목록·생성 화면이 같은 헤더와 전체 폭 푸터를 공유한다. 글자 크기는 로비보다 이 화면 값을 우선한다. */
 export function GomokuShell({
   children,
   account,
@@ -20,7 +20,7 @@ export function GomokuShell({
     description: string;
   }>();
   return (
-    <div className={`${lobby.screen} ${styles.screen}`}>
+    <div className={`${lobby.screen} ${styles.screen}`} data-gomoku-screen="">
       <a className={lobby.skipLink} href="#gomoku-main">
         본문으로 건너뛰기
       </a>
