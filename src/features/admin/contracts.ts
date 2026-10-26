@@ -7,8 +7,11 @@ export const permissionCodes = ["ADMIN_ACCESS", "DASHBOARD_READ", "USER_READ", "
   "GAME_READ", "GAME_WRITE", "GAME_AVAILABILITY_UPDATE", "SERVICE_STATUS_READ"] as const;
 export type PermissionCode = typeof permissionCodes[number];
 export type AdminContext = Readonly<{ userId: number; roleCode: string; roleName: string; roleVersion: number; membershipVersion: number; permissions: readonly PermissionCode[] }>;
-export type Permission = Readonly<{ code: PermissionCode; name: string; category: string; superAdminOnly: boolean }>;
-export type RoleSummary = Readonly<{ code: string; name: string; description: string | null; systemRole: boolean; version: number }>;
+export type Permission = Readonly<{ code: PermissionCode; name: string; category: string; superAdminOnly: boolean; description: string; requiredPermissions: readonly PermissionCode[] }>;
+// 최상위 역할 코드를 회원 보호·접속 예외 선택기에서 함께 사용한다.
+export const ROOT_ROLE_CODE = "ROOT";
+// 시스템/추가 역할 구분을 저장·전달하지 않고 ROOT 보호는 변경할 수 없는 코드로 판단한다.
+export type RoleSummary = Readonly<{ code: string; name: string; description: string | null; version: number }>;
 export type Role = RoleSummary & Readonly<{ editable: boolean; permissions: readonly PermissionCode[] }>;
 export type Page<T> = Readonly<{ items: readonly T[]; nextCursor: string | null }>;
 export type AccessPolicy = Readonly<{ enabled: boolean; message: string; exemptRoleCodes: readonly string[]; version: number; changedAt: string }>;
@@ -35,12 +38,14 @@ export function parseContext(v: unknown): AdminContext {
     permissions: array(v.permissions, p => { assert(permission(p)); return p; }) };
 }
 export function parsePermission(v: unknown): Permission {
-  assert(object(v) && permission(v.code) && text(v.name, 100) && text(v.category, 100) && typeof v.superAdminOnly === "boolean");
-  return { code: v.code, name: v.name, category: v.category, superAdminOnly: v.superAdminOnly };
+  assert(object(v) && permission(v.code) && text(v.name, 100) && text(v.category, 100) && typeof v.superAdminOnly === "boolean" && text(v.description, 300));
+  // 필요한 접근·조회 권한도 서버 사전에서 받아 UI와 실제 저장 규칙을 동일하게 유지한다.
+  return { code: v.code, name: v.name, category: v.category, superAdminOnly: v.superAdminOnly, description: v.description,
+    requiredPermissions: array(v.requiredPermissions, value => { assert(permission(value)); return value; }) };
 }
 export function parseRoleSummary(v: unknown): RoleSummary {
-  assert(object(v) && code(v.code) && text(v.name, 50) && (v.description === null || text(v.description, 255)) && typeof v.systemRole === "boolean" && integer(v.version));
-  return { code: v.code, name: v.name, description: v.description, systemRole: v.systemRole, version: v.version };
+  assert(object(v) && code(v.code) && text(v.name, 50) && (v.description === null || text(v.description, 255)) && integer(v.version));
+  return { code: v.code, name: v.name, description: v.description, version: v.version };
 }
 export function parseRole(v: unknown): Role {
   const base = parseRoleSummary(v);

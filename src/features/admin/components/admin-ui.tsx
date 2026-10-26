@@ -37,30 +37,33 @@ export function useAdminMutation() {
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
   const active = useRef(false);
-  async function run<T>(path: string, method: "POST" | "PUT" | "DELETE", body: object | undefined, saved: (value: T) => void) {
+  async function run<T>(path: string, method: "POST" | "PUT" | "DELETE", body: object | undefined, saved: (value: T) => void, failed?: (error: unknown) => void) {
     // 카탈로그 상세의 두 폼도 저장을 직렬화한다. 다른 관리자 화면에서는 기존 폼별 동작을 유지한다.
     if (active.current || catalogSave && !catalogSave.acquire()) return;
     active.current = true; setBusy(true); setError(undefined); setSuccess(undefined);
     try { const value = await adminRequest<T>(sessionId, path, method, body); saved(value); setSuccess("저장했어요."); notifySaved(); }
     catch (error) {
-      setError(errorMessage(error));
+      // 삭제 거절처럼 호출 화면이 팝업으로 처리할 실패는 위임하고 나머지는 기존 폼 안내를 유지한다.
+      if (failed) failed(error); else setError(errorMessage(error));
       if (error instanceof AuthRequestError && error.status === 403) invalidateAdminAccess();
     } finally { active.current = false; setBusy(false); catalogSave?.release(); }
   }
   return { run, busy: busy || catalogSave?.busy === true, error, success };
 }
 
-/** 파괴적인 운영 동작은 실행 직전 구체적인 안내로 확인하며 Escape·포커스 복귀를 기본 dialog에 맡긴다. */
-export function ConfirmDialog({ title, children, confirm, close }: { title: string; children: ReactNode; confirm: () => void; close: () => void }) {
+/** 파괴적인 운영 동작은 실행 직전 확인하고 삭제 제한은 단일 확인으로 안내하며 Escape·포커스 복귀를 기본 dialog에 맡긴다. */
+export function ConfirmDialog({ title, children, confirm, close, confirmLabel = "확인하고 적용", cancelLabel = "취소" }: { title: string; children: ReactNode; confirm: () => void; close: () => void; confirmLabel?: string; cancelLabel?: string | null }) {
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
+  const descriptionId = useId();
   useEffect(() => { const dialog = ref.current; dialog?.showModal(); return () => dialog?.close(); }, []);
-  return <dialog ref={ref} className={styles.dialog} aria-labelledby={id} onCancel={close} onClose={event => {
+  return <dialog ref={ref} className={`${styles.dialog} ${styles.confirmDialog}`} role={cancelLabel === null ? "alertdialog" : undefined} aria-labelledby={id} aria-describedby={descriptionId} onCancel={close} onClose={event => {
     // 개발 모드의 effect 재구독에서 예약된 이전 close 이벤트가 다시 열린 확인창을 닫지 않게 한다.
     if (event.target === event.currentTarget && !event.currentTarget.open) close();
   }}>
-    <h2 id={id}>{title}</h2><div>{children}</div><div className={styles.actions}>
-      <button type="button" autoFocus onClick={close}>취소</button><button type="button" className={styles.primary} onClick={() => { close(); confirm(); }}>확인하고 적용</button>
+    <h2 id={id}>{title}</h2><div id={descriptionId}>{children}</div><div className={styles.actions}>
+      {/* 닫기·설정 적용은 호출 화면의 이름을 따르고 삭제 거절 안내는 확인 버튼 하나로 닫는다. */}
+      {cancelLabel !== null && <button type="button" autoFocus onClick={close}>{cancelLabel}</button>}<button type="button" autoFocus={cancelLabel === null} className={styles.primary} onClick={() => { close(); confirm(); }}>{confirmLabel}</button>
     </div>
   </dialog>;
 }

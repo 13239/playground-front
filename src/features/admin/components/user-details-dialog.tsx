@@ -6,6 +6,7 @@ import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { getProfileAvatar } from "@/features/profile/catalog";
 import { focusWithoutRing, showModalWithoutCloseFocus } from "@/lib/client/show-modal";
 import type { UserDetails } from "../user-contracts";
+import { ROOT_ROLE_CODE } from "../contracts";
 import { useAdminResource } from "../client/use-admin-resource";
 import { Loading, useAdminScope } from "./admin-ui";
 import { RefreshButton } from "./refresh-button";
@@ -54,9 +55,10 @@ function UserDetail({ details, reload }: { details: UserDetails; reload: () => v
   const { can, context } = useAdminScope();
   const [tab, setTab] = useState("information");
   const user = details.user;
-  const protectedUser = user.roleCode === "SUPER_ADMIN";
+  // 배정·상태 변경은 ROOT를 보호하고 본인의 명시적인 세션 종료만 허용한다.
+  const protectedUser = user.roleCode === ROOT_ROLE_CODE;
   const manageable = !user.deleted && ((!protectedUser && (can("USER_ROLE_UPDATE") || can("USER_STATUS_UPDATE")))
-    || can("USER_SESSION_REVOKE") && (!protectedUser || context.roleCode === "SUPER_ADMIN"));
+    || can("USER_SESSION_REVOKE") && (!protectedUser || context.roleCode === ROOT_ROLE_CODE));
   // 실행 가능한 작업이 없는 조회 전용 사용자에게 빈 계정 관리 탭을 표시하지 않는다.
   const tabs = [["information", "회원 정보"], ["nickname", "닉네임 변경 이력"], ...(manageable ? [["management", "계정 관리"]] : [])];
   const current = tab === "management" && !manageable ? "information" : tab;

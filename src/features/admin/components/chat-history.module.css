@@ -1,8 +1,8 @@
-/* 기존 관리자 색상과 공통 1px 포커스를 공유하며 표만 내부 스크롤한다. */
+/* 기존 관리자 색상과 공통 1px 포커스를 공유하며 표만 내부 스크롤하고 개수 선택 칸은 공통 rem 폭을 따른다. */
 .panel { padding: clamp(14px, 1.7vw, 28px); }
 .heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
 .heading h2 { margin: 0; font-size: 1.1rem; }
-.filters { display: grid; grid-template-columns: minmax(270px, 1.65fr) minmax(160px, 1fr) minmax(130px, .75fr) minmax(125px, .75fr) minmax(105px, .65fr) auto 105px; align-items: end; gap: 12px; margin-bottom: 22px; }
+.filters { display: grid; grid-template-columns: minmax(270px, 1.65fr) minmax(160px, 1fr) minmax(130px, .75fr) minmax(125px, .75fr) minmax(105px, .65fr) auto 6.875rem; align-items: end; gap: 12px; margin-bottom: 22px; }
 .filter { display: grid; gap: 7px; min-width: 0; font-size: .78rem; color: #51416f; font-weight: 650; }
 .filter input, .filter select, .dates input { min-width: 0; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: #fff; color: #30234c; font: inherit; }
 .filter :disabled { background: #f8f6fc; color: #a298b6; }
@@ -20,7 +20,9 @@
 .table th:nth-child(1) { width: 185px; }.table th:nth-child(2) { width: 180px; }.table th:nth-child(3) { width: 135px; }.table th:nth-child(4) { width: 110px; }.table th:nth-child(5) { width: 100px; }
 .table td { height: 68px; background: white; overflow-wrap: anywhere; }
 .table tbody tr:has(.recordButton) { cursor: pointer; }
-.table tbody tr:is(:hover, :focus-within) td { background: #f6f0ff; }
+/* 상세에서 복귀한 마우스 포커스는 선택으로 남기지 않고 키보드 조작만 구분한다. */
+.table tbody tr:has(:focus-visible) td { background: #f6f0ff; }
+@media (hover: hover) { .table tbody tr:hover td { background: #f6f0ff; } }
 .table tbody tr:last-child td { border-bottom: 0; }
 .table button.recordButton { min-height: 38px; padding: 0 2px; border: 0; border-radius: 5px; background: transparent; color: inherit; font: inherit; font-variant-numeric: tabular-nums; }
 .preview { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -31,7 +33,7 @@
 .messageSection { margin-top: 22px; }
 .messageSection h3 { margin: 0 0 12px; font-size: .92rem; }
 .content { min-height: 130px; margin: 0; padding: 20px; border: 1px solid #e9defa; border-radius: 12px; background: #fbf9ff; color: #51416f; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
-@media (max-width: 1800px) { .filters { grid-template-columns: minmax(280px, 1.4fr) minmax(170px, 1fr) minmax(140px, 1fr) 105px; }.filters > :nth-child(4) { grid-column: 1; grid-row: 2; }.filters > :nth-child(5) { grid-column: 2; grid-row: 2; }.filters > button { grid-column: 3; grid-row: 2; }.pageSize { grid-column: 4; grid-row: 1; } }
-@media (max-width: 1300px) { .filters { grid-template-columns: minmax(280px, 1.4fr) minmax(160px, 1fr) 105px; }.filters > :nth-child(3) { grid-column: 1; grid-row: 2; }.filters > :nth-child(4) { grid-column: 2; grid-row: 2; }.filters > :nth-child(5) { grid-column: 1; grid-row: 3; }.filters > button { grid-column: 2; grid-row: 3; }.pageSize { grid-column: 3; grid-row: 1; }.footer { display: flex; flex-direction: column; align-items: stretch; } }
-@media (max-width: 760px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }.period, .filters > :nth-child(2) { grid-column: 1 / -1; }.filters > :nth-child(3), .filters > :nth-child(4), .filters > :nth-child(5), .filters > button, .pageSize { grid-column: auto; grid-row: auto; }.pageSize { grid-column: 2; width: 105px; justify-self: end; } }
+@media (max-width: 1800px) { .filters { grid-template-columns: minmax(280px, 1.4fr) minmax(170px, 1fr) minmax(140px, 1fr) 6.875rem; }.filters > :nth-child(4) { grid-column: 1; grid-row: 2; }.filters > :nth-child(5) { grid-column: 2; grid-row: 2; }.filters > button { grid-column: 3; grid-row: 2; }.pageSize { grid-column: 4; grid-row: 1; } }
+@media (max-width: 1300px) { .filters { grid-template-columns: minmax(280px, 1.4fr) minmax(160px, 1fr) 6.875rem; }.filters > :nth-child(3) { grid-column: 1; grid-row: 2; }.filters > :nth-child(4) { grid-column: 2; grid-row: 2; }.filters > :nth-child(5) { grid-column: 1; grid-row: 3; }.filters > button { grid-column: 2; grid-row: 3; }.pageSize { grid-column: 3; grid-row: 1; }.footer { display: flex; flex-direction: column; align-items: stretch; } }
+@media (max-width: 760px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }.period, .filters > :nth-child(2) { grid-column: 1 / -1; }.filters > :nth-child(3), .filters > :nth-child(4), .filters > :nth-child(5), .filters > button, .pageSize { grid-column: auto; grid-row: auto; }.pageSize { grid-column: 2; width: 6.875rem; justify-self: end; } }
 @media (max-width: 360px) { .dates { grid-template-columns: minmax(0, 1fr); }.dates > span { display: none; } }

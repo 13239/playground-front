@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { focusWithoutRing } from "@/lib/client/show-modal";
 import { defaultLogFilters, isLogDate } from "../log-search";
-import { PAGE_SIZES, type NumberedPage } from "../pagination-contracts";
+import type { NumberedPage } from "../pagination-contracts";
 import { displayChatDate, type AdminChatGame, type AdminChatMessage } from "../chat-contracts";
 import { useAdminResource } from "../client/use-admin-resource";
 import { Loading, useAdminScope } from "./admin-ui";
 import { ChatAuthor, ChatScopeBadge } from "./chat-message-display";
 import { NumberedPagination } from "./numbered-pagination";
+import { PageSizeSelect } from "./page-size-select";
 import { RefreshButton } from "./refresh-button";
 import { ChatMessageDialog } from "./chat-message-dialog";
 import admin from "./admin.module.css";
@@ -54,7 +55,8 @@ function ChatMessageList() {
       <label className={styles.filter}><span>게임</span><select aria-label="게임" value={draft.gameCode} disabled={draft.scope === "GLOBAL" || !games.data} onChange={event => update("gameCode", event.target.value)}><option value="">전체 게임</option>{games.data?.map(game => <option key={game.code} value={game.code}>{game.name}</option>)}</select></label>
       <label className={styles.filter}><span>방 번호</span><input type="text" inputMode="numeric" aria-label="방 번호" placeholder="방 번호 입력" pattern="[1-9][0-9]{0,15}" maxLength={16} disabled={draft.scope === "GLOBAL"} value={draft.roomId} onChange={event => update("roomId", event.target.value)} /></label>
       <button type="submit" className={admin.primary}>검색</button>
-      <label className={`${styles.filter} ${styles.pageSize}`}><span className={admin.visuallyHidden}>페이지당 표시 개수</span><select aria-label="페이지당 표시 개수" value={size} onChange={event => { setSize(Number(event.target.value)); setPage(1); setSelected(undefined); }}>{PAGE_SIZES.map(value => <option key={value} value={value}>{value}개씩</option>)}</select></label>
+      {/* 공통 선택창의 버튼은 폼 검색을 제출하지 않고 표시 개수만 변경한다. */}
+      <PageSizeSelect className={styles.pageSize} value={size} change={next => { setSize(next); setPage(1); setSelected(undefined); }} />
     </form>
     {invalid && <p id="chat-date-error" className={admin.error} role="alert">조회 기간의 시작일과 종료일을 확인해 주세요.</p>}
     {games.error && <Loading error={games.error} retry={games.reload} />}

@@ -1,0 +1,29 @@
+/* 기존 앱의 흰색·보라색 토스트를 따르고 모달·작은 화면의 배치에 영향을 주지 않는다. */
+.toast {
+  position: fixed;
+  inset: max(1.25rem, env(safe-area-inset-top, 0px)) auto auto 50%;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: .7em;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  margin: 0;
+  padding: .85em 1.15em;
+  border: 1px solid #e5d9ff;
+  border-radius: 1rem;
+  background: linear-gradient(115deg, #fff, #f8f4ff);
+  color: #30215d;
+  box-shadow: 0 8px 30px #39246a24, 0 2px 8px #8454c412;
+  font: inherit;
+  font-size: .9375rem;
+  transform: translateX(-50%);
+  animation: appear .18s ease-out both;
+  pointer-events: none;
+}
+.symbol { display: grid; flex: 0 0 auto; place-items: center; width: 2em; height: 2em; border-radius: .7em; background: #eee5ff; color: #8b41f7; }
+.symbol svg { width: 1.2em; height: 1.2em; }
+.toast.toast > p { margin: 0; font: inherit; font-weight: 750; line-height: 1.6; overflow-wrap: anywhere; }
+.toast::backdrop { background: transparent; pointer-events: none; }
+@keyframes appear { from { opacity: 0; transform: translate(-50%, -.4rem); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }

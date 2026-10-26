@@ -20,6 +20,7 @@ import { parseDashboard, parseServiceStatuses } from "../monitoring-contracts";
 import { parseCatalogOrderPage, parseCatalogOrderResult } from "../catalog-order-contracts";
 import { parseGameGridPage, parseGenreGridPage, parseAdminGenre } from "../catalog-grid-contracts";
 import { parseGenreOptionPage, MAX_GAME_GENRES } from "../genre-options-contracts";
+import { parseNumberedPage } from "../pagination-contracts";
 
 type Endpoint = Readonly<{ parse: (v: unknown) => unknown; fields?: readonly string[]; query?: "filter-grid" | "list" | "roles" | "delete" | "users" | "history" | "activity-logs" | "audit-logs" | "chat" | "dashboard" | "catalog-order" | "catalog-grid"; status?: 200 | 204 }>;
 const roleFields = ["name", "description", "permissions", "reason"];
@@ -50,6 +51,10 @@ function endpoint(segments: readonly string[], method: string): Endpoint {
   // 장르 선택기의 커서 조회는 관리 그리드의 번호 페이지 조회와 분리한다.
   if (area === "game-genres" && code === "options" && segments.length === 2 && method === "GET") {
     return { parse: parseGenreOptionPage, query: "list" };
+  }
+  // 운영 설정의 역할 선택기는 코드 커서를 유지하고 권한 관리 그리드만 번호 페이지로 조회한다.
+  if (area === "roles" && code === "options" && segments.length === 2 && method === "GET") {
+    return { parse: value => parsePage(value, parseRoleSummary, true), query: "roles" };
   }
   // 전체 순서 편집에는 검색·필터·커서를 전달하지 않으며 인증된 네 경로만 공개한다.
   if ((area === "games" || area === "game-genres") && code === "order" && segments.length === 2) {
@@ -98,7 +103,7 @@ function endpoint(segments: readonly string[], method: string): Endpoint {
   if (segments.length === 1 && method === "GET") {
     if (area === "me") return { parse: parseContext };
     if (area === "permissions") return { parse: parsePermissions };
-    if (area === "roles") return { parse: v => parsePage(v, parseRoleSummary, true), query: "roles" };
+    if (area === "roles") return { parse: value => parseNumberedPage(value, parseRoleSummary), query: "catalog-grid" };
     if (area === "access-policy") return { parse: parsePolicy };
     if (area === "games") return { parse: parseGameGridPage, query: "catalog-grid" };
     if (area === "game-genres") return { parse: parseGenreGridPage, query: "catalog-grid" };
@@ -157,7 +162,7 @@ function validateQuery(url: URL, kind: Endpoint["query"]): void {
       || key === "result" && !["SUCCESS", "FAILURE"].includes(value)
       || key === "action" && !/^[A-Z][A-Z0-9_]{0,63}$/.test(value)
       || key === "targetType" && !/^[A-Z][A-Z0-9_]{0,31}$/.test(value)
-      // 회원/이력/로그는 양의 페이지 번호와 네 가지 표시 개수만 전달한다.
+      // 권한/회원/이력/로그는 양의 페이지 번호와 네 가지 표시 개수만 전달한다.
       || key === "page" && (!/^[1-9]\d{0,9}$/.test(value) || Number(value) > 2147483647)
       || key === "enabled" && !["true", "false"].includes(value)
       || key === "type" && kind === "filter-grid" && !["GENRE", "PLAYERS", "GRAPHICS"].includes(value)

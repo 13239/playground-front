@@ -23,9 +23,12 @@ const errors = {
   // 관리 기능의 충돌과 권한 오류를 토큰 만료로 처리하거나 내부 예외 원문으로 노출하지 않는다.
   ROLE_NOT_FOUND: [404, "권한을 찾을 수 없습니다."],
   ROLE_ALREADY_EXISTS: [409, "이미 사용 중인 권한 코드입니다."],
-  ROLE_PROTECTED: [409, "기본 권한 또는 최고 관리자 설정은 변경할 수 없습니다."],
-  ROLE_IN_USE: [409, "회원 또는 접속 허용 설정에서 사용 중인 권한입니다."],
-  ROLE_PERMISSION_NOT_ASSIGNABLE: [400, "슈퍼 관리자 전용 기능은 다른 권한에 부여할 수 없습니다."],
+  ROLE_PROTECTED: [409, "ROOT 권한 또는 ROOT 계정은 변경하거나 삭제할 수 없습니다."],
+  // 삭제 거절은 서버 원문 대신 검증된 사용처별 안내를 팝업에 전달한다.
+  ROLE_IN_USE: [409, "회원에게 배정되어 사용 중인 권한은 삭제할 수 없습니다."],
+  ROLE_ACCESS_POLICY_IN_USE: [409, "접속 허용 설정에서 사용 중인 권한입니다. 설정에서 해당 권한을 먼저 제외해 주세요."],
+  ROLE_DEFAULT_IN_USE: [409, "신규 회원가입의 기본 권한으로 사용 중이므로 삭제할 수 없습니다."],
+  ROLE_PERMISSION_NOT_ASSIGNABLE: [400, "ROOT 전용 기능은 다른 권한에 부여할 수 없습니다."],
   AUTHORIZATION_CHANGED: [409, "다른 관리자가 먼저 수정했습니다. 최신 내용을 불러온 뒤 다시 편집해 주세요."],
   AUTHORIZATION_SERVICE_UNAVAILABLE: [503, "관리 권한을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."],
   ACCESS_EXEMPTION_INVALID: [400, "접속을 허용할 권한을 다시 확인해 주세요."],

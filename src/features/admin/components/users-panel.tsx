@@ -9,6 +9,7 @@ import { useAdminResource } from "../client/use-admin-resource";
 import { Loading, useAdminScope } from "./admin-ui";
 import { CodePicker } from "./code-picker";
 import { NumberedPagination } from "./numbered-pagination";
+import { PageSizeSelect } from "./page-size-select";
 import { RefreshButton } from "./refresh-button";
 import { UserDetailsDialog } from "./user-details-dialog";
 import { displayDate, userStatus } from "./user-display";
@@ -57,11 +58,8 @@ export function UsersPanel() {
           <option value="">전체 상태 (탈퇴 제외)</option><option value="ACTIVE">활성</option><option value="INACTIVE">비활성</option><option value="PENDING">가입대기</option><option value="DELETED">탈퇴</option>
         </select>
       </label>
-      <label className={`${styles.userFilter} ${styles.userPageSize}`}><span className={styles.visuallyHidden}>페이지당 표시 개수</span>
-        <select aria-label="페이지당 표시 개수" value={size} onChange={event => { setSize(Number(event.target.value)); reset(); }}>
-          {USER_PAGE_SIZES.map(value => <option key={value} value={value}>{value}개씩</option>)}
-        </select>
-      </label>
+      {/* 개수 선택 UI만 공통화하고 회원 목록의 첫 페이지·상세 선택 초기화는 유지한다. */}
+      <PageSizeSelect className={styles.userPageSize} sizes={USER_PAGE_SIZES} value={size} change={next => { setSize(next); reset(); }} />
     </div>
     <div className={styles.userTableScroll} role="region" aria-label="회원 목록 그리드" tabIndex={0} aria-busy={list.loading}>
       <table className={styles.userTable}>

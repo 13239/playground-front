@@ -4,12 +4,13 @@ import { useState } from "react";
 import { focusWithoutRing } from "@/lib/client/show-modal";
 import type { ActivityLog, AuditLog, LogKind, LogOptions } from "../log-contracts";
 import { defaultLogFilters, isLogDate, type LogFilters } from "../log-search";
-import { PAGE_SIZES, type NumberedPage } from "../pagination-contracts";
+import type { NumberedPage } from "../pagination-contracts";
 import { useAdminResource } from "../client/use-admin-resource";
 import { Loading, useAdminScope } from "./admin-ui";
 import { LogDetailsDialog } from "./log-details-dialog";
 import { LogPersonLabel } from "./log-person";
 import { NumberedPagination } from "./numbered-pagination";
+import { PageSizeSelect } from "./page-size-select";
 import { RefreshButton } from "./refresh-button";
 import { displayDate } from "./user-display";
 import admin from "./admin.module.css";
@@ -73,9 +74,8 @@ function LogList({ kind, tabs, changeTab }: { kind: LogKind; tabs: readonly { ki
         <option value="">{kind === "activities" ? "전체 결과" : "전체 대상"}</option>{(kind === "activities" ? options.data?.results : options.data?.targets)?.map(option => <option key={option.code} value={option.code}>{option.label}</option>)}
       </select></label>
       <button type="submit" className={admin.primary}>검색</button>
-      <label className={`${styles.filter} ${styles.pageSize}`}><span className={admin.visuallyHidden}>페이지당 표시 개수</span><select aria-label="페이지당 표시 개수" value={size} onChange={event => { setSize(Number(event.target.value)); setPage(1); setSelected(undefined); }}>
-        {PAGE_SIZES.map(value => <option key={value} value={value}>{value}개씩</option>)}
-      </select></label>
+      {/* 검색 조건은 유지하고 표시 개수 변경 시 첫 페이지와 상세 선택만 초기화한다. */}
+      <PageSizeSelect className={styles.pageSize} value={size} change={next => { setSize(next); setPage(1); setSelected(undefined); }} />
     </form>
     {invalidDates && <p id="log-date-error" className={admin.error} role="alert">조회 기간의 시작일과 종료일을 확인해 주세요.</p>}
     {options.error && <Loading error={options.error} retry={options.reload} />}

@@ -1,8 +1,8 @@
-/* 기존 관리자 색상·표·공통 1px 포커스를 이어가며 로그별 레이아웃만 이 모듈에서 관리한다. */
+/* 기존 관리자 색상·표·공통 1px 포커스를 이어가고 개수 선택 칸은 공통 rem 폭으로 확대한다. */
 .panel { padding: clamp(14px, 1.7vw, 28px); }
 .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid #eae3f6; }
 .heading .tabs { min-width: 0; margin-bottom: 0; border-bottom: 0; }
-.filters { display: grid; grid-template-columns: minmax(290px, 1.45fr) minmax(175px, 1fr) minmax(125px, .65fr) minmax(120px, .6fr) auto 110px; align-items: end; gap: 12px; margin-bottom: 20px; }
+.filters { display: grid; grid-template-columns: minmax(290px, 1.45fr) minmax(175px, 1fr) minmax(125px, .65fr) minmax(120px, .6fr) auto 6.875rem; align-items: end; gap: 12px; margin-bottom: 20px; }
 .filter { display: grid; gap: 7px; min-width: 0; color: #51416f; font-size: .78rem; font-weight: 650; }
 .filter input, .filter select, .dates input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: #fff; font: inherit; color: #30234c; }
 .period { min-width: 0; margin: 0; padding: 0; border: 0; }
@@ -18,7 +18,9 @@
 .table thead th { position: sticky; top: 0; z-index: 2; height: 46px; background: #f3eeff; color: #8c77aa; font-size: .77rem; white-space: nowrap; }
 .table td { height: 62px; max-width: 250px; background: #fff; overflow-wrap: anywhere; }
 .table tbody tr:has(.recordButton) { cursor: pointer; }
-.table tbody tr:is(:hover, :focus-within) td { background: #f6f0ff; }
+/* 상세에서 복귀한 마우스 포커스 대신 실제 키보드 포커스만 행에 강조한다. */
+.table tbody tr:has(:focus-visible) td { background: #f6f0ff; }
+@media (hover: hover) { .table tbody tr:hover td { background: #f6f0ff; } }
 .table tbody tr:last-child td { border-bottom: 0; }
 .table :is(th, td):first-child { position: sticky; left: 0; z-index: 1; min-width: 76px; }
 .table thead th:first-child { z-index: 3; }
@@ -51,7 +53,7 @@
 .comparison td { background: white; color: #655077; }
 .comparison td:last-child { color: #6c31ba; }
 .savedReason { margin: 0; padding: 12px 14px; border: 1px solid #eee5f8; border-radius: 8px; background: white; overflow-wrap: anywhere; white-space: pre-wrap; }
-@media (max-width: 1650px) { .filters { grid-template-columns: minmax(280px, 1fr) minmax(200px, 1fr) 110px; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: 2; } .filters > button { grid-row: 2; grid-column: 3; } .pageSize { grid-column: 3; grid-row: 1; } }
+@media (max-width: 1650px) { .filters { grid-template-columns: minmax(280px, 1fr) minmax(200px, 1fr) 6.875rem; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: 2; } .filters > button { grid-row: 2; grid-column: 3; } .pageSize { grid-column: 3; grid-row: 1; } }
 @media (max-width: 1300px) { .footer { display: flex; flex-direction: column; align-items: stretch; } }
-@media (max-width: 680px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .period { grid-column: 1 / -1; } .filters > :nth-child(2) { grid-column: 1 / -1; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: auto; } .filters > button { grid-row: auto; grid-column: 1; } .pageSize { grid-column: 2; grid-row: auto; justify-self: end; width: 110px; } .heading { gap: 8px; } .heading .tabs button { padding-inline: 10px; font-size: .78rem; } .comparison th, .comparison td { padding: 10px 8px; font-size: .8rem; } }
+@media (max-width: 680px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .period { grid-column: 1 / -1; } .filters > :nth-child(2) { grid-column: 1 / -1; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: auto; } .filters > button { grid-row: auto; grid-column: 1; } .pageSize { grid-column: 2; grid-row: auto; justify-self: end; width: 6.875rem; } .heading { gap: 8px; } .heading .tabs button { padding-inline: 10px; font-size: .78rem; } .comparison th, .comparison td { padding: 10px 8px; font-size: .8rem; } }
 @media (max-width: 360px) { .dates { grid-template-columns: minmax(0, 1fr); gap: 6px; } .dates > span { display: none; } .heading .tabs button { padding-inline: 7px; font-size: .74rem; } }

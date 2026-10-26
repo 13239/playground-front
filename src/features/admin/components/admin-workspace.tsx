@@ -9,6 +9,7 @@ import { SiteHeader } from "@/app/_components/lobby/site-header";
 import lobby from "@/app/_components/lobby/lobby.module.css";
 import { useAdminAccess, invalidateAdminAccess } from "../client/use-admin-access";
 import { AdminScope, Loading } from "./admin-ui";
+import { AdminSavedToast } from "./admin-saved-toast";
 import { RolesPanel } from "./roles-panel";
 import { AccessPanel } from "./access-panel";
 import { GamesPanel } from "./games-panel";
@@ -39,8 +40,8 @@ const sections = [
 /** 공개 페이지 틀에는 보호 데이터를 넣지 않는다. 현재 ADMIN_ACCESS와 기능 권한이 확인된 뒤에만 패널을 연다. */
 export function AdminWorkspace({ section }: { section?: string }) {
   const { auth, access } = useAdminAccess();
-  // 저장 결과는 버전 변경으로 편집 폼이 교체돼도 남기되 다른 계정에는 보여 주지 않는다.
-  const [savedSession, setSavedSession] = useState<string>();
+  // 폼 버전이 바뀌어도 저장 토스트를 유지하고 연속 저장마다 표시 시간을 새로 시작한다. 다른 계정에는 표시하지 않는다.
+  const [savedToast, setSavedToast] = useState<{ sessionId: string; id: number }>();
   // 여러 조회 권한 중 하나만 있어도 메뉴에 진입하고 내부 탭은 개별 권한으로 제한한다.
   const allowed = access.status === "ready" ? sections.filter(s => s.permissions.some(permission => access.context.permissions.includes(permission as PermissionCode))) : [];
   const selected = sections.find(s => s.key === (section ?? allowed[0]?.key));
@@ -55,10 +56,9 @@ export function AdminWorkspace({ section }: { section?: string }) {
           : auth.status === "error" || auth.status === "authenticated" && auth.verificationError ? <Loading error={auth.status === "error" ? auth.message : auth.verificationError} retry={retryAuthSession} retryAt={auth.retryAt} pending={auth.pending} />
           : access.status === "checking" ? <Loading />
           : access.status !== "ready" ? <div className={styles.empty}><h1>{access.status === "denied" ? "관리자 페이지 접근 권한이 없어요" : "접근 권한을 확인하지 못했어요"}</h1><p>{access.message}</p>{access.status === "error" && <button onClick={invalidateAdminAccess}>다시 확인</button>}<Link href="/">홈으로 돌아가기</Link></div>
-          : !selected || !allowed.some(s => s.key === selected.key) ? <div className={styles.empty}><h1>이 메뉴를 사용할 권한이 없어요</h1><p>슈퍼 관리자에게 기능 권한을 확인해 주세요.</p></div>
-          : <AdminScope value={{ sessionId: access.sessionId, context: access.context, notifySaved: () => setSavedSession(access.sessionId) }}>
+          : !selected || !allowed.some(s => s.key === selected.key) ? <div className={styles.empty}><h1>이 메뉴를 사용할 권한이 없어요</h1><p>ROOT에게 기능 권한을 확인해 주세요.</p></div>
+          : <AdminScope value={{ sessionId: access.sessionId, context: access.context, notifySaved: () => setSavedToast(current => ({ sessionId: access.sessionId, id: (current?.id ?? 0) + 1 })) }}>
             <div className={styles.pageHeading}><div><span>ADMINISTRATION</span><h1>{selected.name}</h1><p>{selected.description}</p></div><span className={styles.roleBadge}>{access.context.roleName}</span></div>
-            {savedSession === access.sessionId && <div className={styles.savedNotice} role="status">저장했어요.<button type="button" aria-label="저장 안내 닫기" onClick={() => setSavedSession(undefined)}>×</button></div>}
             {/* 세션별로 편집 상태를 격리해 다른 계정 로그인 후 이전 입력이 제출되지 않게 한다. */}
             <div key={`${access.sessionId}:${selected.key}`}>
               {selected.key === "dashboard" ? <DashboardPanel /> : selected.key === "service-status" ? <ServiceStatusPanel /> : selected.key === "users" ? <UsersPanel /> : selected.key === "roles" ? <RolesPanel /> : selected.key === "operations" ? <AccessPanel /> : selected.key === "games" ? <GamesPanel /> : selected.key === "logs" ? <LogsPanel /> : selected.key === "chat" ? <ChatHistoryPanel /> : <GameFiltersPanel />}
@@ -67,5 +67,7 @@ export function AdminWorkspace({ section }: { section?: string }) {
       </main>
     </div>
     <SiteFooter />
+    {access.status === "ready" && savedToast?.sessionId === access.sessionId && <AdminSavedToast key={`${savedToast.sessionId}:${savedToast.id}`}
+      onDismiss={() => setSavedToast(current => current?.id === savedToast.id ? undefined : current)} />}
   </div>;
 }

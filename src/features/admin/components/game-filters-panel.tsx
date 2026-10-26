@@ -10,6 +10,7 @@ import { CatalogDialog, useCatalogDialog } from "./catalog-dialog";
 import { CatalogOrderEditor } from "./catalog-order-editor";
 import { ConfirmDialog, Feedback, Field, Loading, useAdminMutation, useAdminScope } from "./admin-ui";
 import { NumberedPagination } from "./numbered-pagination";
+import { PageSizeSelect } from "./page-size-select";
 import common from "./admin.module.css";
 import grid from "./catalog-grid.module.css";
 import styles from "./game-filters-panel.module.css";
@@ -82,9 +83,8 @@ export function FilterListView({ data, filters, loading, error, writable, state,
       <label className={styles.status}><span className={common.visuallyHidden}>사용 여부</span><select aria-label="사용 여부" value={state.enabled} onChange={event => change({ enabled: event.target.value })}>
         <option value="">모든 상태</option><option value="true">사용</option><option value="false">미사용</option>
       </select></label>
-      <label className={grid.pageSize}><span className={common.visuallyHidden}>페이지당 표시 개수</span><select aria-label="페이지당 표시 개수" value={state.size} onChange={event => change({ size: Number(event.target.value) })}>
-        {FILTER_PAGE_SIZES.map(value => <option key={value} value={value}>{value}개씩</option>)}
-      </select></label>
+      {/* 필터 관리 전용 20·30·40·50개 선택지는 그대로 공통 UI에 전달한다. */}
+      <PageSizeSelect className={grid.pageSize} sizes={FILTER_PAGE_SIZES} value={state.size} change={size => change({ size })} />
     </div>
     {error && <p className={common.error} role="alert">{error} <button type="button" onClick={actions.retry}>다시 확인</button></p>}
     <div className={grid.scroll} role="region" aria-label="필터 목록 그리드" tabIndex={0} aria-busy={loading}>

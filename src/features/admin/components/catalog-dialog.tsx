@@ -8,19 +8,22 @@ import styles from "./admin.module.css";
 import grid from "./catalog-grid.module.css";
 import { CatalogSaveScope } from "./catalog-dialog-state";
 
-const CatalogDialogScope = createContext<{ changed: (form?: HTMLFormElement | null) => void; saved: () => void; navigate: (action: () => void) => void } | null>(null);
+const CatalogDialogScope = createContext<{ changed: (form?: HTMLFormElement | null) => void; saved: () => void; navigate: (action: () => void) => void; close: () => void; dirty: boolean; busy: boolean } | null>(null);
 export function useCatalogDialog() {
   const scope = useContext(CatalogDialogScope);
   if (!scope) throw new Error("Catalog dialog required");
   return scope;
 }
 
-/** 상세를 닫을 때 미저장 입력을 확인하고 네이티브 모달의 Escape·포커스 복귀를 공통 처리한다. */
-export function CatalogDialog({ title, children, close }: { title: string; children: ReactNode; close: () => void }) {
+/** 상세의 미저장 확인·Escape·포커스 복귀를 공유하고 필요한 화면은 고정 푸터에서 폼을 저장한다. */
+export function CatalogDialog({ title, children, close, className = "", bodyClassName = "", footer }: {
+  title: string; children: ReactNode; close: () => void; className?: string; bodyClassName?: string;
+  footer?: ReactNode;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [dirty, setDirty] = useState(false);
-  const [confirm, setConfirm] = useState<{ title: string; description: string; proceed: () => void }>();
+  const [confirm, setConfirm] = useState<{ title: string; description: string; proceed: () => void; confirmLabel?: string }>();
   const [notice, setNotice] = useState<string>();
   const changedForms = useRef(new Set<HTMLFormElement>());
   const permittedSubmit = useRef<HTMLFormElement | undefined>(undefined);
@@ -43,13 +46,13 @@ export function CatalogDialog({ title, children, close }: { title: string; child
     return () => window.removeEventListener("beforeunload", guard);
   }, [dirty, saveBusy]);
   function clearChanges() { changedForms.current.clear(); setDirty(false); setNotice(undefined); }
-  function requestAction(action: () => void, title: string, description: string) {
+  function requestAction(action: () => void, title: string, description: string, confirmLabel?: string) {
     if (saving.current || ref.current?.querySelector('[data-saving="true"]')) { setNotice("저장 중이에요. 잠시만 기다려 주세요."); return; }
     setNotice(undefined);
-    if (dirty) setConfirm({ title, description, proceed: () => { clearChanges(); action(); } }); else action();
+    if (dirty) setConfirm({ title, description, confirmLabel, proceed: () => { clearChanges(); action(); } }); else action();
   }
   function requestClose() {
-    requestAction(close, "수정 내용을 닫을까요?", "저장하지 않은 변경 내용은 사라져요.");
+    requestAction(close, "수정 내용을 닫을까요?", "저장하지 않은 변경 내용은 사라져요.", "닫기");
   }
   function markChanged(form?: HTMLFormElement | null) {
     if (form) changedForms.current.add(form);
@@ -81,8 +84,8 @@ export function CatalogDialog({ title, children, close }: { title: string; child
     if (saving.current) return false;
     saving.current = true; setSaveBusy(true); return true;
   }, release: () => { saving.current = false; setSaveBusy(false); } }}><CatalogDialogScope value={{ changed: markChanged, saved: clearChanges,
-    navigate: action => requestAction(action, "수정 내용을 버리고 이동할까요?", "저장하지 않은 변경 내용은 사라져요.") }}>
-    <dialog ref={ref} className={`${styles.dialog} ${grid.dialog}`} aria-labelledby={titleId}
+    navigate: action => requestAction(action, "수정 내용을 버리고 이동할까요?", "저장하지 않은 변경 내용은 사라져요."), close: requestClose, dirty, busy: saveBusy }}>
+    <dialog ref={ref} className={`${styles.dialog} ${grid.dialog} ${className}`} aria-labelledby={titleId}
       onInputCapture={changed} onChangeCapture={changed} onSubmitCapture={submitting} onCancel={event => {
         // 내부 확인 모달의 Escape는 해당 모달만 닫고 바깥 편집 모달을 다시 취소하지 않는다.
         if (event.target === event.currentTarget) { event.preventDefault(); requestClose(); }
@@ -90,9 +93,9 @@ export function CatalogDialog({ title, children, close }: { title: string; child
       <div className={grid.dialogTop}><div><span>ADMINISTRATION</span><h2 id={titleId}>{title}</h2></div>
         <button type="button" className={styles.iconButton} aria-label={`${title} 닫기`} title="닫기" onClick={requestClose}><LobbyIcon name="close" /></button>
       </div>
-      <div className={grid.dialogBody}>{children}</div>
-      <div className={grid.dialogFooter}>{notice && <p role="status">{notice}</p>}<button type="button" onClick={requestClose}>닫기</button></div>
-      {confirm && <ConfirmDialog title={confirm.title} close={() => setConfirm(undefined)} confirm={confirm.proceed}><p>{confirm.description}</p></ConfirmDialog>}
+      <div className={`${grid.dialogBody} ${bodyClassName}`}>{children}</div>
+      <div className={grid.dialogFooter}>{notice && <p role="status">{notice}</p>}{footer ?? <button type="button" onClick={requestClose}>닫기</button>}</div>
+      {confirm && <ConfirmDialog title={confirm.title} close={() => setConfirm(undefined)} confirm={confirm.proceed} confirmLabel={confirm.confirmLabel}><p>{confirm.description}</p></ConfirmDialog>}
     </dialog>
   </CatalogDialogScope></CatalogSaveScope>;
 }

@@ -3,11 +3,11 @@
 import { useState, type ReactNode } from "react";
 import { focusWithoutRing } from "@/lib/client/show-modal";
 import type { CatalogArea, CatalogGridPage } from "../catalog-grid-contracts";
-import { PAGE_SIZES } from "../pagination-contracts";
 import { useAdminResource } from "../client/use-admin-resource";
 import { Loading, useAdminScope } from "./admin-ui";
 import { CatalogOrderEditor } from "./catalog-order-editor";
 import { NumberedPagination } from "./numbered-pagination";
+import { PageSizeSelect } from "./page-size-select";
 import styles from "./admin.module.css";
 import grid from "./catalog-grid.module.css";
 
@@ -49,11 +49,8 @@ export function CatalogGrid<T extends GridItem>({ area, label, columns, dialog, 
           <input type="search" aria-label={`${label} 검색`} placeholder="이름 또는 코드 검색" maxLength={100}
             value={search} onChange={event => setSearch(event.target.value)} /><button type="submit">검색</button>
         </form>
-        <label className={grid.pageSize}><span className={styles.visuallyHidden}>페이지당 표시 개수</span>
-          <select aria-label="페이지당 표시 개수" value={size} onChange={event => { setSize(Number(event.target.value)); setPage(1); }}>
-            {PAGE_SIZES.map(value => <option key={value} value={value}>{value}개씩</option>)}
-          </select>
-        </label>
+        {/* 공통 개수 선택창에서도 기존 첫 페이지 이동과 조회 조건을 유지한다. */}
+        <PageSizeSelect className={grid.pageSize} value={size} change={next => { setSize(next); setPage(1); }} />
       </div>
       <div className={grid.scroll} role="region" aria-label={`${label} 목록 그리드`} tabIndex={0} aria-busy={list.loading}>
         <table className={grid.table}>
