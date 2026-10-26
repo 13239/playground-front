@@ -6,7 +6,7 @@ import { parseNumberedPage, type NumberedPage } from "./pagination-contracts";
 export type GameGridItem = Pick<Game, "code" | "name" | "sortOrder" | "version" | "genres" | "modes" | "published" | "availability">;
 export type GenreGridItem = Genre & Readonly<{ gameCount: number }>;
 export type CatalogGridPage<T> = NumberedPage<T> & Readonly<{ orderVersion: number }>;
-export type CatalogArea = "games" | "game-genres";
+export type CatalogArea = "games" | "game-genres" | "game-filters";
 
 function object(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

@@ -83,6 +83,8 @@ const text = (value: unknown, max: number) =>
 
 export function validateRoomDraft(
   value: Record<string, unknown>,
+  // 수정 시 빈 비밀번호를 허용하더라도 실제 기존 비공개 방인지 서버가 다시 검증한다.
+  allowExistingPassword = false,
 ): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!text(value.title, 30) || /[\p{Cc}\p{Cf}]/u.test(String(value.title)))
@@ -91,6 +93,7 @@ export function validateRoomDraft(
     errors.visibility = "공개 여부를 선택해 주세요.";
   if (
     value.visibility === "PRIVATE" &&
+    !(allowExistingPassword && (value.password === "" || value.password == null)) &&
     (typeof value.password !== "string" ||
       !/^[A-Za-z0-9]{4,8}$/.test(value.password))
   )

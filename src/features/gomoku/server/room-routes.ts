@@ -21,7 +21,7 @@ import {
 import { inviteCodePattern } from "../contracts";
 import { isJoinRoomReceipt, isWaitingRoom, publicWaitingRoom } from "../waiting-contracts";
 
-type Operation = "search" | "create" | "close" | "join" | "state" | "ready" | "kick" | "leave" | "lifecycle";
+type Operation = "search" | "create" | "settings" | "close" | "join" | "state" | "ready" | "kick" | "leave" | "lifecycle";
 const fields = {
   search: ["sessionId", "query", "publicOnly", "waitingOnly", "page"],
   create: [
@@ -34,6 +34,8 @@ const fields = {
     "forbiddenRule",
   ],
   close: ["sessionId", "roomId"],
+  // 설정·편집 당시 순서·현재 페이지를 모두 같은 서명 본문으로 전달한다.
+  settings: ["sessionId", "roomId", "revision", "pageId", "title", "visibility", "password", "undoLimit", "forbiddenRule"],
   join: ["sessionId", "roomId", "inviteCode", "password"],
   state: ["sessionId", "roomId", "pageId"],
   ready: ["sessionId", "roomId", "ready", "pageId"],
@@ -76,17 +78,20 @@ export async function handleRoomRequest(
         waitingOnly: input.waitingOnly,
         page: input.page,
       };
-    } else if (operation === "create") {
-      if (
-        typeof input.requestId !== "string" ||
-        !requestIdPattern.test(input.requestId)
-      )
+    } else if (operation === "create" || operation === "settings") {
+      if (operation === "create" && (typeof input.requestId !== "string" || !requestIdPattern.test(input.requestId))) {
         throw new ApiError("INVALID_REQUEST_BODY");
-      const errors = validateRoomDraft(input);
+      }
+      // 현재 비공개 방만 비밀번호를 유지할 수 있는지는 Spring의 잠금 안에서 결정한다.
+      if (operation === "settings" && (typeof input.roomId !== "number" || !Number.isSafeInteger(input.roomId) || input.roomId <= 0
+        || typeof input.revision !== "number" || !Number.isSafeInteger(input.revision) || input.revision < 0
+        || typeof input.pageId !== "string" || !requestIdPattern.test(input.pageId))) throw new ApiError("INVALID_REQUEST_BODY");
+      const errors = validateRoomDraft(input, operation === "settings");
       if (Object.keys(errors).length)
         throw new ApiError("VALIDATION_FAILED", { fieldErrors: errors });
       body = {
-        requestId: input.requestId,
+        ...(operation === "create" ? { requestId: input.requestId }
+          : { roomId: input.roomId, revision: input.revision, pageId: input.pageId }),
         title: input.title,
         visibility: input.visibility,
         password: input.password || null,

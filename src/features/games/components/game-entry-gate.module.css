@@ -1,5 +1,6 @@
 /* 기존 게임 화면의 보라색 표면과 공통 1px 포커스를 사용하며 긴 운영 문구도 좁은 화면 안에서 줄바꿈한다. */
-.status { padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid #ddd4f1; border-radius: 1rem; background: #fff9; text-align: center; }
+/* 짧은 이용 안내는 읽기용 폭으로 모아 넓은 게임 본문 전체에 빈 패널을 만들지 않는다. */
+.status { width: min(100%, var(--layout-max-reading)); margin-inline: auto; padding: var(--layout-panel-padding); border: 1px solid #ddd4f1; border-radius: 1rem; background: #fff9; text-align: center; }
 .status h2 { margin: 0 0 0.75rem; font-size: clamp(1.1rem, 2vw, 1.5rem); color: #51428c; }
 .status p { margin: 0; line-height: 1.8; overflow-wrap: anywhere; }
 .status > div { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }

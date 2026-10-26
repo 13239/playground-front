@@ -58,12 +58,13 @@ export function CatalogOrderEditor({ area, label, size, cancel, saved }: {
       current.to = Math.max(0, Math.min(order.count - 1, boundary > current.from ? boundary - 1 : boundary));
       setDrop({ boundary, from: current.from });
     }
-    // 손잡이를 잡은 상태에서 표 가장자리로 이동하면 내부 목록을 함께 스크롤한다.
+    // 손잡이를 잡고 화면 가장자리로 이동하면 페이지를 스크롤해 표의 다음 행을 표시한다.
     const frame = scroll.current;
     if (frame) {
       const rect = frame.getBoundingClientRect();
-      if (event.clientY < rect.top + 36) frame.scrollTop -= 18;
-      else if (event.clientY > rect.bottom - 36) frame.scrollTop += 18;
+      const viewportHeight = document.documentElement.clientHeight;
+      if (event.clientY < 36 && rect.top < 0) window.scrollBy({ top: -18, behavior: "instant" });
+      else if (event.clientY > viewportHeight - 36 && rect.bottom > viewportHeight) window.scrollBy({ top: 18, behavior: "instant" });
     }
   }
   function pointerEnd(event: PointerEvent<HTMLButtonElement>, name: string) {
@@ -111,7 +112,7 @@ export function CatalogOrderEditor({ area, label, size, cancel, saved }: {
           </tr>)}</tbody>
       </table>
     </div>
-    <div className={grid.footer}><p className={styles.hint}>{order.count.toLocaleString()}개 · {order.dirty ? "저장하지 않은 순서 변경이 있어요." : "전체 노출 순서"}</p>
+    <div className={area === "game-filters" ? grid.centeredFooter : grid.footer}>{area !== "game-filters" && <p className={styles.hint}>{order.count.toLocaleString()}개 · {order.dirty ? "저장하지 않은 순서 변경이 있어요." : "전체 노출 순서"}</p>}
       <NumberedPagination page={order.page} totalPages={order.totalPages} loading={order.busy || order.loading || order.conflict}
         change={order.setPage} label={`${label} 순서 변경 페이지 탐색`} /></div>
     {confirmCancel && <ConfirmDialog title="순서 변경을 취소할까요?" close={() => setConfirmCancel(false)} confirm={cancel}><p>저장하지 않은 순서 변경을 버리고 목록으로 돌아가요.</p></ConfirmDialog>}

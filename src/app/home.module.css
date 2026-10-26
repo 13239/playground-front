@@ -3,12 +3,13 @@
 .screen {
   display: grid;
   place-items: center;
-  min-height: 100svh;
+  /* 복구 카드도 화면 높이만큼 늘리지 않고 내용 높이로 배치한다. */
+  min-height: 0;
   padding: 24px;
 }
 
 .card {
-  width: min(100%, 32.5rem);
+  width: min(100%, var(--layout-max-form));
   padding: 32px;
   border: 1px solid white;
   border-radius: 24px;

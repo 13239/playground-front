@@ -4,10 +4,10 @@ export type NumberedPage<T> = Readonly<{ items: readonly T[]; page: number; size
 const integer = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 
 /** 집계·범위가 맞는 응답에서 허용된 항목만 복사하고 임의의 추가 필드는 전달하지 않는다. */
-export function parseNumberedPage<T>(value: unknown, parse: (item: unknown) => T): NumberedPage<T> {
+export function parseNumberedPage<T>(value: unknown, parse: (item: unknown) => T, sizes: readonly number[] = PAGE_SIZES): NumberedPage<T> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("Invalid numbered page");
   const page = value as Record<string, unknown>;
-  if (!integer(page.page) || page.page < 1 || !integer(page.size) || !PAGE_SIZES.some(size => size === page.size)
+  if (!integer(page.page) || page.page < 1 || !integer(page.size) || !sizes.some(size => size === page.size)
     || !integer(page.totalPages) || page.totalPages < 1 || page.page > page.totalPages || !integer(page.totalElements)
     || page.totalPages !== Math.max(1, Math.ceil(page.totalElements / page.size))
     || !Array.isArray(page.items) || page.items.length > page.size || page.items.length > page.totalElements) throw new Error("Invalid numbered page");

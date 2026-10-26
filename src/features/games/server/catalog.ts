@@ -14,12 +14,12 @@ export async function readPublicGame(code: string, signal?: AbortSignal) {
 /** 공개 검색은 허용된 작은 조건만 재구성한다. 요청 URL·헤더를 그대로 백엔드에 전달하지 않는다. */
 export async function catalogResponse(request: Request, genres = false): Promise<Response> {
   const input = new URL(request.url).searchParams;
-  const allowed = genres ? ["query", "cursor", "limit"] : ["query", "genre", "graphics", "players", "humanPlayers", "newOnly", "cursor", "limit"];
+  const allowed = genres ? ["query", "cursor", "limit"] : ["query", "genre", "filter", "graphics", "players", "humanPlayers", "newOnly", "cursor", "limit"];
   const params = new URLSearchParams();
   for (const key of input.keys()) if (!allowed.includes(key) || input.getAll(key).length !== 1) throw new ApiError("INVALID_REQUEST_BODY");
   for (const [key, value] of input) {
     const valid = key === "query" ? value.length <= 100 : key === "cursor" ? /^\d{1,7}:\d{1,19}$/.test(value)
-      : key === "genre" ? gameCodePattern.test(value) : key === "graphics" ? ["TWO_D", "THREE_D"].includes(value)
+      : (key === "genre" || key === "filter") ? gameCodePattern.test(value) : key === "graphics" ? ["TWO_D", "THREE_D"].includes(value)
       : key === "players" ? ["SINGLE", "TWO", "GROUP", "MULTIPLAYER"].includes(value)
       : key === "newOnly" ? ["true", "false"].includes(value)
       : /^\d{1,5}$/.test(value) && Number(value) >= 1 && Number(value) <= (key === "limit" ? 100 : 10000);

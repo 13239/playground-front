@@ -26,12 +26,13 @@ export function RoomHero({ create = false }: { create?: boolean }) {
       className={`${styles.hero} ${create ? styles.createHero : ""}`}
       aria-labelledby="gomoku-title"
     >
+      {/* 완만하게 늘어나는 공통 본문 폭과 최종 상한을 이미지 선택에도 반영한다. */}
       <Image
         className={styles.heroBackground}
         src="/images/gomoku/board-blossoms.webp"
         alt=""
         fill
-        sizes="(min-width: 2560px) 2200px, 100vw"
+        sizes="(min-width: 3300px) 2190px, (min-width: 1920px) calc(75vw - 3rem), (min-width: 1440px) 1392px, 100vw"
         preload
       />
       {create && (

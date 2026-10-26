@@ -3,18 +3,23 @@
   --ink: #16164b;
   --muted: #797ca8;
   --purple: #6a32f5;
-  --gutter: clamp(16px, 1.3vw, 36px);
-  --gap: clamp(14px, 1vw, 28px);
-  /* 짧은 목록에서도 본문이 남는 높이를 채워 전체 폭의 푸터를 화면 아래에 배치한다. */
+  --gutter: var(--layout-gutter);
+  --gap: var(--layout-gap);
+  /* 배경은 화면 전체를 채운다. 짧은 본문은 위에 두고 푸터만 뷰포트 맨 아래로 내린다. */
   display: flex;
   flex-direction: column;
-  width: min(100%, 2560px);
-  min-height: 100svh;
-  margin-inline: auto;
-  padding: 0 var(--gutter);
+  min-height: 100dvh;
+  margin-inline: 0;
+  padding: 0;
   color: var(--ink);
-  font-size: clamp(14px, 0.84vw, 19px);
+  font-size: var(--app-font-size);
   isolation: isolate;
+}
+/* 공통 페이지 상한보다 우선해 헤더·푸터 줄이 창의 좌우 끝까지 닿게 한다. 본문 열은 따로 상한을 둔다. */
+:global(.app-page).screen {
+  width: 100%;
+  max-width: none;
+  padding-inline: 0;
 }
 
 .screen::before {
@@ -88,10 +93,13 @@
   display: grid;
   grid-template-columns: auto minmax(150px, 1fr) auto minmax(130px, auto);
   align-items: center;
-  gap: clamp(16px, 2vw, 48px);
+  gap: 1.5rem;
   min-height: 5.3em;
-  /* 오목·관리 화면이 본문 글자를 키워도 헤더의 em은 홈과 같은 크기로 고정한다. */
-  font-size: clamp(14px, 0.84vw, 19px);
+  /* 모든 페이지의 헤더는 공통 증가율과 상한을 공유해 본문과 균형을 유지한다. */
+  font-size: var(--app-header-font-size);
+  /* 셸이 창 폭이어도 로고와 계정은 가장자리에 붙지 않게 같은 여백을 둔다. */
+  width: 100%;
+  padding-inline: var(--layout-gutter);
 }
 /* 검색이 없는 게임 화면은 브랜드·알림·계정만 배치해 빈 검색 열이나 모바일의 두 번째 행을 만들지 않는다. */
 .header[data-search="false"] { grid-template-columns: minmax(0, 1fr) auto auto; }
@@ -351,12 +359,19 @@
 
 .layout {
   display: grid;
-  flex: 1;
-  grid-template-columns: minmax(0, 1fr) clamp(285px, 21vw, 420px);
+  /* 채팅 열은 20rem보다 조금만 넓힌 고정 폭이다. rem이라 해상도별 글자 크기만 따라간다. */
+  grid-template-columns: minmax(0, 1fr) 23rem;
+  /* 짧은 목록은 헤더와 푸터 사이를 채운다. 게임 카드는 위쪽에 둔다. */
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1 1 auto;
   align-items: start;
   gap: var(--gap);
-  /* 빈 게임 안내와 채팅 패널 모두 푸터 위에 같은 여백을 확보한다. */
-  padding-bottom: 0.9em;
+  /* FHD에서는 좌우 거터만 남기고 창에 맞춘다. 더 넓은 화면은 공통 본문 상한에 이 30rem을 더해 같은 비율로 커진다. */
+  width: min(100%, calc(var(--layout-max-standard) + 30rem));
+  margin-inline: auto;
+  padding-inline: var(--layout-gutter);
+  /* 채팅 하단과 푸터 사이에 이 여백만 남긴다. */
+  padding-bottom: 1rem;
 }
 .main {
   min-width: 0;
@@ -370,7 +385,7 @@
   align-items: center;
   /* 최소 높이와 가로세로 비율이 태블릿에서 부모보다 큰 자동 너비를 만들지 않도록 폭을 고정한다. */
   width: 100%;
-  min-height: clamp(300px, 20vw, 535px);
+  min-height: 18rem;
   aspect-ratio: 3.85;
   container-type: inline-size;
   overflow: hidden;
@@ -425,7 +440,7 @@
 .hero h1 {
   margin: 0;
   color: #100b4d;
-  font-size: clamp(2rem, 4.05cqi, 5.2rem);
+  font-size: clamp(2rem, 4.05cqi, 3rem);
   font-weight: 900;
   letter-spacing: -0.065em;
   line-height: 1.15;
@@ -441,7 +456,7 @@
 .heroDescription {
   margin: 0.75em 0 1.1em;
   color: #55548e;
-  font-size: clamp(14px, 1.22cqi, 23px);
+  font-size: clamp(.875rem, 1.22cqi, 1.125rem);
   font-weight: 600;
   letter-spacing: -0.035em;
   line-height: 1.65;
@@ -586,7 +601,7 @@
 .categoryPrev svg { transform: rotate(180deg); }
 
 .catalog {
-  min-height: 22em;
+  min-height: 0;
   scroll-margin-top: 1em;
   outline: none;
 }
@@ -623,8 +638,11 @@
 }
 .gameGrid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  align-items: start;
+  /* 남은 폭으로 열 수를 정한다. 본문이 넓어져도 카드가 더 잘게 쪼개지지 않도록 최소 칸을 조금 키운다. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11.25rem), 1fr));
+  /* 줄마다 가장 긴 내용에 끌려가지 않도록 모든 행과 카드를 같은 높이로 맞춘다. */
+  grid-auto-rows: 1fr;
+  align-items: stretch;
   gap: 1em;
 }
 .gameCard {
@@ -643,8 +661,11 @@
   box-shadow: 0 9px 22px #8771cf24;
 }
 .gameCardButton {
-  display: block;
+  display: grid;
+  grid-template-rows: auto 1fr;
   width: 100%;
+  height: 100%;
+  min-width: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -700,25 +721,55 @@
   height: 1.15em;
 }
 .gameInfo {
+  /* 제목 1줄·소개 2줄·라벨 2줄을 항상 확보해 내용과 라벨 유무가 카드 높이를 바꾸지 않게 한다. */
+  --card-title-size: 1em;
+  --card-copy-size: max(11px, 0.67em);
+  --card-tag-size: max(11px, 0.67em);
+  --card-tag-gap: 0.4em;
+  display: grid;
+  grid-template-rows:
+    calc(1.5 * var(--card-title-size))
+    calc(3 * var(--card-copy-size))
+    calc(3.6 * var(--card-tag-size) + var(--card-tag-gap));
+  align-content: start;
+  gap: 0.35em;
+  min-width: 0;
   padding: 0.6em 0.8em 0.75em;
 }
 .gameInfo h3 {
   margin: 0;
-  font-size: 1em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--card-title-size);
+  line-height: 1.5;
   font-weight: 850;
   letter-spacing: -0.04em;
 }
 .gameInfo > p {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.35em;
-  margin: 0.35em 0 0.6em;
+  min-width: 0;
+  margin: 0;
   color: #7675a1;
-  font-size: max(11px, 0.67em);
+  font-size: var(--card-copy-size);
   line-height: 1.5;
+}
+/* 아이콘과 별개인 텍스트에만 2줄 말줄임을 적용해 긴 한국어·공백 없는 소개도 넘치지 않게 한다. */
+.gameDescription {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 .gameInfo > p svg {
   flex: 0 0 auto;
+  margin-top: 0.15em;
   width: 1.2em;
   height: 1.2em;
 }
@@ -735,6 +786,21 @@
   font-size: max(11px, 0.67em);
   font-weight: 700;
   line-height: 1.5;
+}
+/* 대화창의 전체 라벨 목록은 유지하고 홈 카드 안에서만 두 줄 높이와 긴 라벨 말줄임을 적용한다. */
+.gameInfo > .gameTags {
+  align-content: start;
+  gap: var(--card-tag-gap);
+  min-width: 0;
+  overflow: hidden;
+}
+.gameInfo > .gameTags > span {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--card-tag-size);
 }
 
 /* 바둑판 좌표는 장식용 CSS 변수로만 사용하며 사용자 입력이나 실행 코드로 해석하지 않는다. */
@@ -872,12 +938,15 @@
   width: 1.2em;
   height: 1.2em;
 }
-/* 데스크톱 채팅은 본문 열 높이에 맞추고 메시지 양과 관계없이 그 안에서만 스크롤한다. */
+/* 채팅 높이는 해상도와 상관없이 헤더·푸터 사이 뷰포트로 고정한다. 게임 목록이 길어져도 키우지 않고, 스크롤 중에는 처음 자리(헤더 아래)에 붙어 있는다. */
 .desktopChat {
-  position: relative;
+  position: sticky;
+  top: 5.3rem;
+  z-index: 2;
   display: flex;
-  align-self: stretch;
-  min-height: 35em;
+  align-self: start;
+  height: max(24rem, calc(100dvh - 9.25rem));
+  min-width: 0;
 }
 .chatPanel {
   display: flex;
@@ -1252,15 +1321,7 @@
   height: 2.5em;
 }
 
-/* 5K까지 콘텐츠 최대 폭과 유동 크기를 사용하고, 중간 화면에서는 카드 열 수와 헤더 배치를 단계적으로 줄인다. */
-@media (min-width: 2200px) {
-  .gameGrid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-  .gameCover {
-    aspect-ratio: 1.9;
-  }
-}
+/* 5K에서도 공통 최대 폭과 글자 크기를 유지하고 중간 화면에서는 헤더 배치를 줄인다. */
 
 @media (max-width: 1500px) {
   .header {
@@ -1268,9 +1329,6 @@
   }
   .brand {
     font-size: 1.7em;
-  }
-  .gameGrid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
   .category {
     flex-basis: 5.5em;
@@ -1291,22 +1349,18 @@
   .search input {
     font-size: 0.8em;
   }
-  .gameGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 1149px) {
   .layout {
+    flex: none;
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
     /* 채팅이 별도 창으로 바뀌는 화면은 기존 모바일 푸터 여백을 사용한다. */
     padding-bottom: 0;
   }
   .desktopChat {
     display: none;
-  }
-  .gameGrid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
   .mobileChatToggle {
     position: fixed;
@@ -1330,10 +1384,10 @@
     width: 1.5em;
     height: 1.5em;
   }
-  /* 떠 있는 채팅 버튼이 푸터를 가리지 않도록 홈에서만 아래 여백을 늘린다. */
+  /* 떠 있는 채팅 버튼이 푸터를 가리지 않도록 홈에서만 아래 여백을 둔다. 푸터 글자가 작아도 버튼 높이만큼 남긴다. */
   .screen > .footerClearance {
-    margin-top: 2.5em;
-    margin-bottom: 6em;
+    margin-top: auto;
+    margin-bottom: 7rem;
   }
 }
 
@@ -1378,21 +1432,15 @@
     width: 2.7em;
     height: 2.7em;
   }
-  .gameGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
   .category {
     flex-basis: 6.4em;
-  }
-  .catalog {
-    min-height: 25em;
   }
 }
 
 /* 좁은 모바일·가로 모드·큰 글꼴에서도 문구가 잘리거나 가로 스크롤이 생기지 않도록 한다. */
 @media (max-width: 600px) {
   .screen {
-    --gutter: 14px;
+    --gutter: var(--layout-gutter);
   }
   .header {
     gap: 0.65em 0.4em;
@@ -1495,13 +1543,17 @@
     aspect-ratio: 1.5;
   }
   .gameInfo {
+    /* 작은 화면에서도 같은 슬롯 계산을 사용하고 표지 비율·글자 크기만 기존 모바일 기준에 맞춘다. */
+    --card-title-size: 1.02em;
+    --card-copy-size: max(11px, 0.65em);
+    --card-tag-size: max(11px, 0.65em);
     padding: 0.7em 0.75em 0.8em;
   }
   .gameInfo h3 {
-    font-size: 1.02em;
+    font-size: var(--card-title-size);
   }
   .gameInfo > p {
-    font-size: max(11px, 0.65em);
+    font-size: var(--card-copy-size);
   }
   .gameTags > span {
     font-size: max(11px, 0.65em);

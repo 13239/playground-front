@@ -3,14 +3,17 @@
 import { useRef, useState } from "react";
 import type { Game, Implementation } from "../contracts";
 import type { GameGridItem } from "../catalog-grid-contracts";
+import { useFilterOptions } from "../client/use-filter-options";
 import { useAdminResource } from "../client/use-admin-resource";
 import { Feedback, Field, formText, Loading, useAdminMutation, useAdminScope } from "./admin-ui";
 import type { GenreOption } from "../genre-options-contracts";
+import { cardLabelOptions, type CardLabelCode } from "@/features/games/card-labels";
 import { CatalogGrid, type CatalogColumn } from "./catalog-grid";
 import { CatalogDialog, useCatalogDialog } from "./catalog-dialog";
 import { GenreCombobox } from "./genre-combobox";
 import { GameAvailabilityEditor } from "./game-availability-editor";
 import { GameModeEditor } from "./game-mode-editor";
+import { GameCardLabelEditor } from "./game-card-label-editor";
 import styles from "./admin.module.css";
 import grid from "./catalog-grid.module.css";
 
@@ -77,24 +80,48 @@ function GameDetails({ game, implementation, saved }: { game: Game; implementati
   </>;
 }
 function GameMetadataEditor({ game, implementation, saved }: { game?: Game; implementation: Implementation; saved: (game: Game) => void }) {
-  const { can } = useAdminScope();
+  const { can, sessionId } = useAdminScope();
+  const filters = useFilterOptions(sessionId);
   const { changed } = useCatalogDialog();
   const formRef = useRef<HTMLFormElement>(null);
   const mutation = useAdminMutation();
   const [genres, setGenres] = useState<readonly GenreOption[]>(game?.genres ?? []);
+  // 새 게임도 선택한 라벨만 저장한다. 모드 변경 등으로 사라진 선택지는 저장 전에 제거한다.
+  const [labelCodes, setLabelCodes] = useState<readonly CardLabelCode[]>(game?.cardLabelCodes ?? []);
+  const labelModes = implementation.modes.flatMap(definition => {
+    const registered = game?.modes.find(mode => mode.code === definition.code);
+    if (registered && !registered.supported) return [];
+    const source = registered ?? definition;
+    return [{ graphicsType: source.graphicsType, minHumanPlayers: source.minHumanPlayers, maxHumanPlayers: source.maxHumanPlayers }];
+  });
+  const labelOptions = cardLabelOptions(genres.filter(genre => genre.enabled), labelModes, filters.items);
+  const allowedLabels = new Set(labelOptions.map(option => option.code));
+  const selectedLabels = labelCodes.filter(code => allowedLabels.has(code));
+  const visibleLabels = cardLabelOptions(genres.filter(genre => genre.enabled), game?.modes.filter(mode => mode.published && mode.supported) ?? [], filters.items).map(option => option.code);
   return <form ref={formRef} data-saving={mutation.busy || undefined} onSubmit={e => {
-    e.preventDefault(); if (!can("GAME_WRITE")) return;
+    e.preventDefault(); if (!can("GAME_WRITE") || filters.loading || filters.error) return;
     const form = new FormData(e.currentTarget);
     // 게임 정보 저장으로 그리드에서 지정한 노출 순서를 덮어쓰지 않는다.
-    const metadata = { name: formText(form, "name"), summary: formText(form, "summary"), description: formText(form, "description"), genreCodes: genres.map(genre => genre.code) };
+    const metadata = { name: formText(form, "name"), summary: formText(form, "summary"), description: formText(form, "description"),
+      genreCodes: genres.map(genre => genre.code), cardLabelCodes: selectedLabels };
     void mutation.run<Game>(game ? `games/${game.code}` : "games", game ? "PUT" : "POST", { metadata, ...(game ? { expectedVersion: game.version } : { code: implementation.code }) }, saved);
   }}><fieldset disabled={!can("GAME_WRITE") || mutation.busy} className={styles.formFields}>
     <Field label="게임 이름"><input name="name" maxLength={100} required defaultValue={game?.name} /></Field>
     <Field label="한 줄 소개"><input name="summary" maxLength={160} required defaultValue={game?.summary} /></Field>
     <Field label="게임 설명"><textarea name="description" rows={5} maxLength={2000} required defaultValue={game?.description} /></Field>
   </fieldset>
-    <GenreCombobox selected={genres} change={value => { setGenres(value); changed(formRef.current); }} disabled={!can("GAME_WRITE") || mutation.busy} />
-    {can("GAME_WRITE") && <div className={styles.actions}><button className={styles.primary} disabled={mutation.busy}>{mutation.busy ? "저장 중…" : game ? "게임 정보 저장" : "게임 등록"}</button></div>}
+    <GenreCombobox selected={genres} change={value => {
+      setGenres(value);
+      // 장르를 해제했다가 다시 연결해도 과거의 카드 노출 선택이 자동으로 되살아나지 않는다.
+      const allowed = new Set(cardLabelOptions(value.filter(genre => genre.enabled), labelModes, filters.items).map(option => option.code));
+      setLabelCodes(current => current.filter(code => allowed.has(code)));
+      changed(formRef.current);
+    }} disabled={!can("GAME_WRITE") || mutation.busy || filters.loading || !!filters.error} />
+    {/* 필터를 읽는 동안에는 연결 변경으로 기존 라벨 선택이 사라지지 않게 편집을 잠근다. */}
+    <GameCardLabelEditor options={labelOptions} selected={selectedLabels} visibleCodes={visibleLabels} disabled={!can("GAME_WRITE") || mutation.busy || filters.loading || !!filters.error}
+      onChange={codes => { setLabelCodes(codes); changed(formRef.current); }} />
+    {can("GAME_WRITE") && <div className={styles.actions}><button className={styles.primary} disabled={mutation.busy || filters.loading || !!filters.error}>{mutation.busy ? "저장 중…" : game ? "게임 정보 저장" : "게임 등록"}</button></div>}
+    {filters.error && <p className={styles.error} role="alert">{filters.error} <button type="button" onClick={filters.retry}>다시 확인</button></p>}
     <Feedback error={mutation.error} success={mutation.success} />
   </form>;
 }

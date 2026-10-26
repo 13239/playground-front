@@ -1,19 +1,21 @@
 /* 밝은 공통 사이트와 LIGHTLINE 게임 무대를 분리한다. 본문은 초고해상도에서도 읽을 수 있는 최대 폭을 유지한다. */
 .screen {
-  width: min(100%, 2880px);
+  /* 헤더·푸터는 창 폭을 따른다. 보드와 랭킹은 본문 너비에서 가운데에 둔다. */
+  width: 100%;
   --tetris-border: #dfe3ff;
 }
-/* 로비 글자는 창 너비에 비례한다. 테트리스는 최대화해도 헤더·본문·푸터가 커지지 않게 덮어쓴다. */
+/* 테트리스도 공통 rem 증가율만 따라가며 보드·본문을 무제한 확대하지 않는다. */
 .screen.screen {
-  font-size: 15px;
+  font-size: .9375rem;
 }
 .main {
-  flex: 1;
-  padding: 1.1em 0 2em;
-  /* 창을 최대화해도 본문 글자가 뷰포트에 비례해 커지지 않게 고정한다. */
-  font-size: 15px;
+  /* 짧은 게임 안내·랭킹도 내용 높이에서 멈추고 화면 끝까지 빈 패널을 늘리지 않는다. */
+  flex: 0 0 auto;
+  padding: 1.1em var(--layout-gutter) 2em;
+  /* 기본 15px에서 공통 상한까지 글자·게임 컨트롤을 함께 완만하게 키운다. */
+  font-size: .9375rem;
   /* 보드 최대 높이에 맞춘 게임·랭킹 묶음 너비. 더 넓은 화면에서는 이 너비로 가운데에 둔다. */
-  --play-width: 1100px;
+  --play-width: 68.75rem;
 }
 .main svg,
 .dialog svg {
@@ -186,11 +188,11 @@
   background: #f1edff;
   color: #7136f5;
 }
-/* 15×25 보드를 중심에 두고 좌우 정보는 고정 폭으로 둔다. 창 높이가 늘어도 보드 표시 높이는 상한에서 멈춘다. */
+/* 15×25 보드를 중심에 두고 좌우 정보는 고정 폭으로 둔다. FHD 높이는 42.5rem을 유지하고 더 높은 창에서만 60vh까지 키운다. */
 .stage {
-  --board-height: clamp(500px, 74svh, 680px);
-  --rail-width: 140px;
-  --stage-gap: 20px;
+  --board-height: clamp(31.25rem, 74svh, max(42.5rem, 60vh));
+  --rail-width: 8.75rem;
+  --stage-gap: 1.25rem;
   /* 컨테이너의 남는 폭으로 높이를 제한해 정사각형 셀과 양쪽 정보의 최소 폭을 함께 확보한다. */
   --playfield-height: min(var(--board-height), calc((100cqw - var(--rail-width) * 2 - var(--stage-gap) * 2) * var(--board-rows) / var(--board-columns)));
   --board-width: calc(var(--playfield-height) * var(--board-columns) / var(--board-rows));
@@ -767,7 +769,7 @@
   border-radius: 0;
 }
 .popupScene .stage {
-  --board-height: max(240px, calc(100svh - 150px));
+  --board-height: min(var(--layout-board-max), max(240px, calc(100svh - 150px)));
 }
 .popupScene .shortcuts {
   display: flex;
@@ -816,7 +818,7 @@
 @media (max-width: 540px) {
   /* 사용자가 데스크톱 팝업을 좁히면 NEXT와 바깥 조작 버튼이 차지하는 높이도 확보한다. */
   .popupScene .stage {
-    --board-height: max(200px, calc(100svh - 260px));
+    --board-height: min(var(--layout-board-max), max(200px, calc(100svh - 260px)));
   }
 }
 /* 전체 화면은 동일한 실행 인스턴스와 입력 로그를 유지하고 보드의 표시 높이만 다시 계산한다. */
@@ -832,7 +834,7 @@
   background: #eef3ff;
 }
 .gameCard:fullscreen .stage {
-  --board-height: min(80svh, 1440px);
+  --board-height: min(80svh, var(--layout-board-max));
   flex: 1;
   justify-content: center;
   align-content: center;
@@ -840,15 +842,7 @@
 .gameCard:fullscreen .boardWrap {
   height: var(--playfield-height);
 }
-@media (min-width: 2200px) {
-  /* 넓은 화면에서도 보드와 글자를 키우지 않고 여백만 맞춘다. */
-  .main {
-    padding-top: 1.5em;
-  }
-  .screen {
-    padding-inline: 2em;
-  }
-}
+/* 넓은 화면에서도 보드·글자·안쪽 간격은 공통 상한을 유지하고 바깥 여백만 늘어난다. */
 @media (max-width: 1150px) {
   .columns {
     grid-template-columns: minmax(0, 1.7fr) minmax(180px, 0.5fr);
@@ -857,7 +851,7 @@
     padding: 0.9em;
   }
   .stage {
-    --board-height: clamp(430px, 68svh, 775px);
+    --board-height: clamp(430px, 68svh, var(--layout-board-max));
     --rail-width: 100px;
     --stage-gap: 12px;
     padding: 0.7em;
@@ -906,7 +900,7 @@
     overflow: visible;
   }
   .stage {
-    --board-height: min(77svh, 930px);
+    --board-height: min(77svh, var(--layout-board-max));
     --rail-width: clamp(88px, 14vw, 130px);
     --stage-gap: clamp(12px, 2vw, 24px);
     padding: 1em;
@@ -1011,7 +1005,7 @@
     height: 2.3em;
   }
   .stage {
-    --board-height: min(136vw, 73svh);
+    --board-height: min(136vw, 73svh, var(--layout-board-max));
     --rail-width: 66px;
     --stage-gap: 10px;
     /* 휴대폰은 NEXT를 판 아래로 옮겨 15칸 보드의 가독성과 터치 폭을 확보한다. */
@@ -1137,7 +1131,7 @@
     padding: 0.8em;
   }
   .gameCard:fullscreen .stage {
-    --board-height: min(136vw, 73svh);
+    --board-height: min(136vw, 73svh, var(--layout-board-max));
   }
 }
 @media (max-width: 360px) {

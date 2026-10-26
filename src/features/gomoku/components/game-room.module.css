@@ -1,6 +1,6 @@
-/* 대국판은 터치에서 같은 교차점을 두 번 눌러 착수하고, 브라우저의 기본 확대·스크롤을 유지한다. 큰 화면에서도 판의 가독성을 유지한다. */
+/* 대국판은 터치에서 같은 교차점을 두 번 눌러 착수하고, 브라우저의 기본 확대·스크롤을 유지한다. */
 /* 제공된 대국 시안: 왼쪽 참가자·타이머, 가운데 좌표판, 오른쪽 실시간 채팅을 같은 보라색 톤으로 연결한다. */
-/* 별도의 확대 선택기·착수 도구 없이 판이 참가자와 채팅 사이 가용 너비를 채우게 한다. */
+/* 판은 짧은 창에 맞춰 줄이고 공통 rem 상한까지만 완만하게 커진다. 남는 공간은 바깥 여백이다. */
 /* 차례와 타이머는 왼쪽 카드에 표시하고 중앙 상태 안내는 화면 낭독기에 유지한다. */
 
 .gameLayout {
@@ -19,7 +19,7 @@
   color: #231b4b;
   display: grid;
   grid-template-columns: minmax(190px, .55fr) minmax(0, 1fr);
-  gap: clamp(.75rem, 1.2vw, 1.5rem);
+  gap: 1rem;
 }
 
 .turnBar, .actions {
@@ -293,7 +293,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: clamp(.4rem, 2vw, 1rem);
+  padding: .75rem;
   overflow: hidden;
   border-radius: 1rem;
   background: #21163699;
@@ -303,7 +303,7 @@
 .undoNotice {
   width: min(100%, 27rem);
   max-height: 100%;
-  padding: clamp(.8rem, 2vw, 1.5rem);
+  padding: 1.1rem;
   overflow-y: auto;
   border: 1px solid #e3d8fa;
   border-radius: 1rem;
@@ -318,7 +318,7 @@
 .undoNotice h2 {
   margin: 0;
   color: #482b79;
-  font-size: clamp(.95rem, 1.35vw, 1.25rem);
+  font-size: 1.15rem;
   font-weight: 800;
 }
 
@@ -359,7 +359,7 @@
 }
 
 .lottery h2 {
-  font-size: clamp(1.3rem, 2vw, 2rem);
+  font-size: 1.75rem;
 }
 
 .lottery p {
@@ -374,7 +374,7 @@
 .cards {
   display: flex;
   justify-content: center;
-  gap: clamp(.8rem, 3vw, 2rem);
+  gap: 1.5rem;
   width: 100%;
   margin: 1.2rem 0 2rem;
 }
@@ -454,7 +454,7 @@
 }
 
 .playerIdentity strong {
-  font-size: clamp(.95rem, 1.2vw, 1.5rem);
+  font-size: 1.1rem;
   color: #15105e;
 }
 
@@ -464,7 +464,7 @@
 }
 
 .avatarWrap > :first-child {
-  width: clamp(56px, 6vw, 112px);
+  width: 72px;
   height: auto;
 }
 
@@ -525,7 +525,7 @@
 }
 
 .playerTimer strong {
-  font-size: clamp(1.9rem, 2.6vw, 3.1rem);
+  font-size: 2.25rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -607,7 +607,7 @@
   grid-template-columns: repeat(20, minmax(0, 1fr));
   padding: .35rem 1.25rem;
   color: #372d36;
-  font-size: clamp(.48rem, .65vw, .9rem);
+  font-size: .75rem;
   text-align: center;
 }
 
@@ -619,7 +619,7 @@
   align-items: center;
   justify-items: center;
   color: #372d36;
-  font-size: clamp(.48rem, .65vw, .9rem);
+  font-size: .75rem;
 }
 
 .starPoint {
@@ -694,7 +694,7 @@
   position: fixed;
   width: min(560px, calc(100vw - 2rem));
   max-height: calc(100svh - 2rem);
-  padding: clamp(1.2rem, 3vw, 2.5rem);
+  padding: 1.75rem;
   overflow: auto;
   margin: auto;
   border: 1px solid #fff;
@@ -742,7 +742,7 @@
 .resultDialog h2 {
   margin: .2rem 0 .6rem;
   color: #7d19f5;
-  font-size: clamp(2.5rem, 5vw, 3.3rem);
+  font-size: 2.75rem;
   font-weight: 950;
   text-shadow: 0 3px 0 #dcc2ff;
 }
@@ -783,33 +783,6 @@
   color: #8624ff;
   border-color: #963dff;
   background: #f5edff;
-}
-
-@media (min-width: 2560px) {
-  .gameScene {
-    font-size: 1.1rem;
-    gap: 1.5rem;
-  }
-
-  .gameLayout {
-    gap: 1.6rem;
-  }
-
-  .players {
-    padding: 1.5rem;
-  }
-
-  .player {
-    padding: 1.5rem 1rem;
-  }
-
-  .gameLayout > aside {
-    height: min(1450px, calc(100svh - 12rem));
-  }
-
-  .playerIdentity {
-    flex-wrap: wrap;
-  }
 }
 
 @media (max-width: 1400px) {
@@ -990,17 +963,18 @@
 /* 팝업은 데스크톱 기기에서만 열며, 작은 창의 너비는 모바일 기기 판정에 사용하지 않는다. */
 .gameContainer { min-width: 0; }
 
-/* 가용 높이는 오목 셸이 계산한다. 상단 전환 버튼·하단 대국 동작을 먼저 확보하고 나머지를 판에 할당한다. */
+/* 가용 높이는 오목 셸이 계산한다. 상단 전환 버튼·하단 대국 동작을 먼저 확보하고 판은 공통 상한까지만 키운다. */
 @media (min-width: 1101px) and (min-height: 600px) {
   .gameLayout[data-gomoku-game] {
     width: 100%;
-    height: 100%;
+    height: auto;
     min-height: 0;
     margin-inline: auto;
     /* 같은 폭의 좌우 열 사이에 판을 두고, 참가자·채팅은 이 간격보다 판에서 멀어지지 않는다. */
-    grid-template-columns: minmax(0, 1fr) minmax(0, min(1150px, calc(100cqh - 10.5rem))) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    column-gap: clamp(1rem, 1.6vw, 2.5rem);
+    /* 22rem은 헤더·제목·버튼·푸터 높이다. 남은 높이보다 공통 판 상한이 작으면 상한에서 멈춘다. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, min(var(--layout-board-max), calc(100dvh - 22rem))) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 1.25rem;
     row-gap: .75rem;
     padding: .5rem;
     align-items: stretch;
@@ -1033,36 +1007,36 @@
     grid-column: 3;
     grid-row: 2;
     justify-self: start;
-    width: min(100%, clamp(300px, 24vw, 440px));
+    width: min(100%, 22rem);
     height: 100%;
     min-height: 0;
     max-height: 100%;
   }
   /* 바깥 배경은 두 참가자 높이에서 멈추고, 카드는 판 바로 옆에 22rem까지 둔다. */
-  .gameLayout .players { grid-column: 1; justify-self: end; align-self: start; width: min(100%, 22rem); height: auto; max-height: 100%; min-height: 0; padding: clamp(.5rem, 1cqh, 1.2rem); overflow: auto; }
-  .gameLayout .player { padding: clamp(.5rem, 1cqh, 1rem) .65rem; gap: clamp(.4rem, .8cqh, 1rem); }
+  .gameLayout .players { grid-column: 1; justify-self: end; align-self: start; width: min(100%, 22rem); height: auto; max-height: 100%; min-height: 0; padding: 1rem; overflow: auto; }
+  .gameLayout .player { padding: .85rem .65rem; gap: .75rem; }
   .gameLayout .playerIdentity { flex-wrap: nowrap; }
-  .gameLayout .playerIdentity strong { font-size: clamp(.95rem, 1vw, 1.2rem); }
-  .gameLayout .avatarWrap > :first-child { width: clamp(40px, 8cqh, 88px); }
+  .gameLayout .playerIdentity strong { font-size: 1.1rem; }
+  .gameLayout .avatarWrap > :first-child { width: 72px; }
   .gameLayout .playerTimer { padding: .5rem; }
-  .gameLayout .playerTimer strong { font-size: clamp(1.5rem, 4cqh, 2.5rem); }
-  .gameLayout .versus { margin-block: clamp(.6rem, 1.3cqh, 1.25rem); font-size: 1.15rem; }
+  .gameLayout .playerTimer strong { font-size: 2.25rem; }
+  .gameLayout .versus { margin-block: .9rem; font-size: 1.15rem; }
   .gameLayout .playArea > .actions { flex: 0 0 auto; width: min(100%, 36rem); margin-inline: auto; }
   .gameLayout .lottery { flex: 1 1 0%; min-height: 0; padding: 1rem 0; overflow-y: auto; }
-  .gameLayout .drawCard { width: min(42%, 200px, 18cqh); gap: clamp(.4rem, 1cqh, 1rem); }
-  .gameLayout .cardSymbol { font-size: clamp(1.8rem, 5cqh, 3rem); }
+  .gameLayout .drawCard { width: min(42%, 200px); gap: .8rem; }
+  .gameLayout .cardSymbol { font-size: 2.5rem; }
 
   /* 두 대국이 같은 좌표판을 공유한다. 좌표 글자·위아래 패딩과 좌우 좌표 폭의 차이까지 빼서 실제 높이가 넘치지 않는다. */
   [data-gomoku-game] .boardSection {
-    --board-label-size: clamp(.5rem, 1.2cqh, .75rem);
-    flex: 1 1 0%;
-    min-height: 0;
-    /* 판의 최대 크기에 도달한 뒤에는 동작 버튼과 판 사이에 빈 높이를 늘리지 않는다. */
-    max-height: 1170px;
-    container-type: size;
+    --board-label-size: .7rem;
+    /* 부모 높이에 맞춰 줄어들지 않고 판의 정사각 비율만큼 높이를 가진다. */
+    flex: 0 0 auto;
+    min-height: auto;
+    max-height: calc(var(--layout-board-max) + 3.75rem);
+    container-type: inline-size;
   }
   [data-gomoku-game] .boardScroll {
-    width: min(100cqw, calc(100cqh - var(--board-label-size) * 3 + 1.1rem), 1150px);
+    width: min(100%, var(--layout-board-max), calc(100dvh - 22rem));
     margin-inline: auto;
   }
   [data-gomoku-game] .columnLabels,
@@ -1105,7 +1079,7 @@
 .popupPlaceholder h2 {
   margin: 1.2rem 0 .5rem;
   color: #231b4b;
-  font-size: clamp(1.2rem, 2vw, 1.7rem);
+  font-size: 1.45rem;
 }
 
 .popupPlaceholder p { margin: 0; line-height: 1.7; }

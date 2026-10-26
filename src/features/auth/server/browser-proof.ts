@@ -24,8 +24,9 @@ export async function readBrowserProof(request: Request): Promise<BrowserRequest
   // 로그인과 방 생성은 비밀번호를 제외한 본문을 다시 구성해 브라우저와 같은 해시를 계산한다.
   // 입장 비밀번호에도 로그인·방 생성과 같은 본문 결합 정책을 적용한다.
   // 비밀번호 변경 원문도 로그인과 같이 빠른 증명 해시에서 제외한다.
+  // 방 설정 변경의 새 비밀번호도 브라우저와 동일하게 빠른 해시에서 제외한다.
   const sensitiveBody = url.pathname === "/api/auth/login" || url.pathname === "/api/auth/password"
-    || url.pathname === "/api/gomoku/rooms" || url.pathname === "/api/gomoku/rooms/join";
+    || url.pathname === "/api/gomoku/rooms" || url.pathname === "/api/gomoku/rooms/join" || url.pathname === "/api/gomoku/rooms/settings";
   const credentialBody: Buffer[] = [];
   const hash = createHash("sha256");
   let size = 0;
@@ -35,7 +36,9 @@ export async function readBrowserProof(request: Request): Promise<BrowserRequest
       if (done) break;
       size += chunk.byteLength;
       // 관리자 설명과 테트리스 종료 리플레이만 별도 상한을 쓴다. 인증·다른 게임의 작은 본문 제한은 유지한다.
-      const limit = url.pathname === "/api/tetris/finish" ? 300_000 : admin ? 16384 : 4096;
+      // 게임 정보의 장르·카드 라벨·한글 설명은 BFF 본문 검증과 같은 32KiB 한도를 사용한다.
+      const gameMetadata = /^\/api\/admin\/games(?:\/[A-Z][A-Z0-9_]{0,63})?$/.test(url.pathname);
+      const limit = url.pathname === "/api/tetris/finish" ? 300_000 : gameMetadata ? 32768 : admin ? 16384 : 4096;
       if (size > limit) throw new ApiError("PAYLOAD_TOO_LARGE");
       if (sensitiveBody) credentialBody.push(Buffer.from(chunk));
       else hash.update(chunk);

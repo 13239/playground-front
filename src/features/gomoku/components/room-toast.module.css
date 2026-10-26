@@ -16,7 +16,8 @@
   color: #30215d;
   box-shadow: 0 8px 30px #39246a24, 0 2px 8px #8454c412;
   font: inherit;
-  font-size: clamp(14px, .9vw, 20px);
+  /* 토스트는 별도 vw 없이 루트 글자 증가율만 따른다. */
+  font-size: 0.9375rem;
   transform: translateX(-50%);
   animation: appear .18s ease-out both;
   /* 알림 위를 클릭하더라도 검색·입력 등 원래 화면의 조작을 가로막지 않는다. */

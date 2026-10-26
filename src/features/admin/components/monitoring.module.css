@@ -2,14 +2,15 @@
 .panel { padding: clamp(16px, 1.6vw, 28px); }
 .dateLine { color: #89799f; font-size: .78rem; text-align: right; font-variant-numeric: tabular-nums; }
 .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
-.metric { display: flex; align-items: center; gap: clamp(16px, 2vw, 30px); min-width: 0; min-height: 190px; padding: clamp(20px, 2vw, 36px); border: 1px solid #e8e0fa; border-radius: 18px; background: white; }
-.metricIcon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: clamp(64px, 5vw, 94px); height: clamp(64px, 5vw, 94px); border-radius: 50%; color: #913ef4; background: #f5eeff; }
+/* 지표도 모니터 크기와 분리해 숫자·아이콘·여백이 한꺼번에 확대되지 않게 한다. */
+.metric { display: flex; align-items: center; gap: 20px; min-width: 0; min-height: 160px; padding: var(--layout-panel-padding); border: 1px solid #e8e0fa; border-radius: 18px; background: white; }
+.metricIcon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 4rem; height: 4rem; border-radius: 50%; color: #913ef4; background: #f5eeff; }
 .metricIcon svg { width: 42%; height: 42%; }
 .metricIcon.mint { color: #10a887; background: #e7f9f2; }
 .metric h2 { margin: 0 0 10px; color: #25124e; font-size: 1rem; }
-.metricValue { margin: 0; color: #18074c; font-size: clamp(2.25rem, 3.2vw, 3.9rem); font-weight: 750; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.metricValue { margin: 0; color: #18074c; font-size: 2.5rem; font-weight: 750; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .metricValue small { margin-left: 12px; color: #8c7aa6; font-size: .95rem; font-weight: 500; }
-.metricValue > span { font-size: clamp(1.3rem, 2vw, 2rem); }
+.metricValue > span { font-size: 1.5rem; }
 .metricHint { margin: 12px 0 0; color: #8a7aa3; font-size: .8rem; line-height: 1.6; }
 .chartCard { margin-top: 18px; padding: clamp(16px, 1.6vw, 28px); border: 1px solid #e8e0fa; border-radius: 18px; background: white; }
 .chartHeading, .serviceHeading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
@@ -37,12 +38,13 @@
 .serviceTableWrap { min-width: 0; border: 1px solid #e8e0fa; border-radius: 14px; overflow: hidden; }
 .serviceTable { width: 100%; border-collapse: collapse; text-align: left; color: #66507f; font-size: .88rem; }
 .serviceTable thead { background: #f5efff; color: #907aa9; font-size: .8rem; }
-.serviceTable th, .serviceTable td { padding: 20px 24px; border-bottom: 1px solid #eee7f8; }
+/* 서비스 행도 공통 rem 크기를 따라 넓은 화면에서만 완만하게 커진다. */
+.serviceTable th, .serviceTable td { padding: 1.25rem 1.5rem; border-bottom: 1px solid #eee7f8; }
 .serviceTable tbody tr:last-child > * { border-bottom: 0; }
 .serviceTable tbody th { font-weight: 650; color: #2c1751; }
 .serviceName { display: inline-flex; align-items: center; gap: 20px; }
-.serviceIcon { display: inline-flex; justify-content: center; align-items: center; width: 64px; height: 64px; border-radius: 14px; background: #f4ecff; color: #8637ed; }
-.serviceIcon svg { width: 30px; height: 30px; }
+.serviceIcon { display: inline-flex; justify-content: center; align-items: center; width: 4rem; height: 4rem; border-radius: .875rem; background: #f4ecff; color: #8637ed; }
+.serviceIcon svg { width: 1.875rem; height: 1.875rem; }
 .statusBadge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border-radius: 99px; font-size: .8rem; font-weight: 650; white-space: nowrap; }
 .statusBadge svg { width: 17px; height: 17px; }
 .normal { color: #0a9c78; background: #e7f8f1; }.delayed { color: #bc8522; background: #fff5e7; }.down { color: #cf5573; background: #fff0f4; }.unknown { color: #978aa9; background: #f3f0f8; }

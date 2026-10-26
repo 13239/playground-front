@@ -24,6 +24,8 @@ type FeaturePath = "/api/auth/profile" | "/api/auth/profile/nickname" | "/api/go
   | "/api/gomoku/rooms/game" | "/api/gomoku/rooms/game/events" | "/api/gomoku/rooms/lifecycle"
   // 로비 SSE도 대국과 동일하게 인증된 POST 요청만 허용한다.
   | "/api/gomoku/rooms/events"
+  // 방 설정 변경도 공통 인증·브라우저 증명·토큰 갱신을 공유한다.
+  | "/api/gomoku/rooms/settings"
   // 공통 게임 시작도 별도 토큰 없이 기존 잠금·갱신·브라우저 키로 확인한다.
   | `/api/games/${string}/modes/${string}/admission`
   // 테트리스도 기존 브라우저 증명·계정 변경·토큰 갱신 경계를 그대로 공유한다.

@@ -23,7 +23,7 @@ function parseItem(value: unknown): CatalogOrderItem {
 
 /** 순서 페이지의 번호·연속 위치·중복·버전을 검증하고 허용된 필드만 전달한다. */
 export function parseCatalogOrderPage(value: unknown): CatalogOrderPage {
-  const page = parseNumberedPage(value, parseItem);
+  const page = parseNumberedPage(value, parseItem, [10, 20, 30, 40, 50]);
   const result = parseCatalogOrderResult(value);
   const offset = (page.page - 1) * page.size;
   if (page.items.length !== Math.min(page.size, page.totalElements - offset)

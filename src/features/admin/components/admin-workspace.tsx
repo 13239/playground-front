@@ -1,23 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { SessionContent } from "@/app/_components/session-content";
 import { retryAuthSession } from "@/features/auth/client/session-store";
+import { SiteFooter } from "@/app/_components/lobby/site-footer";
 import { SiteHeader } from "@/app/_components/lobby/site-header";
-import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import lobby from "@/app/_components/lobby/lobby.module.css";
 import { useAdminAccess, invalidateAdminAccess } from "../client/use-admin-access";
 import { AdminScope, Loading } from "./admin-ui";
 import { RolesPanel } from "./roles-panel";
 import { AccessPanel } from "./access-panel";
 import { GamesPanel } from "./games-panel";
-import { GenresPanel } from "./genres-panel";
+import { GameFiltersPanel } from "./game-filters-panel";
 import { UsersPanel } from "./users-panel";
 import { LogsPanel } from "./logs-panel";
 import { ChatHistoryPanel } from "./chat-history-panel";
 import { DashboardPanel } from "./dashboard-panel";
 import { ServiceStatusPanel } from "./service-status-panel";
+import { AdminNavigation } from "./admin-navigation";
 import type { PermissionCode } from "../contracts";
 import styles from "./admin.module.css";
 
@@ -28,7 +29,7 @@ const sections = [
   { key: "roles", name: "권한 관리", icon: "users", permissions: ["ROLE_READ"], description: "역할별로 사용할 수 있는 기능을 설정하세요." },
   { key: "operations", name: "운영 설정", icon: "gear", permissions: ["ACCESS_POLICY_READ"], description: "로그인과 기존 접속의 운영 정책을 관리하세요." },
   { key: "games", name: "게임 관리", icon: "gamepad", permissions: ["GAME_READ"], description: "게임 정보, 플레이 모드와 공개 상태를 관리하세요." },
-  { key: "genres", name: "장르 관리", icon: "grid", permissions: ["GAME_READ"], description: "게임을 찾기 쉬운 분류로 정리하세요." },
+  { key: "filters", name: "게임 필터 관리", icon: "grid", permissions: ["GAME_READ"], description: "장르 · 플레이 인원 · 그래픽을 한곳에서 관리하세요." },
   { key: "logs", name: "로그 조회", icon: "book", permissions: ["ACTIVITY_LOG_READ", "ADMIN_AUDIT_READ"], description: "사용자 활동과 관리자 작업 기록을 확인하세요." },
   // 채팅 기록은 USER_READ와 무관하게 별도 조회 권한을 따른다.
   { key: "chat", name: "채팅 내역", icon: "chat", permissions: ["CHAT_HISTORY_READ"], description: "공용 채팅과 게임방의 저장된 메시지를 확인하세요." },
@@ -40,25 +41,14 @@ export function AdminWorkspace({ section }: { section?: string }) {
   const { auth, access } = useAdminAccess();
   // 저장 결과는 버전 변경으로 편집 폼이 교체돼도 남기되 다른 계정에는 보여 주지 않는다.
   const [savedSession, setSavedSession] = useState<string>();
-  const navRef = useRef<HTMLElement>(null);
   // 여러 조회 권한 중 하나만 있어도 메뉴에 진입하고 내부 탭은 개별 권한으로 제한한다.
   const allowed = access.status === "ready" ? sections.filter(s => s.permissions.some(permission => access.context.permissions.includes(permission as PermissionCode))) : [];
   const selected = sections.find(s => s.key === (section ?? allowed[0]?.key));
-  useEffect(() => {
-    const nav = navRef.current, current = nav?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!nav || !current || nav.scrollWidth <= nav.clientWidth) return;
-    // 늘어난 메뉴도 모바일 가로 탐색에서 현재 위치가 보이도록 이동한다. 본문 스크롤은 바꾸지 않는다.
-    const offset = current.getBoundingClientRect().left - nav.getBoundingClientRect().left;
-    nav.scrollTo({ left: nav.scrollLeft + offset - (nav.clientWidth - current.offsetWidth) / 2, behavior: "instant" });
-  }, [selected?.key, allowed.length]);
-  return <div className={`${lobby.screen} ${styles.screen}`}>
+  return <div className={`app-page ${lobby.screen} ${styles.screen}`} data-page-width="wide">
     <a href="#admin-main" className={lobby.skipLink}>관리자 본문으로 이동</a>
     <SiteHeader account={<SessionContent />} onNotice={() => {}} />
     <div className={styles.workspace}>
-      <aside className={styles.sidebar}>
-        <div className={styles.consoleLabel}><LobbyIcon name="gear" /><span>관리자 페이지</span></div>
-        <nav ref={navRef} aria-label="관리자 메뉴">{allowed.map(s => <Link key={s.key} href={`/admin/${s.key}`} prefetch={false} aria-current={selected?.key === s.key ? "page" : undefined}><LobbyIcon name={s.icon} />{"menuName" in s ? s.menuName : s.name}</Link>)}</nav>
-      </aside>
+      <AdminNavigation items={allowed} selected={selected?.key} />
       <main id="admin-main" className={styles.main}>
         {auth.status === "anonymous" ? <div className={styles.empty}><h1>로그인이 필요해요</h1><Link href="/login">로그인하러 가기</Link></div>
           // 인증 장애를 끝없는 권한 확인으로 표시하지 않고 기존 세션 복구 절차로 재시도한다.
@@ -71,10 +61,11 @@ export function AdminWorkspace({ section }: { section?: string }) {
             {savedSession === access.sessionId && <div className={styles.savedNotice} role="status">저장했어요.<button type="button" aria-label="저장 안내 닫기" onClick={() => setSavedSession(undefined)}>×</button></div>}
             {/* 세션별로 편집 상태를 격리해 다른 계정 로그인 후 이전 입력이 제출되지 않게 한다. */}
             <div key={`${access.sessionId}:${selected.key}`}>
-              {selected.key === "dashboard" ? <DashboardPanel /> : selected.key === "service-status" ? <ServiceStatusPanel /> : selected.key === "users" ? <UsersPanel /> : selected.key === "roles" ? <RolesPanel /> : selected.key === "operations" ? <AccessPanel /> : selected.key === "games" ? <GamesPanel /> : selected.key === "logs" ? <LogsPanel /> : selected.key === "chat" ? <ChatHistoryPanel /> : <GenresPanel />}
+              {selected.key === "dashboard" ? <DashboardPanel /> : selected.key === "service-status" ? <ServiceStatusPanel /> : selected.key === "users" ? <UsersPanel /> : selected.key === "roles" ? <RolesPanel /> : selected.key === "operations" ? <AccessPanel /> : selected.key === "games" ? <GamesPanel /> : selected.key === "logs" ? <LogsPanel /> : selected.key === "chat" ? <ChatHistoryPanel /> : <GameFiltersPanel />}
             </div>
           </AdminScope>}
       </main>
     </div>
+    <SiteFooter />
   </div>;
 }

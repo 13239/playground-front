@@ -1,3 +1,6 @@
+import { isGameFilter, parseGameFilter, type GameFilter } from "./filter-contracts";
+import { isCardLabelCodes, type CardLabelCode } from "./card-labels";
+
 /** DB 카탈로그의 공개 계약이다. 실행 URL은 포함하지 않고 코드 등록 목록에서 결정한다. */
 export type CatalogGenre = Readonly<{ code: string; name: string; sortOrder: number }>;
 export type CatalogMode = Readonly<{
@@ -9,6 +12,9 @@ export type CatalogGame = Readonly<{
   code: string; name: string; summary: string; description: string; published: boolean;
   availability: CatalogMode["availability"]; unavailableMessage: string; firstPublishedAt: string | null;
   genres: readonly CatalogGenre[]; modes: readonly CatalogMode[];
+  // 빈 배열은 홈 카드의 라벨을 모두 숨기겠다는 명시적 관리 설정이다.
+  cardLabelCodes: readonly CardLabelCode[];
+  cardLabels: readonly GameFilter[];
 }>;
 export type CatalogPage = Readonly<{ items: readonly CatalogGame[]; nextCursor: string | null }>;
 export type GenrePage = Readonly<{ items: readonly CatalogGenre[]; nextCursor: string | null }>;
@@ -33,10 +39,14 @@ function isGenre(value: unknown): value is CatalogGenre {
   return object(value) && code(value.code) && text(value.name, 50) && integer(value.sortOrder) && value.sortOrder >= 0 && value.sortOrder <= 1000000;
 }
 export function isCatalogGame(value: unknown): value is CatalogGame {
+  // 콜백에서도 검증한 라벨 배열을 참조하도록 별도로 보관한다.
+  const labels = object(value) ? value.cardLabelCodes : undefined;
   return object(value) && code(value.code) && text(value.name, 100) && text(value.summary, 160) && text(value.description, 2000)
     && typeof value.published === "boolean" && availability(value.availability) && text(value.unavailableMessage, 300)
     && (value.firstPublishedAt === null || typeof value.firstPublishedAt === "string" && Number.isFinite(Date.parse(value.firstPublishedAt)))
-    && Array.isArray(value.genres) && value.genres.every(isGenre) && Array.isArray(value.modes) && value.modes.every(isCatalogMode);
+    && Array.isArray(value.genres) && value.genres.every(isGenre) && Array.isArray(value.modes) && value.modes.every(isCatalogMode)
+    && isCardLabelCodes(labels) && Array.isArray(value.cardLabels) && value.cardLabels.length <= 128
+    && value.cardLabels.every(isGameFilter) && value.cardLabels.every(filter => labels.some(code => code === filter.labelCode));
 }
 export function isCatalogPage(value: unknown): value is CatalogPage {
   return object(value) && Array.isArray(value.items) && value.items.length <= 100 && value.items.every(isCatalogGame) && cursor(value.nextCursor);
@@ -53,5 +63,6 @@ export function publicMode(mode: CatalogMode): CatalogMode {
 export function publicGame(game: CatalogGame): CatalogGame {
   return { code: game.code, name: game.name, summary: game.summary, description: game.description,
     published: game.published, availability: game.availability, unavailableMessage: game.unavailableMessage, firstPublishedAt: game.firstPublishedAt,
+    cardLabelCodes: [...game.cardLabelCodes], cardLabels: game.cardLabels.map(parseGameFilter),
     genres: game.genres.map(genre => ({ code: genre.code, name: genre.name, sortOrder: genre.sortOrder })), modes: game.modes.map(publicMode) };
 }

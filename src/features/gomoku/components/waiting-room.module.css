@@ -1,4 +1,4 @@
-/* 시안의 장면·참가자·방 채팅을 대기실 안에 격리하고 5K까지 읽기 좋은 최대 폭은 공통 화면에서 유지한다. */
+/* 시안의 장면·참가자·방 채팅을 대기실 안에 격리한다. 폭은 오목 본문 상한을 넘어 늘어나지 않는다. */
 .waitingPage {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(290px, 24%);
@@ -13,7 +13,8 @@
   flex-direction: column;
   gap: 1.2em;
   min-width: 0;
-  min-height: min(850px, calc(100svh - 10em));
+  /* 참가자·규칙·동작 버튼 높이까지만 장면을 사용하고 큰 모니터의 빈 높이는 채우지 않는다. */
+  min-height: 0;
   padding: 1.6em;
   overflow: hidden;
   border-radius: 1.4em;
@@ -70,7 +71,8 @@
 }
 .titleRow h1 {
   margin: 0;
-  font-size: clamp(1.4em, 1.65vw, 2em);
+  /* 방 제목은 창 너비와 따로 둔다. */
+  font-size: 1.85em;
   font-weight: 900;
   letter-spacing: -0.045em;
 }
@@ -411,11 +413,34 @@
   background: #f9faffed;
   box-shadow: 0 6px 20px #5042870d;
 }
+/* 규칙 제목과 방장 설정 아이콘은 화면 폭에 관계없이 같은 줄의 양 끝에 둔다. */
+.rulesHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  margin-bottom: 0.75em;
+}
+.settingsButton {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  padding: 0.5em;
+  border: 1px solid #e2d6fa;
+  border-radius: 0.8em;
+  background: #f5efff;
+  color: #8435ed;
+  cursor: pointer;
+}
+.settingsButton:hover:not(:disabled) { background: #eadeff; }
+.settingsButton:disabled { cursor: not-allowed; opacity: 0.55; }
 .rules h2 {
   display: flex;
   align-items: center;
   gap: 0.65em;
-  margin: 0 0 0.75em;
+  margin: 0;
   font-size: 1.15em;
   font-weight: 850;
 }
@@ -557,7 +582,7 @@
   align-items: center;
   justify-content: center;
   gap: 1em;
-  min-height: 60svh;
+  min-height: 16rem;
   padding: 2em;
   text-align: center;
 }
@@ -785,7 +810,7 @@
   padding: 0.3em !important;
   border: 0 !important;
   background: transparent !important;
-  font-size: 16px !important;
+  font-size: max(16px, 1rem) !important;
   color: #5c4783;
 }
 .chatTextButton {

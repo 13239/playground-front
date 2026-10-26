@@ -5,13 +5,15 @@
 .toolbar > form { flex: 1; max-width: 640px; }
 .pageSize { margin-left: auto; }
 .pageSize select { width: 110px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: #fff; }
-.scroll { min-width: 0; max-height: min(66dvh, 1100px); overflow: auto; border: 1px solid #ebe6f6; border-radius: 12px; overscroll-behavior: contain; }
+/* 행 수에 맞춰 세로로 늘어나고 휠은 페이지로 전달한다. 좁은 화면의 가로 이동만 표 안에서 처리한다. */
+.scroll { min-width: 0; overflow-x: auto; border: 1px solid #ebe6f6; border-radius: 12px; }
 .scroll:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
-.table { width: 100%; min-width: 780px; border-spacing: 0; border-collapse: separate; text-align: left; color: #51406e; font-size: clamp(0.82rem, 0.3vw + 0.5rem, 0.95rem); }
+.table { width: 100%; min-width: 780px; border-spacing: 0; border-collapse: separate; text-align: left; color: #51406e; font-size: .875rem; }
 .table th { position: sticky; top: 0; z-index: 2; background: #f3eeff; color: #87719f; font-size: 0.78rem; white-space: nowrap; }
-.table :is(th, td) { padding: 13px 16px; border-bottom: 1px solid #eee8fa; }
-.table td { height: 66px; background: #fff; overflow-wrap: anywhere; }
-.table th { height: 46px; }
+/* 글자가 커지는 넓은 화면에서는 행·셀 여백도 같은 상한 비율로 늘린다. */
+.table :is(th, td) { padding: .8125rem 1rem; border-bottom: 1px solid #eee8fa; }
+.table td { height: 4.125rem; background: #fff; overflow-wrap: anywhere; }
+.table th { height: 2.875rem; }
 .table tr:last-child td { border-bottom: 0; }
 .table td:first-child { width: 72px; color: #92839f; font-variant-numeric: tabular-nums; }
 .table :is(th, td):nth-child(2) { position: sticky; left: 0; z-index: 1; min-width: 170px; max-width: 250px; }
@@ -67,3 +69,6 @@
   .table tr[data-drop-before="true"] td { border-top: 2px solid Highlight; }
   .table tr[data-drop-after="true"] td { border-bottom: 2px solid Highlight; }
 }
+
+/* 필터 순서 편집의 페이지 탐색은 개수 표기 없이 중앙 정렬한다. */
+.centeredFooter { display: flex; justify-content: center; padding-top: 16px; margin-top: 18px; border-top: 1px solid #eee8fa; }

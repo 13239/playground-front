@@ -4,13 +4,13 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   gameCategories,
-  genreCategory,
+  filterCategory,
   lobbyGame,
   type GameCategoryId,
   type LobbyGame,
 } from "@/features/lobby/catalog";
 import { showModalWithoutCloseFocus } from "@/lib/client/show-modal";
-import { useGameCatalog, useGameGenres } from "@/features/games/client/use-game-catalog";
+import { useGameCatalog, useGameFilters } from "@/features/games/client/use-game-catalog";
 import { gameHref } from "@/features/games/implementations";
 import { ChatPanel } from "./chat-panel";
 import { SiteFooter } from "./site-footer";
@@ -56,7 +56,7 @@ function NoticeDialog({
         <span className={styles.noticeBadge}>COMING SOON</span>
         <h2 id="notice-title">{notice.title}</h2>
         <p id="notice-description">{notice.description}</p>
-        {notice.game && (
+        {notice.game && notice.game.tags.length > 0 && (
           <div className={styles.gameTags}>
             {notice.game.tags.map((tag) => (
               <span key={tag}>{tag}</span>
@@ -87,8 +87,8 @@ export function LobbyShell({ account }: { account: ReactNode }) {
   const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
   // 조건은 서버의 같은 모드 EXISTS 검색에 전달하고 정적 게임 목록을 중복 유지하지 않는다.
   const catalog = useGameCatalog(category, query);
-  const genres = useGameGenres();
-  const categories = [...gameCategories, ...genres.items.map(genreCategory)];
+  const filters = useGameFilters();
+  const categories = [...gameCategories, ...filters.items.map(filterCategory)];
   const games = catalog.items.map(lobbyGame);
   // 넘친 카테고리만 화살표로 옮기고, 맨 앞·맨 뒤에서는 더 갈 수 없는 쪽을 끈다.
   const [categoryScroll, setCategoryScroll] = useState({ prev: false, next: false });
@@ -111,7 +111,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
   }, [categories.length]);
   const categoryLabel =
     // 복귀 후 첫 장르 페이지를 다시 읽을 때 아직 조회하지 않은 선택 장르를 전체 필터로 잘못 표시하지 않는다.
-    categories.find((value) => value.id === category)?.label ?? (category.startsWith("genre:") ? "선택한 장르" : "전체");
+    categories.find((value) => value.id === category)?.label ?? (category.startsWith("filter:") ? "선택한 필터" : "전체");
   const catalogTitle = normalizedQuery
     ? "검색 결과"
     : category === "all"
@@ -142,7 +142,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
   }
 
   return (
-    <div className={styles.screen}>
+    <div className={`app-page ${styles.screen}`}>
       <a className={styles.skipLink} href="#game-catalog">
         게임 목록으로 건너뛰기
       </a>
@@ -185,9 +185,6 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                   <span>{item.label}</span>
                 </button>
               ))}
-              {genres.hasMore && <button type="button" className={styles.category} disabled={genres.pending} onClick={() => void genres.loadMore()}>
-                <span className={`${styles.categoryIcon} ${styles.purple}`}><LobbyIcon name="plus" /></span><span>장르 더 보기</span>
-              </button>}
             </div>
             <button
               className={styles.categoryNext}
@@ -199,7 +196,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
               <LobbyIcon name="chevron" />
             </button>
           </section>
-          {genres.error && <p className={styles.catalogStatus} role="status">{genres.error} <button type="button" onClick={genres.retry}>다시 확인</button></p>}
+          {filters.error && <p className={styles.catalogStatus} role="status">{filters.error} <button type="button" onClick={filters.retry}>다시 확인</button></p>}
           <section
             id="game-catalog"
             ref={gamesRef}
@@ -248,16 +245,18 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                         </span>
                       </div>
                       <div className={styles.gameInfo}>
-                        <h3>{game.title}</h3>
+                        <h3 title={game.title}>{game.title}</h3>
                         <p>
                           <LobbyIcon name="users" />
-                          {game.description}
+                          {/* 두 줄을 넘는 소개는 카드 안에서 줄이고 전체 원문은 기본 툴팁으로 확인할 수 있다. */}
+                          <span className={styles.gameDescription} title={game.description}>{game.description}</span>
                         </p>
-                        <div className={styles.gameTags}>
+                        {/* 라벨 요소는 선택이 있을 때만 만들고 높이는 공통 슬롯으로 동일하게 유지한다. */}
+                        {game.tags.length > 0 && <div className={styles.gameTags} title={game.tags.join(", ")}>
                           {game.tags.map((tag) => (
-                            <span key={tag}>{tag}</span>
+                            <span key={tag} title={tag}>{tag}</span>
                           ))}
-                        </div>
+                        </div>}
                       </div>
                     </Link>
                   </article>

@@ -11,7 +11,8 @@
 .dates { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 7px; align-items: center; color: #9184a7; }
 .dates input { padding-inline: 7px; font-size: .78rem; }
 .filters > button { min-height: 44px; }
-.tableScroll { min-width: 0; max-height: min(66dvh, 1050px); overflow: auto; border: 1px solid #eee8fa; border-radius: 12px; overscroll-behavior: contain; }
+/* 메시지 그리드는 행 수에 맞춰 늘리고 표 위의 세로 휠도 페이지로 전달한다. */
+.tableScroll { min-width: 0; overflow-x: auto; border: 1px solid #eee8fa; border-radius: 12px; }
 .tableScroll:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
 .table { width: 100%; min-width: 1060px; border-collapse: separate; border-spacing: 0; table-layout: fixed; text-align: left; font-size: .83rem; color: #51406e; }
 .table th, .table td { padding: 12px 14px; border-bottom: 1px solid #eee8fa; }
