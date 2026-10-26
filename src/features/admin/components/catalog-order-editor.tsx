@@ -58,12 +58,13 @@ export function CatalogOrderEditor({ area, label, size, cancel, saved }: {
       current.to = Math.max(0, Math.min(order.count - 1, boundary > current.from ? boundary - 1 : boundary));
       setDrop({ boundary, from: current.from });
     }
-    // 손잡이를 잡은 상태에서 표 가장자리로 이동하면 내부 목록을 함께 스크롤한다.
+    // 손잡이를 잡고 화면 가장자리로 이동하면 페이지를 스크롤해 표의 다음 행을 표시한다.
     const frame = scroll.current;
     if (frame) {
       const rect = frame.getBoundingClientRect();
-      if (event.clientY < rect.top + 36) frame.scrollTop -= 18;
-      else if (event.clientY > rect.bottom - 36) frame.scrollTop += 18;
+      const viewportHeight = document.documentElement.clientHeight;
+      if (event.clientY < 36 && rect.top < 0) window.scrollBy({ top: -18, behavior: "instant" });
+      else if (event.clientY > viewportHeight - 36 && rect.bottom > viewportHeight) window.scrollBy({ top: 18, behavior: "instant" });
     }
   }
   function pointerEnd(event: PointerEvent<HTMLButtonElement>, name: string) {

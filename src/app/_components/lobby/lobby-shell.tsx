@@ -142,7 +142,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
   }
 
   return (
-    <div className={styles.screen}>
+    <div className={`app-page ${styles.screen}`}>
       <a className={styles.skipLink} href="#game-catalog">
         게임 목록으로 건너뛰기
       </a>

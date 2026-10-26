@@ -10,7 +10,8 @@
 .dates { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; color: #9184a7; }
 .dates input { padding-inline: 9px; font-size: .8rem; }
 .filters > button { min-height: 44px; }
-.tableScroll { max-height: min(66dvh, 1050px); min-width: 0; overflow: auto; border: 1px solid #eee8fa; border-radius: 12px; overscroll-behavior: contain; }
+/* 로그 행을 모두 펼쳐 내부 세로 스크롤 없이 페이지에서 탐색한다. */
+.tableScroll { min-width: 0; overflow-x: auto; border: 1px solid #eee8fa; border-radius: 12px; }
 .tableScroll:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
 .table { width: 100%; min-width: 1170px; border-collapse: separate; border-spacing: 0; text-align: left; color: #51406e; font-size: .83rem; }
 .table th, .table td { padding: 10px 14px; border-bottom: 1px solid #eee8fa; }

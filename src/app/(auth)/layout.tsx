@@ -29,7 +29,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   });
 
   return (
-    <div className={styles.screen}>
+    <div className={`app-page ${styles.screen}`}>
       <div className={styles.backdrop} aria-hidden="true">
         <picture>
           <source

@@ -20,7 +20,7 @@ export function TetrisShell({
     description: string;
   }>();
   return (
-    <div className={`${lobby.screen} ${styles.screen}`}>
+    <div className={`app-page ${lobby.screen} ${styles.screen}`} data-page-width="game">
       <a className={lobby.skipLink} href="#tetris-main">
         본문으로 건너뛰기
       </a>

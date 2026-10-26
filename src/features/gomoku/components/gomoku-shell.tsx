@@ -20,7 +20,7 @@ export function GomokuShell({
     description: string;
   }>();
   return (
-    <div className={`${lobby.screen} ${styles.screen}`} data-gomoku-screen="">
+    <div className={`app-page ${lobby.screen} ${styles.screen}`} data-page-width="game" data-gomoku-screen="">
       <a className={lobby.skipLink} href="#gomoku-main">
         본문으로 건너뛰기
       </a>

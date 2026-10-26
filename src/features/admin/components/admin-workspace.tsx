@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { SessionContent } from "@/app/_components/session-content";
 import { retryAuthSession } from "@/features/auth/client/session-store";
+import { SiteFooter } from "@/app/_components/lobby/site-footer";
 import { SiteHeader } from "@/app/_components/lobby/site-header";
-import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import lobby from "@/app/_components/lobby/lobby.module.css";
 import { useAdminAccess, invalidateAdminAccess } from "../client/use-admin-access";
 import { AdminScope, Loading } from "./admin-ui";
@@ -18,6 +18,7 @@ import { LogsPanel } from "./logs-panel";
 import { ChatHistoryPanel } from "./chat-history-panel";
 import { DashboardPanel } from "./dashboard-panel";
 import { ServiceStatusPanel } from "./service-status-panel";
+import { AdminNavigation } from "./admin-navigation";
 import type { PermissionCode } from "../contracts";
 import styles from "./admin.module.css";
 
@@ -40,25 +41,14 @@ export function AdminWorkspace({ section }: { section?: string }) {
   const { auth, access } = useAdminAccess();
   // 저장 결과는 버전 변경으로 편집 폼이 교체돼도 남기되 다른 계정에는 보여 주지 않는다.
   const [savedSession, setSavedSession] = useState<string>();
-  const navRef = useRef<HTMLElement>(null);
   // 여러 조회 권한 중 하나만 있어도 메뉴에 진입하고 내부 탭은 개별 권한으로 제한한다.
   const allowed = access.status === "ready" ? sections.filter(s => s.permissions.some(permission => access.context.permissions.includes(permission as PermissionCode))) : [];
   const selected = sections.find(s => s.key === (section ?? allowed[0]?.key));
-  useEffect(() => {
-    const nav = navRef.current, current = nav?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!nav || !current || nav.scrollWidth <= nav.clientWidth) return;
-    // 늘어난 메뉴도 모바일 가로 탐색에서 현재 위치가 보이도록 이동한다. 본문 스크롤은 바꾸지 않는다.
-    const offset = current.getBoundingClientRect().left - nav.getBoundingClientRect().left;
-    nav.scrollTo({ left: nav.scrollLeft + offset - (nav.clientWidth - current.offsetWidth) / 2, behavior: "instant" });
-  }, [selected?.key, allowed.length]);
-  return <div className={`${lobby.screen} ${styles.screen}`}>
+  return <div className={`app-page ${lobby.screen} ${styles.screen}`} data-page-width="wide">
     <a href="#admin-main" className={lobby.skipLink}>관리자 본문으로 이동</a>
     <SiteHeader account={<SessionContent />} onNotice={() => {}} />
     <div className={styles.workspace}>
-      <aside className={styles.sidebar}>
-        <div className={styles.consoleLabel}><LobbyIcon name="gear" /><span>관리자 페이지</span></div>
-        <nav ref={navRef} aria-label="관리자 메뉴">{allowed.map(s => <Link key={s.key} href={`/admin/${s.key}`} prefetch={false} aria-current={selected?.key === s.key ? "page" : undefined}><LobbyIcon name={s.icon} />{"menuName" in s ? s.menuName : s.name}</Link>)}</nav>
-      </aside>
+      <AdminNavigation items={allowed} selected={selected?.key} />
       <main id="admin-main" className={styles.main}>
         {auth.status === "anonymous" ? <div className={styles.empty}><h1>로그인이 필요해요</h1><Link href="/login">로그인하러 가기</Link></div>
           // 인증 장애를 끝없는 권한 확인으로 표시하지 않고 기존 세션 복구 절차로 재시도한다.
@@ -76,5 +66,6 @@ export function AdminWorkspace({ section }: { section?: string }) {
           </AdminScope>}
       </main>
     </div>
+    <SiteFooter />
   </div>;
 }

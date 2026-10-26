@@ -1,8 +1,8 @@
-/* 공통 대화창·폼을 재사용하고 모바일 세로 스크롤만 보완한다. 글자 크기는 창과 함께 커지지 않는다. */
+/* 공통 대화창·폼을 재사용하고 모바일 세로 스크롤만 보완한다. 글자는 루트 증가율만 따른다. */
 .settingsDialog {
   width: min(94vw, 48em);
   max-height: 90svh;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .description {
   margin: 0.8em 0 1.5em;

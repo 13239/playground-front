@@ -1,19 +1,18 @@
 /* 로그인과 회원가입은 같은 배경·카드·입력 스타일을 공유한다. */
 .screen {
-  /* Grow with available width AND height; rem respects font preferences.
-     At a 16px root: FHD 1.15px, QHD 1.4px, 4K 1.9px. */
-  --u: clamp(
-    0.0546875rem,
-    min(calc(0.025rem + 0.0390625vw), calc(0.025rem + 0.06944444svh)),
-    0.15rem
-  );
+  /* 페이지·헤더는 공통 rem 증가율을 따라 큰 모니터에서만 완만하게 커진다. */
+  --u: .0625rem;
   --ink: #595eaa;
   --accent: #4900ff;
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-rows: auto 1fr;
+  /* 같은 크기의 위·아래 여백으로 폼 자체를 화면 정중앙에 둔다.
+     폼이 창보다 길면 위쪽 행의 헤더 최소 높이를 보존하며 문서가 자연스럽게 스크롤된다. */
+  grid-template-rows: minmax(min-content, 1fr) auto minmax(0, 1fr);
   min-height: 100svh;
+  min-height: 100dvh;
+  padding-inline: 0;
 }
 
 .backdrop {
@@ -32,6 +31,8 @@
 }
 
 .header {
+  grid-row: 1;
+  align-self: start;
   position: relative;
   z-index: 1;
   display: flex;
@@ -39,8 +40,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding-block: calc(30 * var(--u));
-  padding-inline: max(1.25rem, min(6vw, calc(100 * var(--u))));
+  padding-block: 1.5rem;
+  padding-inline: var(--layout-gutter);
 }
 
 .homeLink {
@@ -113,19 +114,21 @@
 }
 
 .main {
+  grid-row: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   place-items: center;
   min-width: 0;
   min-height: 0;
-  padding: calc(36 * var(--u)) 24px calc(112 * var(--u));
+  /* 대칭 여백으로 헤더나 장식 삽화가 폼의 중심 좌표를 밀어내지 않게 한다. */
+  padding: 1rem var(--layout-gutter);
 }
 
 .card {
-  /* Keep form content compact independently of the page/header scale. */
-  --u: clamp(0.0546875rem, calc(0.05rem + 0.005vw), 0.0625rem);
+  /* 폼 내부도 공통 rem 상한까지만 커져 글자·입력창·카드가 같은 비율을 유지한다. */
+  --u: .05625rem;
   min-width: 0;
-  width: min(100%, 32.5rem);
+  width: min(100%, var(--layout-max-form));
   max-width: 100%;
   min-height: 0;
   padding: calc(32 * var(--u)) calc(32 * var(--u)) calc(24 * var(--u));
@@ -566,8 +569,8 @@
   }
 
   .main {
-    padding: 1.75rem max(20px, env(safe-area-inset-right))
-      max(3.5rem, env(safe-area-inset-bottom))
+    padding: 1rem max(20px, env(safe-area-inset-right))
+      1rem
       max(20px, env(safe-area-inset-left));
   }
 
@@ -686,11 +689,10 @@
   }
 }
 
-/* Short windows, landscape phones and a reduced viewport can scroll naturally.
-   Keep the header in document flow so wrapped controls never cover the form. */
+/* 짧은 창·가로 휴대폰에서도 헤더를 문서 흐름에 두고 긴 폼에는 세로 스크롤을 허용한다. */
 @media (height <= 48rem) {
   .main {
-    padding-block: 1rem max(2rem, env(safe-area-inset-bottom));
+    padding-block: max(1rem, env(safe-area-inset-bottom));
   }
 
   .card {
@@ -702,11 +704,11 @@
   }
 }
 
-/* 세로 화면에서는 전용 구도를 선택하고 폼 아래 여백을 확보해 캐릭터의 얼굴이 카드에 가려지지 않게 한다. */
+/* 세로 화면의 전용 삽화는 폼의 중앙 배치를 바꾸지 않고 배경 안에서만 하단에 고정한다. */
 @media (width < 48rem), (max-aspect-ratio: 3/4) {
   .backdrop {
-    /* 작은 화면의 폼이 길어지면 배경도 페이지 끝까지 이어지도록 한다. */
-    position: absolute;
+    /* 폼이 길어져도 장식 배경은 화면 크기로 유지해 삽화까지 세로로 늘리지 않는다. */
+    position: fixed;
     background: linear-gradient(180deg, #9ac5ff, #dce5ff 65%, #f0eaff);
   }
 
@@ -724,9 +726,6 @@
     object-position: center bottom;
   }
 
-  .main {
-    padding-bottom: max(19rem, 36svh, 65vw);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

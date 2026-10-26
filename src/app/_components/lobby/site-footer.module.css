@@ -1,11 +1,15 @@
-/* 홈·오목·테트리스가 같은 푸터를 쓴다. 구분선은 콘텐츠 전체 폭으로 연결한다. */
-/* 기본 아래 간격은 본문 여백과 맞춘다. 홈의 채팅 버튼 여백은 로비에서만 더한다. */
+/* 홈·오목·테트리스·관리자가 같은 푸터를 쓴다. 구분선은 창의 좌우 끝까지 연결한다. */
+/* 부모가 세로 flex이고 뷰포트보다 짧으면 위쪽 여백이 남아 푸터가 화면 맨 아래에 붙는다. */
 .footer {
   display: flex;
   align-items: center;
+  width: 100%;
   gap: 1.2em;
-  margin: 0 0 1.5em;
+  margin-top: auto;
+  margin-bottom: 0;
   padding-top: 1.25em;
+  padding-bottom: 0.75em;
+  padding-inline: var(--layout-gutter);
   border-top: 1px solid #c9c5e64d;
   color: #9592b4;
   font-size: 0.75em;

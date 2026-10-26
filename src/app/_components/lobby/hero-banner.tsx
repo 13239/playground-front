@@ -7,14 +7,14 @@ import styles from "./lobby.module.css";
 export function HeroBanner({ onBrowse }: { onBrowse: () => void }) {
   return (
     <section className={styles.hero} aria-labelledby="lobby-title">
-      {/* 정적 이미지의 콘텐츠 해시로 교체 이력을 캐시에 반영하고, 모바일의 확대된 삽화에도 충분한 해상도를 제공한다. */}
+      {/* 정적 이미지의 콘텐츠 해시로 교체 이력을 캐시에 반영하고, 모바일의 확대된 삽화에도 충분한 해상도를 제공한다. 데스크톱은 실제 배너 최대 폭에 맞춰 이미지를 선택한다. */}
       <div className={styles.heroArtwork}>
         <Image
           className={styles.heroArt}
           src={bannerArtwork}
           alt="파스텔 구름 위에서 보라색 게임패드를 들고 손을 흔드는 하얀 캐릭터와 웃는 보라색 친구"
           fill
-          sizes="(min-width: 2560px) 2060px, (min-width: 1150px) 76vw, (max-width: 600px) 1080px, 100vw"
+          sizes="(min-width: 3300px) 1770px, (min-width: 1920px) calc(75vw - 24rem), (min-width: 1440px) 1056px, (min-width: 1150px) calc(100vw - 384px), (max-width: 600px) 1080px, 100vw"
           quality={95}
           preload
         />

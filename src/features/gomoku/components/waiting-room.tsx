@@ -446,12 +446,13 @@ function AuthenticatedWaitingRoom({
         onLeave={() => { setLeaveError(""); setConfirmLeave(true); }} onRecover={() => void recoverResult()}
         leaveConfirmation={leaveConfirmation} />
         : <section className={styles.scene} aria-label={`${name} 대기실`}>
+        {/* 화면에 따라 완만하게 넓어지는 대기실 장면과 최종 상한에 맞춰 배경을 선택한다. */}
         <Image
           src="/images/gomoku/waiting-room-background.webp"
           alt=""
           fill
           priority
-          sizes="(max-width: 1100px) 100vw, 75vw"
+          sizes="(min-width: 3300px) 1650px, (min-width: 1920px) 57vw, (min-width: 1440px) 1056px, (max-width: 1100px) 100vw, 75vw"
           className={styles.sceneImage}
         />
         <div className={styles.roomHeader}>

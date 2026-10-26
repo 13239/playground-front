@@ -13,7 +13,8 @@
   flex-direction: column;
   gap: 1.2em;
   min-width: 0;
-  min-height: min(850px, calc(100svh - 10em));
+  /* 참가자·규칙·동작 버튼 높이까지만 장면을 사용하고 큰 모니터의 빈 높이는 채우지 않는다. */
+  min-height: 0;
   padding: 1.6em;
   overflow: hidden;
   border-radius: 1.4em;
@@ -581,7 +582,7 @@
   align-items: center;
   justify-content: center;
   gap: 1em;
-  min-height: 60svh;
+  min-height: 16rem;
   padding: 2em;
   text-align: center;
 }
@@ -809,7 +810,7 @@
   padding: 0.3em !important;
   border: 0 !important;
   background: transparent !important;
-  font-size: 16px !important;
+  font-size: max(16px, 1rem) !important;
   color: #5c4783;
 }
 .chatTextButton {

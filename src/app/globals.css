@@ -2,6 +2,21 @@
 
 :root {
   color-scheme: light;
+  /* 큰 화면에서는 본문 폭을 먼저 넓히고, 글자·컨트롤은 아래의 제한된 rem 증가율만 공유한다. */
+  --layout-max-standard: clamp(90rem, 75vw, 112.5rem);
+  --layout-max-wide: clamp(100rem, 83.333333vw, 125rem);
+  --layout-max-game: var(--layout-max-standard);
+  /* FHD에서는 기존 32.5rem을 유지하고, 더 넓은 창에서만 입력 카드가 같이 넓어진다. */
+  --layout-max-form: clamp(32.5rem, 26vw, 40rem);
+  --layout-max-reading: 48rem;
+  --layout-gutter: clamp(1rem, 1.5vw, 1.5rem);
+  --layout-gap: 1rem;
+  --layout-panel-padding: clamp(1rem, 1.5vw, 1.5rem);
+  --layout-title-size: clamp(1.5rem, 1.1rem + 1vw, 2rem);
+  /* FHD 높이는 45rem(720px)에서 멈추고, 더 높은 창에서만 62vh·60rem까지 키운다. */
+  --layout-board-max: clamp(45rem, 62vh, 60rem);
+  --app-font-size: 1rem;
+  --app-header-font-size: 1rem;
   /* 페이지와 내부 패널에 같은 은은한 스크롤바 색을 사용한다. */
   --scrollbar-thumb: rgb(135 117 181 / 18%);
   --scrollbar-thumb-hover: rgb(135 117 181 / 36%);
@@ -19,6 +34,12 @@
   -moz-osx-font-smoothing: grayscale;
   background: #eaf2ff;
   color: #565ba3;
+}
+
+/* FHD(1920)는 16px를 유지한다. QHD는 약 18px, 4K는 약 22px, 그 이상은 24px에서 멈춘다.
+   rem·em 아이콘과 버튼이 같은 비율만 쓰므로 큰 모니터에서 읽기 쉽고, 그 이상으로 커지지 않는다. */
+@media (min-width: 120rem) {
+  :root { font-size: clamp(100%, calc(62.5% + .3125vw), 150%); }
 }
 
 * {
@@ -64,6 +85,18 @@
 
 body {
   margin: 0;
+}
+
+/* 바깥 틀은 뷰포트 폭이다. 헤더·푸터가 창 끝까지 닿고, 본문 상한은 각 페이지가 정한다. */
+.app-pages { width: 100%; min-width: 0; margin-inline: 0; font-size: var(--app-font-size); }
+.app-pages > * { min-width: 0; max-width: 100%; }
+/* 모든 새 페이지는 이 틀을 사용하고, 밀도 높은 관리 화면과 게임은 용도만 지정한다. */
+.app-page { width: min(100%, var(--page-max-width, var(--layout-max-standard))); min-width: 0; margin-inline: auto; padding-inline: var(--layout-gutter); font-size: var(--app-font-size); }
+.app-page[data-page-width="wide"] { --page-max-width: var(--layout-max-wide); }
+.app-page[data-page-width="game"] { --page-max-width: var(--layout-max-game); }
+.app-page[data-page-width="reading"] { --page-max-width: var(--layout-max-reading); }
+@media (max-width: 600px) {
+  :root { --app-font-size: .875rem; --app-header-font-size: .875rem; --layout-gutter: 1rem; }
 }
 
 button,

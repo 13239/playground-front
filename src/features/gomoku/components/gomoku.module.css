@@ -1,32 +1,35 @@
 /* 오목 전용 배치를 격리하고 공통 헤더·계정의 기존 스타일은 그대로 공유한다. */
-/* 본문 글자를 창 너비에 묶으면 em으로 만든 버튼·간격·아이콘이 페이지째 커진다. */
+/* 본문·버튼·아이콘은 공통 rem 증가율을 사용해 큰 모니터에서도 제한된 비율로 커진다. */
 .screen {
-  width: min(100%, 2880px);
+  /* 헤더·푸터는 창 폭을 따른다. 목록·대국 본문만 아래 상한으로 가운데에 둔다. */
+  width: 100%;
 }
 .screen[data-gomoku-screen] {
-  /* 로비 화면의 유동 글자 크기보다 우선해 창을 넓혀도 오목 본문이 확대되지 않게 한다. */
-  font-size: 16px;
+  /* 공통 기준은 기본 16px에서 최대 20px까지만 완만하게 증가한다. */
+  font-size: var(--app-font-size);
 }
 @media (min-width: 1280px) {
   .screen[data-gomoku-screen] {
-    /* 바깥 여백은 더 늘리지 않고, 넓어진 창의 남는 폭은 본문 밖에 둔다. */
-    --gutter: 24px;
-    --gap: 20px;
+    /* 넓은 창에서도 공통 여백과 용도별 본문 폭을 함께 적용한다. */
+    --gutter: var(--layout-gutter);
+    --gap: var(--layout-gap);
   }
 }
 @media (min-width: 1600px) {
   .screen > header {
-    /* 공통 헤더의 vw 글자·간격이 넓은 오목 화면에서 같이 커지지 않게 한다. */
-    font-size: 16px;
-    gap: 2rem;
+    /* 헤더는 다른 페이지와 같은 제한된 글자·간격 증가율을 공유한다. */
+    font-size: var(--app-header-font-size);
+    gap: 1.5rem;
   }
 }
 .main {
-  flex: 1;
+  /* 목록·생성·대기 화면은 실제 내용 높이를 사용하고 대국 화면만 아래에서 가용 높이를 계산한다. */
+  flex: 0 0 auto;
   min-width: 0;
   padding-block: 0.25em 2em;
+  padding-inline: var(--layout-gutter);
   /* 테트리스 본문처럼 목록·생성·대기실·대국은 이 폭 이후 가운데에 두고 더 넓히지 않는다. */
-  --content-width: 1880px;
+  --content-width: var(--layout-max-game);
   width: min(100%, var(--content-width));
   margin-inline: auto;
 }
@@ -1014,34 +1017,36 @@
   max-width: 60%;
 }
 
-/* 데스크톱 대국은 실제 표시 높이를 헤더·본문·푸터로 나눈다. 짧은 창에서만 본문 높이로 판을 줄이고 글자는 키우지 않는다.
-   공통 푸터의 아래 간격은 이 높이 계산에서 빼 판 영역을 유지한다.
+/* 데스크톱 대국은 판·버튼 묶음을 내용 높이로 두고, 창이 더 높으면 푸터만 뷰포트 맨 아래로 내린다.
+   판 크기는 공통 상한과 뷰포트에서 헤더·푸터를 뺀 높이 중 작은 값을 쓴다.
    목록·대기실·작은 터치 화면은 기존 문서 흐름을 유지하고 브라우저 확대·키보드 탐색을 제한하지 않는다. */
 @media (min-width: 1101px) and (min-height: 600px) {
   .screen:has([data-gomoku-game]) {
-    height: 100dvh;
     min-height: 100dvh;
-    font-size: 16px;
+    height: auto;
+    font-size: var(--app-font-size);
   }
   .screen:has([data-gomoku-game]) > header,
   .screen:has([data-gomoku-game]) > footer { flex: 0 0 auto; }
   .screen:has([data-gomoku-game]) > .main {
-    flex: 1 1 0%;
+    flex: 0 1 auto;
     min-height: 0;
+    height: auto;
     padding-block: .25em .5em;
-    container-type: size;
+    container-type: inline-size;
   }
   .screen:has([data-gomoku-game]) > footer {
-    margin: 0;
+    margin-top: auto;
+    margin-bottom: 0;
     padding-block: .8em;
   }
 }
 .dialog {
   position: fixed;
   inset: 0;
-  width: min(92vw, 530px);
+  width: min(92vw, 33.125rem);
   height: fit-content;
-  max-height: min(90svh, 850px);
+  max-height: min(90svh, 53.125rem);
   margin: auto;
   padding: 1.7em;
   overflow: auto;

@@ -1,6 +1,6 @@
 /* 대국판은 터치에서 같은 교차점을 두 번 눌러 착수하고, 브라우저의 기본 확대·스크롤을 유지한다. */
 /* 제공된 대국 시안: 왼쪽 참가자·타이머, 가운데 좌표판, 오른쪽 실시간 채팅을 같은 보라색 톤으로 연결한다. */
-/* 판은 짧은 창에 맞춰 줄이고 720px을 넘기면 더 키우지 않는다. 넓은 화면의 남는 공간은 바깥 여백이다. */
+/* 판은 짧은 창에 맞춰 줄이고 공통 rem 상한까지만 완만하게 커진다. 남는 공간은 바깥 여백이다. */
 /* 차례와 타이머는 왼쪽 카드에 표시하고 중앙 상태 안내는 화면 낭독기에 유지한다. */
 
 .gameLayout {
@@ -963,16 +963,17 @@
 /* 팝업은 데스크톱 기기에서만 열며, 작은 창의 너비는 모바일 기기 판정에 사용하지 않는다. */
 .gameContainer { min-width: 0; }
 
-/* 가용 높이는 오목 셸이 계산한다. 상단 전환 버튼·하단 대국 동작을 먼저 확보하고, 판은 720px까지만 키운다. */
+/* 가용 높이는 오목 셸이 계산한다. 상단 전환 버튼·하단 대국 동작을 먼저 확보하고 판은 공통 상한까지만 키운다. */
 @media (min-width: 1101px) and (min-height: 600px) {
   .gameLayout[data-gomoku-game] {
     width: 100%;
-    height: 100%;
+    height: auto;
     min-height: 0;
     margin-inline: auto;
     /* 같은 폭의 좌우 열 사이에 판을 두고, 참가자·채팅은 이 간격보다 판에서 멀어지지 않는다. */
-    grid-template-columns: minmax(0, 1fr) minmax(0, min(720px, calc(100cqh - 10.5rem))) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    /* 22rem은 헤더·제목·버튼·푸터 높이다. 남은 높이보다 공통 판 상한이 작으면 상한에서 멈춘다. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, min(var(--layout-board-max), calc(100dvh - 22rem))) minmax(0, 1fr);
+    grid-template-rows: auto auto;
     column-gap: 1.25rem;
     row-gap: .75rem;
     padding: .5rem;
@@ -1028,14 +1029,14 @@
   /* 두 대국이 같은 좌표판을 공유한다. 좌표 글자·위아래 패딩과 좌우 좌표 폭의 차이까지 빼서 실제 높이가 넘치지 않는다. */
   [data-gomoku-game] .boardSection {
     --board-label-size: .7rem;
-    flex: 1 1 0%;
-    min-height: 0;
-    /* 판의 최대 크기에 도달한 뒤에는 동작 버튼과 판 사이에 빈 높이를 늘리지 않는다. */
-    max-height: 780px;
-    container-type: size;
+    /* 부모 높이에 맞춰 줄어들지 않고 판의 정사각 비율만큼 높이를 가진다. */
+    flex: 0 0 auto;
+    min-height: auto;
+    max-height: calc(var(--layout-board-max) + 3.75rem);
+    container-type: inline-size;
   }
   [data-gomoku-game] .boardScroll {
-    width: min(100cqw, calc(100cqh - var(--board-label-size) * 3 + 1.1rem), 720px);
+    width: min(100%, var(--layout-board-max), calc(100dvh - 22rem));
     margin-inline: auto;
   }
   [data-gomoku-game] .columnLabels,
