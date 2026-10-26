@@ -258,7 +258,8 @@
   overflow: hidden;
   border: 2px solid white;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 25%, #f2bdff, #8650eb 60%, #4630a8);
+  /* 투명 캐릭터 뒤로 이전 배지의 보라색 그라데이션이 드러나지 않도록 배경색을 제거한다. */
+  background: transparent;
   box-shadow: 0 0 0 2px #c5ceef;
   color: white;
 }
