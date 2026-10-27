@@ -5,6 +5,12 @@ import { parseOperationalNotice } from "@/lib/operational-notice";
 
 // 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
 const errors = {
+  // 친구/그룹 오류는 인증 만료와 구분하고 공개된 짧은 안내만 전달한다.
+  SOCIAL_NOT_FOUND: [404, "친구 또는 요청 정보를 찾을 수 없습니다."],
+  SOCIAL_CONFLICT: [409, "상태가 변경되었습니다. 새로 확인한 뒤 다시 시도해 주세요."],
+  SOCIAL_ACCESS_DENIED: [403, "현재 친구 또는 그룹 참가 권한이 없습니다."],
+  SOCIAL_LIMIT_EXCEEDED: [429, "친구 요청 또는 그룹 인원 한도에 도달했습니다. 잠시 후 다시 시도해 주세요."],
+  SOCIAL_UNAVAILABLE: [503, "친구 기능을 일시적으로 이용할 수 없습니다. 다시 시도해 주세요."],
   // 본인 탈퇴의 비밀번호 대입 제한은 세션 만료와 구분하고 서버가 정한 재시도 간격을 유지한다.
   ACCOUNT_WITHDRAWAL_RATE_LIMIT_EXCEEDED: [429, "회원탈퇴 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   // 테트리스 기록 오류는 계정 만료와 구분해 게임 화면에서 재시도를 제공한다.

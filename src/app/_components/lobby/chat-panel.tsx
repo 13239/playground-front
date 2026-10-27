@@ -2,6 +2,9 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
+import { SocialProfileButton } from "@/features/social/social-profile-button";
+import { HomeSocialPanel, HomeSocialTabs } from "@/features/social/social-ui";
+import { useSocialStore, useHomeSocialActive } from "@/features/social/context";
 import { useChat } from "@/features/chat/client/chat-provider";
 import { RetryButton } from "@/app/_components/retry-button";
 import { LobbyIcon } from "./lobby-icon";
@@ -16,6 +19,14 @@ export function ChatPanel({
   onClose?: () => void;
 }) {
   const chat = useChat();
+  const social = useSocialStore();
+  const showingSocial = useHomeSocialActive();
+  const previousActive = useRef(active);
+  useEffect(() => {
+    // 닫힌 모바일 인스턴스는 데스크톱 탭을 닫지 않고 실제 열림→닫힘 전환만 정리한다.
+    if (previousActive.current && !active && social.getSnapshot().surface === "home") social.close();
+    previousActive.current = active;
+  }, [active, social]);
   const headingId = useId();
   const statusId = useId();
   const onlineId = useId();
@@ -228,7 +239,7 @@ export function ChatPanel({
         </div>
       </div>
       <div className={styles.channelRow}>
-        {/* 홈은 GLOBAL 하나뿐이므로 채널 선택기는 두지 않는다. */}
+        {/* 전체 대화는 GLOBAL 하나를 유지하고 친구·대화 탭은 공통 소셜 연결을 사용한다. */}
         <span
           className={`${styles.connectionStatus} ${connected ? styles.connectionOnline : ""}`}
         >
@@ -236,6 +247,8 @@ export function ChatPanel({
           {connected ? "실시간 연결됨" : status}
         </span>
       </div>
+      <HomeSocialTabs />
+      {showingSocial ? <HomeSocialPanel /> : <>
       <div
         className={styles.chatBody}
         ref={bodyRef}
@@ -310,9 +323,9 @@ export function ChatPanel({
               className={`${styles.chatMessage} ${message.ownMessage ? styles.myChatMessage : ""}`}
             >
               {!message.ownMessage && (
-                <span className={styles.chatMessageAvatar}>
+                <SocialProfileButton publicId={message.publicUserId} nickname={message.nickname} className={styles.chatMessageAvatar}>
                   <ProfileAvatar avatarId={message.avatarId} size={32} />
-                </span>
+                </SocialProfileButton>
               )}
               <div className={styles.chatMessageContent}>
                 <span className={styles.chatMessageMeta}>
@@ -392,6 +405,7 @@ export function ChatPanel({
           <RetryButton className={styles.chatRetry} label="다시 연결" onRetry={chat.retry} retryAt={chat.retryAt} />
         )}
       </div>
+      </>}
     </section>
   );
 }

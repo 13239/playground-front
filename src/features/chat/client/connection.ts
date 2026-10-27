@@ -149,8 +149,10 @@ async function openChat(sessionId: string, signal: AbortSignal | undefined,
       cleanup();
       const bufferedFrames: string[] = [];
       // 인증 프레임 뒤에 같은 네트워크 패킷으로 도착한 방송도 잃지 않는다. 메모리는 최대 128프레임으로 제한한다.
+      // 소셜은 최대 100개 방 요약·30개 이력을 한 프레임으로 전달하므로 해당 계약의 상한을 적용한다.
+      const maximumBufferedLength = destination.scope === "SOCIAL" ? 131_072 : 16_384;
       bufferedListener = (next) => {
-        if (bufferedFrames.length < 128 && typeof next.data === "string" && next.data.length <= 16_384) {
+        if (bufferedFrames.length < 128 && typeof next.data === "string" && next.data.length <= maximumBufferedLength) {
           bufferedFrames.push(next.data);
         }
       };

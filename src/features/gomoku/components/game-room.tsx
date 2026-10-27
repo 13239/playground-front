@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
+import { SocialProfileButton } from "@/features/social/social-profile-button";
+import { SocialGameActions } from "@/features/social/social-ui";
 import type { WaitingRoom } from "../waiting-contracts";
 import type { GameAction, MatchState } from "../game-contracts";
 import { RoomDialog } from "./room-dialog";
@@ -63,7 +65,7 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
   const scene = (
     <section className={`${styles.gameScene}${popup.container ? ` ${styles.popupScene}` : ""}`} aria-label={`${name} 대국`}>
       {popup.container && <header className={styles.popupHeading}>
-        <strong><LobbyIcon name="board" />{name}</strong><span><i />대국 중</span>
+        <strong><LobbyIcon name="board" />{name}</strong><span><i />대국 중</span><SocialGameActions popup/>
       </header>}
       <aside className={styles.players} aria-label="대국 참가자">
         {[self, ...room.participants.filter(player => !player.self)].map((player, index) => <div key={player.seat} className={styles.playerSlot}>
@@ -71,9 +73,9 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
           <article className={styles.player} data-active={game.phase === "PLAYING" && game.turnSeat === player.seat}>
             <span className={styles.playerBadge}>{game.phase === "PLAYING" && game.turnSeat === player.seat ? player.self ? "내 차례" : "상대 차례" : player.self ? "나" : "상대"}</span>
             <div className={styles.playerIdentity}>
-              <div className={styles.avatarWrap}><ProfileAvatar avatarId={player.avatarId} size={100} />
+              <SocialProfileButton publicId={player.publicUserId} nickname={player.nickname} disabled={player.self}><div className={styles.avatarWrap}><ProfileAvatar avatarId={player.avatarId} size={100} />
                 <span className={styles.onlineDot} data-online={player.seat === 1 ? game.connectedOne : game.connectedTwo} />
-              </div>
+              </div></SocialProfileButton>
               <div><strong>{player.nickname}</strong><span className={styles.playerColor}>
                 {game.blackSeat === 0 ? "흑백 추첨 중" : <><i className={styles.colorStone} data-color={game.blackSeat === player.seat ? "black" : "white"} />{game.blackSeat === player.seat ? "흑돌" : "백돌"} ({player.self ? "나" : "상대"})</>}
               </span></div>

@@ -111,6 +111,8 @@
 .headerActions { display: flex; align-items: center; gap: 0.15em; min-width: 0; }
 /* 관리자 아이콘이 추가되는 작은 휴대폰에서도 브랜드·알림·계정을 같은 행에 유지한다. */
 @media (max-width: 400px) { .header .brand { font-size: 1.2em; } }
+/* 친구·알림·관리자 버튼을 추가한 작은 휴대폰에서는 로고 마크를 유지하고 단어를 접어 터치 영역을 확보한다. */
+@media (max-width: 430px) { .header .brand > span:last-child { display:none; } }
 .brand {
   display: inline-flex;
   align-items: center;
@@ -1006,7 +1008,7 @@
   justify-content: flex-end;
   gap: 0.5em;
   padding: 0 1.15em 0.65em;
-  border-bottom: 1px solid #e3def4;
+  /* 상태와 전체·친구·대화 탭은 구분선 없이 연결한다. */
 }
 .connectionStatus {
   display: flex;

@@ -10,11 +10,14 @@ import {
   type RoomVisibility,
 } from "./contracts";
 import { isMatchState, publicMatch, type MatchState } from "./game-contracts";
+import { uuid as publicIdPattern } from "@/features/social/contracts";
 
 /** 대기실에는 공개 좌석·프로필만 전달하고 내부 회원 ID와 비밀번호 해시는 받지 않는다. */
 export type WaitingParticipant = Readonly<{
   seat: 1 | 2;
   nickname: string;
+  // 구버전 응답은 허용하되 새 친구 진입점에는 서버의 공개 UUID만 사용한다.
+  publicUserId?: string;
   avatarId: ProfileAvatarId;
   host: boolean;
   self: boolean;
@@ -88,6 +91,7 @@ export function isWaitingRoom(value: unknown): value is WaitingRoom {
         isObject(p) &&
         [1, 2].includes(p.seat as number) &&
         typeof p.nickname === "string" &&
+        (p.publicUserId == null || typeof p.publicUserId === "string" && publicIdPattern.test(p.publicUserId)) &&
         p.nickname.trim().length > 0 &&
         [...p.nickname].length <= 50 &&
         isProfileAvatarId(p.avatarId) &&
@@ -128,9 +132,10 @@ export function publicWaitingRoom(room: WaitingRoom): WaitingRoom {
     membershipId: room.membershipId,
     allReady: room.allReady,
     participants: room.participants.map(
-      ({ seat, nickname, avatarId, host, self, ready, wins, losses, draws }) => ({
+      ({ seat, nickname, publicUserId, avatarId, host, self, ready, wins, losses, draws }) => ({
         seat,
         nickname,
+        publicUserId,
         avatarId,
         host,
         self,

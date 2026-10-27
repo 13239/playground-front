@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { DismissibleDetails } from "./dismissible-details";
+import { SocialHeaderActions } from "@/features/social/social-ui";
 import { LobbyIcon } from "./lobby-icon";
 import styles from "./lobby.module.css";
 import { AdminEntry } from "@/features/admin/components/admin-entry";
@@ -72,17 +72,8 @@ export function SiteHeader({
       {/* 관리 진입은 알림 왼쪽에 배치한다. 같은 열 안에서 묶어 권한별 표시 변화가 계정 배치를 밀지 않게 한다. */}
       <div className={styles.headerActions}>
       <AdminEntry />
-      <DismissibleDetails className={styles.notifications}>
-        <summary className={styles.iconButton} aria-label="알림">
-          <LobbyIcon name="bell" />
-        </summary>
-        <div className={styles.notificationPopover}>
-          <strong>알림</strong>
-          <LobbyIcon name="bell" />
-          <p>아직 새로운 알림이 없어요.</p>
-          <span>새로운 소식이 생기면 알려드릴게요.</span>
-        </div>
-      </DismissibleDetails>
+      {/* 친구는 아이콘·메시지 수만 표시하며 알림 종은 요청/초대 수신함으로 연결한다. */}
+      <SocialHeaderActions />
       </div>
       <div className={styles.accountSlot}>{account}</div>
     </header>

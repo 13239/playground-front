@@ -105,14 +105,14 @@ export class GlobalChatStore {
       // 늦은 Kafka 방송·이력 응답도 더 최신의 프로필 세대를 되돌릴 수 없다.
       for (const message of patch.messages) {
         if (message.authorKey && message.profileRevision !== undefined) this.rememberProfile({
-          authorKey: message.authorKey, nickname: message.nickname, avatarId: message.avatarId, revision: message.profileRevision,
+          authorKey: message.authorKey, publicUserId: message.publicUserId, nickname: message.nickname, avatarId: message.avatarId, revision: message.profileRevision,
         });
       }
       patch = { ...patch, messages: patch.messages.map(message => {
         const profile = message.authorKey ? this.authorProfiles.get(message.authorKey) : undefined;
         return profile && profile.revision >= (message.profileRevision ?? 0)
-          && (message.nickname !== profile.nickname || message.avatarId !== profile.avatarId || message.profileRevision !== profile.revision)
-          ? { ...message, nickname: profile.nickname, avatarId: profile.avatarId, profileRevision: profile.revision } : message;
+          && (message.nickname !== profile.nickname || message.avatarId !== profile.avatarId || message.profileRevision !== profile.revision || message.publicUserId !== profile.publicUserId)
+          ? { ...message, publicUserId: profile.publicUserId, nickname: profile.nickname, avatarId: profile.avatarId, profileRevision: profile.revision } : message;
       }) };
     }
     this.snapshot = { ...this.snapshot, ...patch };

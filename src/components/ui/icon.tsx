@@ -10,6 +10,10 @@ export const gearIcon = (
 );
 
 const paths = {
+  // 전역 친구창의 방향 아이콘도 공통 벡터 좌표계와 선 굵기를 사용한다.
+  arrowLeft: <path d="M20 12H4m7-7-7 7 7 7" />,
+  chevronRight: <path d="m9 5 7 7-7 7" />,
+  chevronUp: <path d="m5 15 7-7 7 7" />,
   // 관리자 지표·서비스 상태도 기존 벡터 좌표계와 선 굵기로 표시한다.
   home: <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-8H9v8H4a1 1 0 0 1-1-1Z" /></>,
   chart: <><path d="M5 21V11M12 21V3M19 21V7" /></>,

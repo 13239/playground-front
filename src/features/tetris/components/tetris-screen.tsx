@@ -12,6 +12,7 @@ import {
   type PointerEvent,
 } from "react";
 import { createPortal } from "react-dom";
+import { SocialGameActions } from "@/features/social/social-ui";
 import {
   revalidateAuthSession,
   useAuthSession,
@@ -390,6 +391,8 @@ function TetrisGame({ sessionId }: { sessionId: string }) {
           <header className={styles.cardHeader}>
             <h2>싱글 플레이</h2>
             <div className={styles.tools}>
+              {/* 별도 창·전체 화면에서도 공통 친구/알림을 조작하며 게임 버튼을 덮지 않는다. */}
+              <SocialGameActions popup={!!popup.container}/>
               <button
                 type="button"
                 aria-label={sound ? "소리 끄기" : "소리 켜기"}

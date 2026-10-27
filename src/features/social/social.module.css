@@ -1,0 +1,163 @@
+/* 전역 친구창은 페이지/게임 문서 어느 부모에서도 같은 색·글꼴·포커스 경계를 사용한다. */
+.root { --social-ink:#19164e; --social-muted:#7e80aa; --social-purple:#793cff; color:var(--social-ink); font:var(--app-font-size,1rem)/1.5 var(--font-noto-sans-kr),sans-serif; box-sizing:border-box; }
+.root *, .headerActions * { box-sizing:border-box; }
+.root button,.headerActions button { font:inherit; cursor:pointer; }
+.root button:disabled,.headerActions button:disabled { cursor:not-allowed; opacity:.55; }
+.root button:focus-visible,.root summary:focus-visible,.headerActions button:focus-visible { outline:1px solid var(--control-focus-color,#8651eb); outline-offset:-1px; }
+.headerActions { display:flex; align-items:center; gap:.15em; font-size:var(--app-header-font-size,1rem); }
+.headerButton { position:relative; display:grid; place-items:center; width:2.7em; height:2.7em; padding:.5em; border:0; border-radius:.8em; color:#302577; background:transparent; }
+.headerButton:hover,.headerButton[data-active="true"] { background:#eae1ff; }
+.headerButton>svg { width:1.65em; height:1.65em; }
+.badge { position:absolute; top:.1em; right:.05em; display:grid; place-items:center; min-width:1.3em; height:1.3em; padding:0 .23em; border:2px solid #f5f5ff; border-radius:2em; background:#8951ec; color:white; font-size:.65em; font-weight:750; line-height:1; }
+.panel { position:fixed; inset:5.6rem max(var(--layout-gutter,1.25rem),env(safe-area-inset-right)) auto auto; z-index:100; width:min(25rem,calc(100vw - 2rem)); height:min(43rem,calc(100dvh - 7rem)); max-width:none; max-height:calc(100dvh - 2rem); margin:0; padding:0; border:1px solid #d7ccfc; border-radius:1.4rem; background:linear-gradient(155deg,#fefeff,#f0f6ff); box-shadow:0 .8rem 2.4rem #40358824; overflow:visible; }
+.panel[open] { display:flex; flex-direction:column; }
+.panel[data-kind="notifications"] { height:auto; max-height:min(42rem,calc(100dvh - 7rem)); }
+.panel::backdrop { background:#24164642; }
+.panelHeader { display:flex; align-items:center; gap:.45em; padding:.85rem .85rem .65rem 1.1rem; flex:0 0 auto; }
+.panelHeader h2 { display:flex; align-items:center; gap:.5em; min-width:0; margin:0 auto 0 0; font-size:1.1em; font-weight:800; }
+.panelHeader h2>svg { width:1.25em; height:1.25em; color:var(--social-purple); }
+.panelHeader small { display:flex; align-items:center; gap:.35em; color:var(--social-muted); font-size:.65em; white-space:nowrap; }
+.panelHeader small[data-online="true"] { color:#26a27a; }
+.panelHeader i,.identity small>i { display:inline-block; width:.5em; height:.5em; border-radius:50%; background:#a0a3be; }
+.panelHeader small[data-online="true"] i,.identity small[data-online="true"] i { background:#19b283; }
+.icon { display:inline-grid; flex-shrink:0; place-items:center; min-width:2.75rem; height:2.75rem; padding:.55rem; border:0; border-radius:.8rem; background:transparent; color:#6e43c4; }
+.icon:hover { background:#eee7fd; }
+.icon>svg { width:1.2rem; height:1.2rem; }
+/* 시안의 낮은 탭 높이를 공유하고 홈에서는 구분선 없이 기존 본문 간격을 유지한다. */
+.tabs { display:flex; flex-shrink:0; gap:.2rem; margin:0 1rem .5rem; padding:.125rem; border-radius:.95rem; background:#eaf0ffb0; }
+.tabs button { display:flex; align-items:center; justify-content:center; gap:.5em; flex:1; min-height:2.25rem; padding:.25rem; border:1px solid transparent; border-radius:.8rem; background:transparent; color:#6f70a7; font-weight:650; }
+.tabs button[aria-selected="true"] { border-color:#dfd0ff; background:#ede3ff; color:#7b32e9; }
+.homeTabs { flex-shrink:0; padding-bottom:calc(.375rem + 1px); }
+.homeTabs>.tabs { margin-bottom:0; }
+.scroll { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding:.7rem 1.1rem 1rem; scrollbar-width:thin; }
+.sectionTitle,.backHeading { display:flex; align-items:center; gap:.4rem; margin:0 0 .8rem; }
+.sectionTitle>h3,.backHeading>h3 { margin:0 auto 0 0; font-size:1.05em; }
+.sectionTitle h3>span,.count { display:inline-grid; place-items:center; min-width:1.6em; height:1.6em; padding:0 .4em; border-radius:2em; background:#eae8fb; color:#6e63a7; font-size:.8em; font-weight:700; vertical-align:middle; }
+.sectionTitle h3>span { margin-left:.3em; }
+.primary,.secondary,.quiet,.fullPrimary { display:inline-flex; align-items:center; justify-content:center; gap:.35em; min-height:2.75rem; padding:.4rem .7rem; border:1px solid transparent; border-radius:.75rem; font-size:.85em!important; white-space:nowrap; }
+.primary,.fullPrimary { color:#fff; background:linear-gradient(135deg,#ad68ff,#8538f2); border-color:#a263f1; font-weight:650!important; }
+.secondary { border-color:#dccbfc; color:#8252cf; background:#ffffff9e; }
+/* 요청함 진입 버튼만 시안에 맞춰 낮추고 다른 목록 동작 버튼의 크기는 유지한다. */
+.secondary.requestButton { min-height:2.5rem; padding-block:.3rem; }
+.quiet { color:#7b75a1; background:transparent; }
+.quiet:hover { background:#ece8f6; }
+.secondary:hover { background:#f4edff; }
+.primary:hover,.fullPrimary:hover { filter:brightness(1.04); }
+.secondary>svg,.fullPrimary>svg { width:1.15em; height:1.15em; }
+.fullPrimary { width:100%; margin:.9rem 0 .2rem; }
+.section { margin-top:1.2rem; }
+.section+.section { padding-top:1rem; border-top:1px solid #e2e5f8; }
+.section h4,.scroll>h4 { margin:.35rem 0 .6rem; font-size:.85em; color:#615b91; }
+.section h4>.count { margin-left:.35rem; }
+.personRow,.requestRow,.inviteRow,.selectRow { display:flex; align-items:center; gap:.65rem; min-height:4.5rem; padding:.65rem .15rem; border-bottom:1px solid #e7eafb; }
+.requestRow[data-highlight="true"] { border-radius:.8rem; background:#f1eaff; }
+.personRow:last-child,.requestRow:last-child { border-bottom:0; }
+.avatar { display:inline-grid; flex-shrink:0; width:2.75rem; height:2.75rem; border-radius:50%; border:1px solid #e5e3fc; overflow:hidden; background:#f2efff; }
+.avatar img { display:block; width:100%; height:100%; object-fit:contain; }
+.profileTrigger { display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; padding:0; border:0; border-radius:50%; color:inherit; background:transparent; font:inherit; cursor:pointer; }
+.profileTrigger:disabled { cursor:default; opacity:1; }
+.profileTrigger:focus-visible { outline:1px solid #8550ed; outline-offset:1px; }
+.identity { display:flex; flex:1; min-width:0; flex-direction:column; gap:.15em; text-align:left; overflow-wrap:anywhere; }
+.identity>strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.88em; }
+.identity>small { display:flex; align-items:center; gap:.35em; color:var(--social-muted); font-size:.73em; }
+.identity small[data-online="true"] { color:#1c9f77; }
+.identity>span { color:#777aa6; font-size:.82em; }
+.rowActions { display:flex; align-items:center; flex-wrap:wrap; gap:.2rem; }
+.rowActions .primary,.rowActions .quiet { padding-inline:.7rem; }
+.menu { position:relative; flex-shrink:0; }
+.menu>summary { display:grid; place-items:center; width:1.8rem; min-height:2.75rem; list-style:none; cursor:pointer; color:#7f70ac; font-size:1.3em; }
+.menu>summary::-webkit-details-marker { display:none; }
+.menu>div { position:absolute; z-index:4; top:100%; right:0; display:flex; flex-direction:column; min-width:9rem; padding:.35rem; border:1px solid #dcd2f7; border-radius:.8rem; background:#fff; box-shadow:0 .5rem 1rem #3b2a7420; }
+.menu button { min-height:2.75rem; padding:.45rem .7rem; border:0; border-radius:.5rem; color:#514479; background:transparent; text-align:left; font-size:.85em; }
+.menu button:hover { background:#f0eaff; }
+.empty { padding:1.2rem .4rem; color:#9694b5; font-size:.85em; text-align:center; overflow-wrap:anywhere; }
+.hint { margin:.4rem 0 .7rem; font-size:.75em; color:var(--social-muted); }
+.pagination { display:flex; flex-wrap:wrap; justify-content:center; gap:.1rem; margin:.7rem 0; }
+.pagination button { display:grid; place-items:center; min-width:2.1rem; min-height:2.75rem; padding:.25rem; border:1px solid transparent; border-radius:.5rem; color:#79719e; background:transparent; font-size:.8em; }
+.pagination button[aria-current] { border-color:#d8c6ff; background:#eee4ff; color:#7d3de2; }
+.invitations { margin:.6rem 0 1rem; padding:.65rem; border-radius:.9rem; background:#f0eaff; }
+.invitations h4 { margin:0; font-size:.85em; }
+.inviteRow .rowActions { margin-top:.45rem; }
+.conversationRow { display:flex; align-items:center; gap:.65rem; width:100%; min-height:5.1rem; padding:.8rem .25rem; border:0; border-bottom:1px solid #e6e9f7; background:transparent; text-align:left; }
+.conversationRow:hover { background:#efeaff; border-radius:.8rem; }
+.conversationRow .identity>small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lastActivity { display:flex; flex-direction:column; align-items:flex-end; gap:.4rem; flex-shrink:0; }
+.lastActivity time { font-size:.65em; color:#8f89b1; }
+.lastActivity>.count { color:#fff; background:#a16af2; }
+.groupAvatar { display:grid; place-items:center; flex-shrink:0; width:2.75rem; height:2.75rem; border-radius:50%; background:#e8ddff; color:#9863e2; }
+.groupAvatar>svg { width:1.45rem; height:1.45rem; }
+.conversation { display:flex; flex:1; flex-direction:column; min-height:0; overflow:hidden; }
+.conversationHeader { display:flex; align-items:center; gap:.45rem; min-height:4.3rem; padding:.45rem .8rem; border-bottom:1px solid #e4e5f7; }
+.messages { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding:1rem; scrollbar-width:thin; }
+.message { display:flex; align-items:flex-start; gap:.45rem; margin:.7rem 0; }
+.message>.profileTrigger>.avatar { width:2rem; height:2rem; }
+.message[data-own="true"] { justify-content:flex-end; }
+.bubbleGroup { display:flex; flex-direction:column; align-items:flex-start; max-width:85%; min-width:0; gap:.25rem; }
+.bubbleGroup>strong { font-size:.73em; color:#6e6797; overflow-wrap:anywhere; }
+.bubbleGroup>p { margin:0; padding:.7em .8em; border-radius:1rem; background:#fff; color:#353261; font-size:.85em; white-space:pre-wrap; overflow-wrap:anywhere; }
+.message[data-own="true"] .bubbleGroup { align-items:flex-end; }
+.message[data-own="true"] p { background:#e9ddff; }
+.bubbleGroup>time,.bubbleGroup>small { color:#9187b2; font-size:.6em; }
+.composer { display:flex; align-items:center; gap:.5rem; flex-shrink:0; margin:.5rem .8rem .8rem; padding:.45rem; border:1px solid #e0d8fc; border-radius:1rem; background:#fff; }
+.composer>svg { width:1.4rem; height:1.4rem; margin-left:.2rem; color:#a29bcc; flex-shrink:0; }
+.composer textarea { width:100%; min-width:0; max-height:6rem; padding:.35rem 0; resize:none; border:0; background:transparent; color:#423571; font:inherit; font-size:.83em; line-height:1.5; }
+.composer textarea:disabled { color:#9a96b5; }
+.send { display:grid; place-items:center; flex-shrink:0; width:2.75rem; height:2.75rem; border:0; border-radius:.8rem; background:#ad76ed; color:white; }
+.send>svg { width:1.4rem; height:1.4rem; }
+.latest { border:0; color:#8351cb; background:#f0e7ff; min-height:2.75rem; font-size:.75em!important; }
+.field { display:flex; flex-direction:column; gap:.4rem; margin:.5rem 0 .9rem; font-size:.85em; font-weight:650; }
+.field input { min-height:2.75rem; width:100%; min-width:0; padding:.6rem .75rem; border:1px solid #dad7ef; border-radius:.7rem; color:var(--social-ink); background:#fff; font:inherit; font-weight:400; }
+.selectedCount { margin-top:.75rem; font-size:.8em; color:#8c60bd; }
+.selectRow { cursor:pointer; position:relative; }
+.hiddenCheck { position:absolute; width:1px; height:1px; opacity:0; clip-path:inset(50%); }
+.checkbox { display:grid; place-items:center; width:1.5rem; height:1.5rem; flex-shrink:0; border:1px solid #cdc0ed; border-radius:50%; color:transparent; }
+.checkbox svg { width:1rem; height:1rem; }
+.hiddenCheck:checked+.checkbox { border-color:#a05fec; background:#a05fec; color:#fff; }
+.hiddenCheck:focus-visible+.checkbox { outline:1px solid #7d44d0; outline-offset:-1px; }
+.rename { display:flex; align-items:flex-end; gap:.5rem; }
+.rename>.field { flex:1; min-width:0; }
+.rename>.secondary { margin-bottom:.9rem; }
+.notification { display:flex; align-items:center; gap:.65rem; width:100%; padding:.9rem .5rem; margin:.25rem 0; border:1px solid transparent; border-radius:.8rem; background:transparent; color:var(--social-ink); text-align:left; }
+.notification[data-unread="true"] { background:#f0eaff; border-color:#ebe0ff; }
+.notification:hover { background:#eae5f9; }
+.notification>svg { width:1rem; height:1rem; flex-shrink:0; color:#9779c9; }
+.unreadDot { display:block; flex-shrink:0; width:.45rem; height:.45rem; border-radius:50%; background:#9658f4; }
+.error { display:flex; align-items:center; gap:.4rem; margin:0 .9rem .4rem; padding:.5rem .6rem; border-radius:.6rem; color:#995064; background:#fff0f3; font-size:.75em; overflow-wrap:anywhere; }
+.error>span { flex:1; }
+.error>.quiet { font-size:.95em!important; }
+.profilePopup { position:fixed; z-index:1000; display:flex; flex-direction:column; align-items:center; gap:.5rem; width:13rem; padding:1.2rem 1rem .8rem; border:1px solid #dfd4f7; border-radius:1.1rem; background:#fff; box-shadow:0 .7rem 2rem #3d286b27; }
+.profilePopup>.avatar { width:5rem; height:5rem; }
+.profilePopup>strong { font-size:.95em; max-width:100%; overflow-wrap:anywhere; text-align:center; }
+.profilePopup>.fullPrimary { margin-top:.1rem; }
+.embedded { display:flex; flex:1; flex-direction:column; min-height:0; overflow:hidden; }
+.minimized { position:fixed; z-index:90; bottom:max(1rem,env(safe-area-inset-bottom)); right:max(1rem,env(safe-area-inset-right)); display:flex; align-items:center; gap:.7rem; min-height:3.25rem; max-width:17rem; padding:.6rem .9rem; border:1px solid #d6c4f5; border-radius:1rem; color:#654399; background:#fff; box-shadow:0 .5rem 1.5rem #48247e20; }
+.minimized>svg { width:1.3rem; height:1.3rem; flex-shrink:0; }
+.minimized>span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.toast { position:fixed; z-index:1002; top:6rem; right:max(1rem,env(safe-area-inset-right)); display:flex; align-items:center; gap:.5rem; width:min(24rem,calc(100vw - 2rem)); padding:.65rem .9rem; border:1px solid #d6caf4; border-radius:1rem; background:#fff; box-shadow:0 .5rem 1.4rem #4e328226; font-size:.85rem; }
+.toast>span { flex:1; overflow-wrap:anywhere; }
+.gameToolbar { position:fixed; z-index:90; top:.5rem; right:.75rem; display:flex; padding:.2rem; border:1px solid #ddd0f8; border-radius:.8rem; background:#faf8ffed; }
+@media(max-width:44rem) {
+  .panel { inset:0; width:calc(100vw - 1.25rem); height:calc(100dvh - max(1.25rem,env(safe-area-inset-top)) - max(1.25rem,env(safe-area-inset-bottom))); max-height:none; margin:auto; border-radius:1rem; }
+  .panel[data-kind="notifications"] { height:fit-content; max-height:calc(100dvh - 2rem); }
+  .panelHeader { padding-inline:.75rem; }
+  .scroll { padding-inline:.85rem; }
+  .toast { top:max(.75rem,env(safe-area-inset-top)); }
+  .gameToolbar { top:max(.5rem,env(safe-area-inset-top)); }
+}
+@media(max-width:24rem) {
+  .requestRow { flex-wrap:wrap; }
+  .requestRow>.identity { flex-basis:calc(100% - 4rem); }
+  .requestRow>.rowActions { width:100%; justify-content:flex-end; }
+  .panelHeader small { max-width:5.5rem; white-space:normal; }
+  .personRow { gap:.4rem; }
+  .personRow .secondary { padding-inline:.5rem; }
+}
+@media(prefers-reduced-motion:reduce) { .root * { scroll-behavior:auto; } }
+/* 게임 툴바의 범용 button/span 규칙보다 공통 헤더 아이콘의 크기·배지·포커스를 우선한다. */
+.headerActions .headerButton { position:relative; display:grid; place-items:center; min-width:2.75rem; width:2.7em; height:2.75rem; padding:.5em; border:0; border-radius:.8em; color:#302577; background:transparent; }
+.headerActions .headerButton:hover,.headerActions .headerButton[data-active="true"] { background:#eae1ff; }
+.headerActions .headerButton>svg { width:1.65em; height:1.65em; }
+.headerActions .badge { position:absolute; top:.1em; right:.05em; display:grid; place-items:center; min-width:1.3em; height:1.3em; padding:0 .23em; border:2px solid #f5f5ff; border-radius:2em; background:#8951ec; color:white; font-size:.65em; font-weight:750; line-height:1; }
+.root button:focus-visible,.root summary:focus-visible,.headerActions .headerButton:focus-visible,.profileTrigger:focus-visible { outline:var(--control-focus-width,1px) solid var(--control-focus-color,#a78bfa); outline-offset:var(--control-focus-offset,-1px); }
+.inviteRow[data-highlight="true"] { border-radius:.7rem; background:#e7dcff; }
+

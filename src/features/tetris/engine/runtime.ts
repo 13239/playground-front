@@ -102,7 +102,7 @@ export class TetrisRuntime {
     const target = event.target as HTMLElement | null;
     const element = target?.nodeType === 1 ? target : null;
     if (
-      element?.closest("input,select,textarea,[contenteditable=true],dialog") ||
+        element?.closest("input,select,textarea,[contenteditable=true],dialog,[data-social-ui]") ||
       event.altKey ||
       event.ctrlKey ||
       event.metaKey

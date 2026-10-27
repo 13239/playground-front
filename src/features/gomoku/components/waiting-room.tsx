@@ -12,6 +12,7 @@ import {
   useAuthSession,
 } from "@/features/auth/client/session-store";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
+import { SocialProfileButton } from "@/features/social/social-profile-button";
 import { kickRoom, leaveRoom, newRoomRequestId, readWaitingRoom, readyRoom, sendGameAction, updateRoomSettings } from "../client/api";
 import { useRoomSync } from "../client/use-room-sync";
 import { useRoomDeparture } from "../client/use-room-departure";
@@ -687,9 +688,10 @@ function ParticipantCard({
       {/* 본인 카드와 빈 좌석에는 강퇴 버튼을 표시하지 않는다. */}
       {canKick && onKick && <button type="button" className={styles.kickButton}
         aria-label={`${participant.nickname} 강퇴`} disabled={kickDisabled} onClick={onKick}>강퇴</button>}
-      <div className={styles.avatarCircle}>
+      {/* 게임 참가자도 전체 채팅과 같은 작은 프로필 팝업에서 친구 요청을 보낸다. */}
+      <SocialProfileButton publicId={participant.publicUserId} nickname={participant.nickname} disabled={participant.self}><div className={styles.avatarCircle}>
         <ProfileAvatar avatarId={participant.avatarId} size={256} />
-      </div>
+      </div></SocialProfileButton>
       <h2 title={participant.nickname}>
         {participant.nickname}
         {participant.self && <small>나</small>}

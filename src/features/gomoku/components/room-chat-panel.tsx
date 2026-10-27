@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
+import { SocialProfileButton } from "@/features/social/social-profile-button";
 import { useChatConnection } from "@/features/chat/client/use-global-chat";
 import { RetryButton } from "@/app/_components/retry-button";
 import type { WaitingRoom } from "../waiting-contracts";
@@ -172,7 +173,7 @@ export function RoomChatPanel({ room }: { room: WaitingRoom }) {
               data-own={message.ownMessage}
             >
               {/* 홈 채팅처럼 서버에서 본인으로 확인한 메시지는 아바타를 생략하고 이름을 '나'로 표시한다. */}
-              {!message.ownMessage && <ProfileAvatar avatarId={message.avatarId} size={44} />}
+              {!message.ownMessage && <SocialProfileButton publicId={message.publicUserId} nickname={message.nickname}><ProfileAvatar avatarId={message.avatarId} size={44} /></SocialProfileButton>}
               <div>
                 <div className={styles.messageMeta}>
                   <strong>{message.ownMessage ? "나" : message.nickname}</strong>

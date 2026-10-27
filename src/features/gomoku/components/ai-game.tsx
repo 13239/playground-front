@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
+import { SocialGameActions } from "@/features/social/social-ui";
 import { useRouter } from "next/navigation";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { RetryButton } from "@/app/_components/retry-button";
@@ -115,6 +116,7 @@ function AiGame({ difficulty, rule, sessionId }: { difficulty: AiDifficulty; rul
             {!popup.container && <button type="button" className={boardStyles.secondaryButton} onClick={() => setConfirmation("resign")}><LobbyIcon name="flag" />기권하기</button>}
           </>}
           {popup.container && <button type="button" className={boardStyles.secondaryButton} onClick={popup.close}><LobbyIcon name="expand" />원래 화면</button>}
+          {popup.container && <SocialGameActions popup/>}
           {popup.container && !finished && <details className={boardStyles.popupMenu}>
             <summary aria-label="대국 메뉴"><span aria-hidden="true">•••</span></summary>
             <div>

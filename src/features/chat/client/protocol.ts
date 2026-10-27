@@ -1,12 +1,12 @@
 import { isProfileAvatarId, type ProfileAvatarId } from "@/features/profile/catalog";
 
 /** 공용 채팅과 방 채팅은 별도 연결·메시지 창을 사용하며 방 번호는 서버 참가 검증 대상이다. */
-export type ChatDestination = Readonly<{ scope: "GLOBAL" }> | Readonly<{ scope: "GAME_ROOM"; gameType: "GOMOKU"; roomId: number }>;
+export type ChatDestination = Readonly<{ scope: "GLOBAL" }> | Readonly<{ scope: "GAME_ROOM"; gameType: "GOMOKU"; roomId: number }> | Readonly<{scope: "SOCIAL"}>;
 
 /** 채팅 서버는 저장 완료 메시지·이력·접속자 정보만 공개하며 내부 사용자 식별자는 받지 않는다. */
 export type PublicChatUser = Readonly<{ nickname: string; avatarId: ProfileAvatarId }>;
 // 공개 작성자 키는 닉네임 중복·변경과 관계없이 같은 작성자의 표시를 갱신하는 용도로만 사용한다.
-export type PublicChatProfile = PublicChatUser & Readonly<{ authorKey: string; revision: number }>;
+export type PublicChatProfile = PublicChatUser & Readonly<{ authorKey: string; revision: number; publicUserId?: string }>;
 export type PublicChatMessage = Readonly<{
   id: string;
   clientMessageId?: string;
@@ -17,6 +17,8 @@ export type PublicChatMessage = Readonly<{
   ownMessage: boolean;
   authorKey?: string;
   profileRevision?: number;
+  // 프로필 팝업은 내부 회원 ID 대신 영속 공개 키만 사용한다.
+  publicUserId?: string;
 }>;
 
 export type ChatEvent =
@@ -48,7 +50,7 @@ function message(value: unknown, destination: ChatDestination): value is PublicC
   return object(value) && typeof value.id === "string" && mongoIdPattern.test(value.id)
     && value.scope === destination.scope
     && (destination.scope === "GLOBAL" ? value.gameType == null && value.roomId == null
-      : value.gameType === destination.gameType && value.roomId === destination.roomId)
+      : destination.scope === "GAME_ROOM" && value.gameType === destination.gameType && value.roomId === destination.roomId)
     && (value.clientMessageId === undefined || (typeof value.clientMessageId === "string" && uuidPattern.test(value.clientMessageId)))
     // 사용자 타입으로 좁히기 전에 메시지 고유 필드를 검증해 타입 정보가 사라지지 않게 한다.
     && typeof value.content === "string" && [...value.content].length <= 1000
@@ -56,7 +58,8 @@ function message(value: unknown, destination: ChatDestination): value is PublicC
     && typeof value.ownMessage === "boolean"
     // 구버전 배포와의 호환성은 유지하되 새 작성자 메타데이터는 두 필드를 함께 검증한다.
     && (value.authorKey == null && value.profileRevision == null || typeof value.authorKey === "string" && uuidPattern.test(value.authorKey)
-      && validCount(value.profileRevision)) && user(value);
+      && validCount(value.profileRevision))
+    && (value.publicUserId == null || typeof value.publicUserId === "string" && uuidPattern.test(value.publicUserId)) && user(value);
 }
 
 function validCount(value: unknown): value is number {

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { AuthSessionObserver } from "@/features/auth/client/auth-session-observer";
 import { ChatProvider } from "@/features/chat/client/chat-provider";
+import { SocialProvider } from "@/features/social/social-provider";
 import { getAppEnvironment } from "@/lib/server/env";
 import "./globals.css";
 
@@ -39,7 +40,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <AuthSessionObserver />
         {/* 공용 채팅은 홈에 머무르는 동안만 공유하고 페이지를 떠나면 정리한다. 방 채팅은 별도로 관리한다. */}
         {/* 바깥 틀은 화면 폭이다. 본문 상한은 각 페이지가 정하고 내용 높이는 문서 흐름으로 결정한다. */}
-        <ChatProvider><div className="app-pages">{children}</div></ChatProvider>
+        {/* 친구·그룹 대화와 알림은 로그인 동안 페이지 이동에도 유지하고, 전체 채팅은 기존 홈 수명을 따른다. */}
+        <SocialProvider><ChatProvider><div className="app-pages">{children}</div></ChatProvider></SocialProvider>
       </body>
     </html>
   );
