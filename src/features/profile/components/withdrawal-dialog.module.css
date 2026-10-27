@@ -1,0 +1,7 @@
+/* 본인 확인 창은 기존 프로필 입력·스크롤 구조를 공유하고 탈퇴 안내와 최종 동작만 구분한다. */
+.dialog { width: min(32.5rem, calc(100vw - 1.5rem)); }
+.notice { margin: 0 0 1.25rem; color: #796078; font-size: .875rem; line-height: 1.8; overflow-wrap: anywhere; }
+.dialog .confirmButton { display: inline-flex; align-items: center; justify-content: center; min-width: 5.25rem; min-height: 2.75rem; margin: 0; padding: .625rem 1.125rem; border: 1px solid transparent; border-radius: .75rem; background: #b63e68; color: #fff; font: inherit; font-size: .8125rem; font-weight: 700; cursor: pointer; }
+.dialog .confirmButton:disabled { cursor: not-allowed; opacity: .55; }
+.dialog .confirmButton:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+@media (hover: hover) { .dialog .confirmButton:hover:not(:disabled) { background: #9d3057; } }

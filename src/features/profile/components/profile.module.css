@@ -88,22 +88,45 @@
   font-size: 13px;
 }
 
+/* 엣지는 버튼 기본 안쪽 여백을 남겨 아이콘만 오른쪽으로 민다. 여백을 없애고 아이콘 크기를 고정한다. */
 .closeButton {
-  display: grid;
+  display: inline-flex;
   flex: 0 0 auto;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   width: 38px;
   height: 38px;
-  padding: 9px;
+  margin: 0;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: #efebf8;
   color: #8b7ba9;
+  font-size: 0;
+  line-height: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.closeButton::-moz-focus-inner {
+  padding: 0;
+  border: 0;
 }
 
 .closeButton svg {
+  display: block;
   width: 20px;
   height: 20px;
+  /* 속성으로 적힌 24px이 최소 크기로 남아 브라우저마다 다르게 밀리지 않게 한다. */
+  min-width: 0;
+  min-height: 0;
+  flex: 0 0 20px;
+}
+
+/* 로비 button의 font 단축 속성이 줄 높이를 되돌리지 않게 대화상자 안에서 다시 고정한다. */
+.dialog .closeButton {
+  font-size: 0;
+  line-height: 0;
 }
 
 .dialogBody {
@@ -172,25 +195,57 @@
   flex: 0 0 auto;
 }
 
-.nicknameButton {
-  display: grid;
+/* 엣지는 버튼 기본 면·테두리를 남겨 크롬과 달라진다. 기본 단추 스타일을 지우고 아이콘만 그린다. */
+.dialog button.nicknameButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
   flex: 0 0 auto;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   width: 36px;
   height: 36px;
-  padding: 8px;
-  border: 1px solid #ddcef2;
-  border-radius: 10px;
-  background: #ffffffa6;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
   color: #8b5bc5;
+  font-size: 0;
+  line-height: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.nicknameButton svg {
+.dialog button.nicknameButton::-moz-focus-inner {
+  padding: 0;
+  border: 0;
+}
+
+.dialog button.nicknameButton svg {
+  display: block;
   width: 18px;
   height: 18px;
+  min-width: 0;
+  min-height: 0;
+  flex: 0 0 18px;
+  stroke: currentColor;
 }
 
-.nicknameButton:disabled { opacity: 0.5; }
+.dialog button.nicknameSave {
+  color: #1c9a4e;
+}
+
+.dialog button.nicknameCancel {
+  color: #e03648;
+}
+
+.dialog button.nicknameButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* 툴팁은 포인터뿐 아니라 Tab 포커스에서도 표시하고 버튼 클릭 영역을 가리지 않는다. */
 .nicknameTooltip {
@@ -394,6 +449,16 @@
   display: flex;
   gap: 10px;
 }
+
+/* 회원탈퇴는 하단 왼쪽에 문구만 표시하며 작은 화면에서도 오른쪽 저장·취소와 나란히 유지한다. */
+.dialogFooter.profileFooter { flex-wrap: nowrap; gap: .5rem; }
+.dialogFooter.profileFooter > div { width: auto; flex: 0 1 auto; }
+/* 모바일의 기존 균등 분배보다 문구 폭을 우선해 '저장하기'가 두 줄로 접히지 않게 한다. */
+.dialogFooter.profileFooter :is(.cancelButton, .saveButton) { flex: 0 0 auto; min-width: 4.25rem; padding-inline: .75rem; white-space: nowrap; }
+.dialog button.withdrawButton { appearance: none; flex: 0 0 auto; min-height: 2.75rem; margin: 0; padding: .625rem 0; border: 0; background: transparent; box-shadow: none; color: #a37485; font: inherit; font-size: .8125rem; line-height: 1.5; cursor: pointer; }
+.dialog button.withdrawButton:disabled { opacity: .5; cursor: not-allowed; }
+.dialog button.withdrawButton:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+@media (hover: hover) { .dialog button.withdrawButton:hover:not(:disabled) { color: #a43d65; text-decoration: underline; text-underline-offset: .2em; } }
 
 .dialog .cancelButton, .dialog .saveButton {
   display: inline-flex;

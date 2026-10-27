@@ -1,0 +1,64 @@
+/* 계정 관리의 카드·입력·행 높이는 공통 rem 증가율을 사용하고 모달의 실제 폭에서 줄바꿈한다. */
+.root { container-type: inline-size; display: grid; min-width: 0; gap: 1rem; }
+.heading { margin-bottom: .375rem; }
+.root .heading > h3 { margin: 0; color: #1e1643; font-size: 1.25rem; font-weight: 750; line-height: 1.4; letter-spacing: -.035em; }
+.root .heading > p { margin: .375rem 0 0; color: #807598; font-size: .85rem; line-height: 1.6; }
+.card { min-width: 0; padding: 1.25rem; border: 1px solid #e5ddf7; border-radius: .875rem; background: #fff; }
+.cardHeader { display: flex; align-items: center; gap: .875rem; margin-bottom: 1.25rem; }
+.cardHeader > div { min-width: 0; }
+.cardHeader h4 { margin: 0; color: #241a41; font-size: 1rem; font-weight: 750; line-height: 1.5; }
+.cardHeader > div > p { margin: .25rem 0 0; color: #807598; font-size: .8rem; line-height: 1.6; overflow-wrap: anywhere; }
+.cardIcon { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 50%; color: #7928f5; background: #f1e9ff; }
+.cardIcon svg { width: 1.5rem; height: 1.5rem; }
+.logoutIcon { color: #d33d59; background: #fff0f3; }
+.currentBadge { display: inline-block; max-width: 100%; margin-top: .375rem; padding: .25rem .625rem; border-radius: 2rem; color: #75608e; background: #f2edf9; font-size: .75rem; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+.currentBadge[data-active="true"] { color: #18784f; background: #e6f8ed; }
+.form { display: grid; min-width: 0; gap: .875rem; }
+.controlField, .reasonField { display: grid; min-width: 0; gap: .5rem; }
+.controlField > label, .reasonField > label, .statusOptions > legend { color: #584574; font-size: .8rem; font-weight: 700; line-height: 1.5; }
+/* 현재 저장된 값과 적용 전 초안을 별도 행·레이블로 표시해 색상에만 의존하지 않고 구분한다. */
+.preview { display: grid; grid-template-columns: minmax(0, 1fr) 1.5rem minmax(0, 1fr); align-items: center; gap: 1rem; padding: .875rem 1rem; border-radius: .75rem; background: #f8f5ff; }
+.preview > div { display: grid; justify-items: center; min-width: 0; gap: .375rem; }
+.preview > div > span { color: #78638f; font-size: .75rem; font-weight: 600; }
+.preview strong { box-sizing: border-box; min-width: min(6.5rem, 100%); max-width: 100%; padding: .375rem .875rem; border-radius: 2rem; color: #5c526d; background: #eeebf4; font-size: .85rem; font-weight: 650; line-height: 1.5; text-align: center; overflow-wrap: anywhere; }
+.preview strong[data-active="true"] { color: #18784f; background: #dcf7e7; }
+.preview strong[data-next] { color: #7928f5; background: #eee4ff; }
+.preview > svg { width: 1.5rem; height: 1.5rem; color: #9074b4; }
+.actionRow { display: flex; align-items: center; justify-content: space-between; gap: .875rem; }
+.submitRow { display: flex; justify-content: flex-end; }
+.actionRow > button, .submitRow > button { flex-shrink: 0; min-width: 6.5rem; }
+.card .hint { margin: 0; color: #857597; font-size: .75rem; line-height: 1.6; overflow-wrap: anywhere; }
+/* 승인된 분할 선택은 라디오 의미·방향키를 보존하고 숨긴 입력 대신 실제 프레임에 공통 포커스를 표시한다. */
+.statusOptions { min-width: 0; margin: 0; padding: 0; border: 0; }
+.statusOptions > legend { margin-bottom: .5rem; padding: 0; }
+.statusOptions > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.statusChoice { position: relative; min-width: 0; cursor: pointer; }
+.statusOptions .statusChoice input[type="radio"] { position: absolute; width: 1px; height: 1px; min-width: 0; margin: 0; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.statusChoice > span { display: flex; box-sizing: border-box; align-items: center; justify-content: center; min-height: 2.75rem; padding: .625rem .5rem; border: 1px solid #ddd2ed; border-radius: .625rem; color: #66517e; background: #fff; font-size: .85rem; font-weight: 650; }
+.statusChoice > span[data-danger="true"] { border-color: #f0c7d0; color: #bd3651; background: #fffafb; }
+.statusChoice > input:checked + span { border-color: #8b3af4; color: #7928f5; background: #f2ebff; }
+.statusChoice > input:focus-visible + span { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+.statusChoice:has(input:disabled) { cursor: not-allowed; }
+.statusChoice > input:disabled + span { opacity: .5; }
+.statusHelp > p { margin: 0; color: #66517e; font-size: .8rem; line-height: 1.6; }
+.statusHelp > p + p { margin-top: .25rem; }
+.required { margin-inline-start: .5rem; color: #9d5871; font-size: .7rem; font-weight: 500; }
+/* 입력의 포커스·오류 테두리는 globals.css의 공통 변수를 사용하며 레이아웃 크기를 바꾸지 않는다. */
+.reasonField input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 2.75rem; padding: .625rem .875rem; border: 1px solid #e0d5f4; border-radius: .625rem; background: #fff; color: #57416f; font: inherit; font-size: .85rem; line-height: 1.5; }
+.reasonField input::placeholder { color: #a397b5; }
+.reasonField input:disabled { background: #f8f6fc; }
+.reasonField .reasonError { margin: 0; color: #b74f69; font-size: .75rem; line-height: 1.5; }
+.logoutForm { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .875rem; }
+.logoutForm .logoutButton { min-height: 2.75rem; border-color: #e78da0; color: #bd3651; background: #fff; white-space: nowrap; }
+@media (hover: hover) { .statusChoice:has(input:not(:disabled)):hover > span { border-color: #b894f7; } .logoutForm .logoutButton:hover:not(:disabled) { background: #fff4f6; } }
+/* 모바일에서도 상태의 세 선택과 변경 전후 정보가 본문 폭 안에 남도록 여백과 버튼 행을 조정한다. */
+@container (max-width: 30rem) {
+  .card { padding: 1rem; }
+  .preview { column-gap: .625rem; padding-inline: .75rem; }
+  .preview strong { padding-inline: .625rem; }
+  .actionRow { flex-wrap: wrap; justify-content: flex-end; }
+  .actionRow > p { flex-basis: 100%; }
+  .logoutForm { grid-template-columns: minmax(0, 1fr); }
+  .logoutButton { justify-self: end; }
+}
+@media (forced-colors: active) { .statusChoice > input:checked + span { border-color: Highlight; outline: 1px solid Highlight; outline-offset: -1px; } .preview strong { outline: 1px solid CanvasText; } }

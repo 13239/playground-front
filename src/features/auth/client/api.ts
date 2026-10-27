@@ -1,5 +1,6 @@
 import type { CurrentSession, LoginInput, SessionMutationInput } from "../types";
 import type { PasswordChangeInput } from "../password-validation";
+import type { AccountWithdrawalInput } from "../withdrawal-validation";
 import { signedAuthRequest, clearProofNonces } from "./browser-proof";
 import { AuthRequestError } from "./error";
 import { isDevHttpAuth } from "./environment";
@@ -30,7 +31,7 @@ type FeaturePath = "/api/auth/profile" | "/api/auth/profile/nickname" | "/api/go
   | `/api/games/${string}/modes/${string}/admission`
   // 테트리스도 기존 브라우저 증명·계정 변경·토큰 갱신 경계를 그대로 공유한다.
   | "/api/tetris/overview" | "/api/tetris/start" | "/api/tetris/finish";
-type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | "/api/auth/password" | FeaturePath;
+type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/withdrawal" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | "/api/auth/password" | FeaturePath;
 
 async function authRequest(path: AuthPath, context: AuthRequestContext, input?: LoginInput | SessionMutationInput): Promise<Response> {
   // 잠금 대기부터 갱신·원래 요청의 재실행까지 같은 취소 신호와 전체 기한을 사용한다.
@@ -108,6 +109,22 @@ export async function logout(sessionId: string): Promise<void> {
     clearProofNonces();
   });
   // 다른 화면의 재조회·자동 이동은 잠금 정리가 끝난 뒤 시작한다.
+  notifyAuthChanged();
+}
+
+/** 탈퇴·쿠키 삭제는 로그인/갱신과 같은 탭 잠금 안에서 끝내고 성공한 뒤에만 다른 탭에 알린다. */
+export async function withdrawAccount(sessionId: string, input: AccountWithdrawalInput): Promise<void> {
+  await withAuthRequestContext(boundary => withAuthLock(async locked => {
+    const context: AuthRequestContext = {
+      signal: locked.signal,
+      assertActive: () => { boundary.assertActive(); locked.assertActive(); },
+    };
+    // 업무 오류·네트워크 장애는 재전송하지 않으며 인증 필터가 실행 전에 거절한 경우만 갱신한다.
+    const response = await authenticatedRequest("/api/auth/withdrawal", context, true, { sessionId, ...input }, true);
+    if (response.status !== 204) throw new AuthRequestError("서비스 응답을 처리할 수 없습니다.", 502);
+    clearProofNonces();
+    clearAccessNotice();
+  }, boundary.signal));
   notifyAuthChanged();
 }
 

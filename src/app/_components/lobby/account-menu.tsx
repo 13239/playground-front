@@ -95,7 +95,7 @@ export function AccountMenu({
         </div>
       </DismissibleDetails>
       {editor === "profile" && profile && (
-        <ProfileEditor profile={profile} onSave={save} onSaveNickname={saveNickname} onClose={closeEditor} />
+        <ProfileEditor sessionId={sessionId} profile={profile} onSave={save} onSaveNickname={saveNickname} onClose={closeEditor} />
       )}
       {editor === "password" && (
         <PasswordEditor sessionId={sessionId} onClose={closeEditor} onSaved={() => setPasswordSaved(value => value + 1)} />

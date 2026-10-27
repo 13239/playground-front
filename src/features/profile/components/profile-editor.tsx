@@ -12,15 +12,18 @@ import {
 import type { UserProfile } from "../types";
 import { ProfileAvatar } from "./profile-avatar";
 import { NicknameEditor } from "./nickname-editor";
+import { WithdrawalDialog } from "./withdrawal-dialog";
 import styles from "./profile.module.css";
 
 /** 라디오 선택·즉시 미리보기와 네이티브 dialog의 포커스·Escape 처리를 사용한다. 저장 성공 후에만 닫는다. */
 export function ProfileEditor({
+  sessionId,
   profile,
   onSave,
   onSaveNickname,
   onClose,
 }: {
+  sessionId: string;
   profile: UserProfile;
   onSave: (avatarId: ProfileAvatarId) => Promise<void>;
   onSaveNickname: (nickname: string) => Promise<void>;
@@ -33,14 +36,16 @@ export function ProfileEditor({
   const [pending, setPending] = useState(false);
   // 닉네임 저장 중에는 창 닫기·아바타 저장을 잠시 막아 두 변경 결과가 서로 뒤섞이지 않게 한다.
   const [nicknamePending, setNicknamePending] = useState(false);
-  const busy = pending || nicknamePending;
+  // 탈퇴 확인 중에는 프로필 저장·닉네임 수정·부모 닫기가 동시에 실행되지 않게 한다.
+  const [withdrawalOpen, setWithdrawalOpen] = useState(false);
+  const busy = pending || nicknamePending || withdrawalOpen;
   const [error, setError] = useState("");
   const selectedAvatar = getProfileAvatar(selected);
 
   useEffect(() => showModalWithoutCloseFocus(dialogRef.current), []);
 
   async function save() {
-    if (submitting.current || nicknamePending || selected === profile.avatarId) return;
+    if (submitting.current || nicknamePending || withdrawalOpen || selected === profile.avatarId) return;
     submitting.current = true;
     setPending(true);
     setError("");
@@ -59,14 +64,14 @@ export function ProfileEditor({
   }
 
   return (
-    <dialog
+    <><dialog
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby={`${groupId}-title`}
       aria-describedby={`${groupId}-description`}
       onClose={onClose}
       onCancel={(event) => {
-        if (submitting.current || nicknamePending) event.preventDefault();
+        if (submitting.current || nicknamePending || withdrawalOpen) event.preventDefault();
       }}
     >
       <div className={styles.dialogHeader}>
@@ -93,8 +98,7 @@ export function ProfileEditor({
             <ProfileAvatar avatarId={selected} size={144} />
           </div>
           <div className={styles.previewCopy}>
-            <span>플레이그라운드의 나</span>
-            <NicknameEditor nickname={profile.nickname} disabled={pending} onSave={onSaveNickname} onPendingChange={setNicknamePending} />
+            <NicknameEditor nickname={profile.nickname} disabled={pending || withdrawalOpen} onSave={onSaveNickname} onPendingChange={setNicknamePending} />
             <p aria-live="polite">{selectedAvatar.name}</p>
           </div>
           <span className={styles.previewSparkle} aria-hidden="true">
@@ -143,8 +147,9 @@ export function ProfileEditor({
           {error}
         </p>
       </div>
-      <div className={styles.dialogFooter}>
-        <span></span>
+      <div className={`${styles.dialogFooter} ${styles.profileFooter}`}>
+        {/* 왼쪽 텍스트 버튼은 별도 확인 창만 열고, 프로필의 미저장 선택을 제출하지 않는다. */}
+        <button type="button" className={styles.withdrawButton} disabled={pending || nicknamePending} onClick={() => setWithdrawalOpen(true)}>회원탈퇴</button>
         <div>
           <button
             type="button"
@@ -167,5 +172,7 @@ export function ProfileEditor({
         </div>
       </div>
     </dialog>
+      {withdrawalOpen && <WithdrawalDialog sessionId={sessionId} onClose={() => setWithdrawalOpen(false)} />}
+    </>
   );
 }

@@ -1,17 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { getProfileAvatar } from "@/features/profile/catalog";
 import { focusWithoutRing } from "@/lib/client/show-modal";
-import { USER_PAGE_SIZES, type AdminUser, type NumberedPage } from "../user-contracts";
+import { USER_PAGE_SIZES, USER_STATUS_LABELS, type AdminUser, type NumberedPage } from "../user-contracts";
 import { useAdminResource } from "../client/use-admin-resource";
 import { Loading, useAdminScope } from "./admin-ui";
-import { CodePicker } from "./code-picker";
+import { UserRoleFilter } from "./user-role-filter";
 import { NumberedPagination } from "./numbered-pagination";
 import { PageSizeSelect } from "./page-size-select";
-import { Select } from "@/components/ui/select";
-import { SearchInput } from "@/components/ui/search-input";
+import { Select, type SelectOption } from "@/components/ui/select";
+import { SearchButton, SearchInput } from "@/components/ui/search-input";
 import { RefreshButton } from "./refresh-button";
 import { UserDetailsDialog } from "./user-details-dialog";
 import { displayDate, userStatus } from "./user-display";
@@ -23,17 +23,27 @@ export function UsersPanel() {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
-  const [role, setRole] = useState("");
+  // 권한 목록을 다시 조회해도 확정한 권한의 코드와 표시 이름을 함께 보존한다.
+  const [role, setRole] = useState<SelectOption>();
   const [page, setPage] = useState(1);
   const [size, setSize] = useState<number>(10);
   const [selected, setSelected] = useState<number>();
-  const roleFilter = useRef<HTMLDetailsElement>(null);
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (query.trim()) params.set("query", query.trim());
   if (status) params.set("status", status);
-  if (role) params.set("roleCode", role);
+  if (role?.value) params.set("roleCode", role.value);
   const list = useAdminResource<NumberedPage<AdminUser>>(sessionId, `users?${params}`);
   const reset = () => { setPage(1); setSelected(undefined); };
+  // 새로고침은 검색어·권한·상태·표시 개수를 처음 조건으로 되돌린 뒤 첫 페이지를 다시 조회한다.
+  const refresh = () => {
+    setSearch("");
+    setQuery("");
+    setRole(undefined);
+    setStatus("");
+    setSize(USER_PAGE_SIZES[0]);
+    reset();
+    list.reload();
+  };
   const openUser = (id: number, row: HTMLTableRowElement) => {
     // 행의 빈 영역을 눌러도 닫은 뒤 해당 회원의 키보드 진입점으로 돌아온다.
     const trigger = row.querySelector<HTMLButtonElement>("button");
@@ -43,25 +53,28 @@ export function UsersPanel() {
 
   return <section className={`${styles.panel} ${styles.userGridPanel}`} aria-label="회원 목록">
     <div className={styles.panelHeading}><h2>회원 목록</h2>
-      <RefreshButton onRefresh={list.reload} loading={list.loading} label="회원 목록 새로고침" />
+      <RefreshButton onRefresh={refresh} loading={list.loading} label="회원 목록을 기본 조건으로 새로고침" />
     </div>
     <div className={styles.userToolbar}>
       <form className={styles.search} onSubmit={event => { event.preventDefault(); setQuery(search); reset(); }}>
         {/* 회원 검색과 계정 상태도 전역 입력 UI를 사용하되 기존 검색·필터 초기화를 유지한다. */}
         <SearchInput label="회원 검색" maxLength={100} placeholder="아이디·닉네임 앞부분, 회원 번호" value={search} onChange={event => setSearch(event.target.value)} />
       </form>
-      <details ref={roleFilter} className={styles.userRoleFilter}>
-        <summary>{role || "전체 권한"}</summary>
-        <div className={styles.userRolePopover}><CodePicker area="users/role-options" label="권한" selected={role ? [role] : []} single
-          change={codes => { setRole(codes.at(-1) ?? ""); reset(); if (roleFilter.current) roleFilter.current.open = false; }} /></div>
-      </details>
+      {/* 권한 필터는 검색 입력이 없는 공통 선택창을 사용하고 변경 시 첫 페이지·상세 선택을 초기화한다. */}
+      <UserRoleFilter selected={role} change={option => { setRole(option); reset(); }} />
       <label className={styles.userFilter}><span className={styles.visuallyHidden}>계정 상태</span>
         <Select label="계정 상태" value={status} onValueChange={value => { setStatus(value); reset(); }} options={[
-          { value: "", label: "전체 상태 (탈퇴 제외)" }, { value: "ACTIVE", label: "활성" }, { value: "INACTIVE", label: "비활성" }, { value: "PENDING", label: "가입대기" }, { value: "DELETED", label: "탈퇴" },
+          // 전체 상태에는 탈퇴를 포함하고 삭제된 계정은 서버의 공통 조회 조건에서 제외한다.
+          { value: "", label: "전체 상태" }, ...Object.entries(USER_STATUS_LABELS).map(([value, label]) => ({ value, label })),
         ]} />
       </label>
       {/* 개수 선택 UI만 공통화하고 회원 목록의 첫 페이지·상세 선택 초기화는 유지한다. */}
-      <PageSizeSelect className={styles.userPageSize} sizes={USER_PAGE_SIZES} value={size} change={next => { setSize(next); reset(); }} />
+      <div className={styles.userQueryActions}>
+        <PageSizeSelect sizes={USER_PAGE_SIZES} value={size} change={next => { setSize(next); reset(); }} />
+        {/* 돋보기는 확정된 검색어·권한·상태·표시 개수·페이지를 유지하고 현재 목록만 다시 조회한다. */}
+        <SearchButton type="button" className={styles.userQueryButton} label="현재 필터로 회원 목록 재조회"
+          onClick={list.reload} disabled={list.loading} aria-busy={list.loading} />
+      </div>
     </div>
     <div className={styles.userTableScroll} role="region" aria-label="회원 목록 그리드" tabIndex={0} aria-busy={list.loading}>
       <table className={styles.userTable}>

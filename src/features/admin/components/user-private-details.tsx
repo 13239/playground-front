@@ -8,7 +8,8 @@ import styles from "./admin.module.css";
 /** 허용된 관리자는 개인정보 원문을 바로 조회한다. 사유·마스킹·자동 숨김 없이 모달 메모리에만 보관한다. */
 export function UserPrivateDetails({ details }: { details: UserDetails }) {
   const { sessionId, can } = useAdminScope();
-  const permitted = can("USER_SENSITIVE_READ") && !details.user.deleted;
+  // 탈퇴 여부를 상태 코드로 분리해도 원문 개인정보 조회 제한은 그대로 유지한다.
+  const permitted = can("USER_SENSITIVE_READ") && !details.user.deleted && details.user.status !== "WITHDRAWN";
   const resource = useAdminResource<UserSensitive>(sessionId, permitted ? `users/${details.user.id}/sensitive` : "");
   if (!permitted) return null;
   const value = resource.data;

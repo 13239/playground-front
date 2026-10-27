@@ -5,6 +5,8 @@ import { parseOperationalNotice } from "@/lib/operational-notice";
 
 // 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
 const errors = {
+  // 본인 탈퇴의 비밀번호 대입 제한은 세션 만료와 구분하고 서버가 정한 재시도 간격을 유지한다.
+  ACCOUNT_WITHDRAWAL_RATE_LIMIT_EXCEEDED: [429, "회원탈퇴 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   // 테트리스 기록 오류는 계정 만료와 구분해 게임 화면에서 재시도를 제공한다.
   TETRIS_RUN_CHANGED: [409, "이전 게임의 기록입니다. 현재 화면에서 새 게임을 시작해 주세요."],
   TETRIS_REPLAY_INVALID: [400, "플레이 기록을 검증하지 못했습니다."],

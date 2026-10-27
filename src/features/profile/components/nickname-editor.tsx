@@ -23,8 +23,14 @@ export function NicknameEditor({ nickname, disabled, onSave, onPendingChange }: 
 
   function finish() {
     setEditing(false);
-    // 인라인 폼이 사라진 뒤 원래 편집 버튼으로 키보드 포커스를 돌린다.
+    // 저장으로 폼이 닫히면 키보드 포커스를 편집 버튼에 남긴다.
     requestAnimationFrame(() => triggerRef.current?.focus());
+  }
+
+  function cancel() {
+    // 취소 직후 편집 버튼에 포커스를 주면 툴팁과 포커스 링이 바로 뜬다.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    setEditing(false);
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -70,10 +76,10 @@ export function NicknameEditor({ nickname, disabled, onSave, onPendingChange }: 
         <input id={id} value={value} autoFocus autoComplete="nickname" disabled={pending || disabled}
           aria-invalid={!!error} aria-describedby={`${id}-help${error ? ` ${id}-error` : ""}`}
           onChange={(event) => { setValue(event.target.value); setError(""); }} />
-        <button type="submit" className={styles.nicknameButton} disabled={pending || disabled} aria-label="닉네임 저장">
+        <button type="submit" className={`${styles.nicknameButton} ${styles.nicknameSave}`} disabled={pending || disabled} aria-label="닉네임 저장">
           <LobbyIcon name="check" />
         </button>
-        <button type="button" className={styles.nicknameButton} disabled={pending || disabled} aria-label="닉네임 수정 취소" onClick={finish}>
+        <button type="button" className={`${styles.nicknameButton} ${styles.nicknameCancel}`} disabled={pending || disabled} aria-label="닉네임 수정 취소" onClick={cancel}>
           <LobbyIcon name="close" />
         </button>
       </div>

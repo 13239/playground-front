@@ -1,7 +1,7 @@
 /** 로그인·방 비밀번호의 빠른 해시를 증명에 남기지 않는다. 자격 증명은 HTTPS/mTLS 안에서 직접 검증한다. */
 export function proofBody(path: string, body: string): string {
-  // 비밀번호 변경도 빠른 해시에서 두 비밀번호를 제외하고 변경 대상인 현재 세션만 서명에 결합한다.
-  if (path === "/api/auth/password") {
+  // 비밀번호 변경·회원탈퇴도 빠른 해시에서 비밀번호를 제외하고 변경 대상인 현재 세션만 서명에 결합한다.
+  if (path === "/api/auth/password" || path === "/api/auth/withdrawal") {
     const input: unknown = JSON.parse(body);
     if (typeof input !== "object" || input === null || !("sessionId" in input) || typeof input.sessionId !== "string") {
       throw new TypeError("Invalid password change binding");

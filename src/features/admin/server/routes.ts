@@ -12,7 +12,7 @@ import { parseGameFilterPage } from "@/features/games/filter-contracts";
 import { gameCodePattern } from "@/features/games/contracts";
 import { isCardLabelCodes } from "@/features/games/card-labels";
 import { parseContext, parsePermissions, parseRole, parseRoleSummary, parsePolicy, parsePage, parseGame, parseMode, parseGenre, parseImplementations } from "../contracts";
-import { parseUserPage, parseUserDetails, parseSensitive, parseUserRole, parseNicknamePage, parseUserRoleOptions } from "../user-contracts";
+import { isUserStatus, parseUserPage, parseUserDetails, parseSensitive, parseUserRole, parseNicknamePage, parseUserRoleOptions } from "../user-contracts";
 import { parseActivityLogPage, parseAuditLogPage, parseActivityLogDetails, parseAuditLogDetails, parseLogOptions } from "../log-contracts";
 import { isLogDate } from "../log-search";
 import { parseAdminChatGames, parseAdminChatMessage, parseAdminChatPage } from "../chat-contracts";
@@ -151,7 +151,8 @@ function validateQuery(url: URL, kind: Endpoint["query"]): void {
   for (const [key, value] of url.searchParams) {
     if (key === "query" && value.length > 100 || key === "limit" && !/^(?:[1-9]|[1-9]\d|100)$/.test(value)
       || key === "expectedVersion" && (!/^\d{1,16}$/.test(value) || !Number.isSafeInteger(Number(value)))
-      || key === "status" && !["ACTIVE","INACTIVE","PENDING","DELETED"].includes(value)
+      // 탈퇴 검색도 실제 계정 상태 코드만 허용하고 이전 삭제 전용 검색값은 전달하지 않는다.
+      || key === "status" && !isUserStatus(value)
       || key === "roleCode" && !gameCodePattern.test(value)
       || key === "period" && !["TODAY", "WEEK", "MONTH"].includes(value)
       || key === "scope" && !["GLOBAL", "GAME_ROOM"].includes(value)
@@ -166,7 +167,8 @@ function validateQuery(url: URL, kind: Endpoint["query"]): void {
       || key === "page" && (!/^[1-9]\d{0,9}$/.test(value) || Number(value) > 2147483647)
       || key === "enabled" && !["true", "false"].includes(value)
       || key === "type" && kind === "filter-grid" && !["GENRE", "PLAYERS", "GRAPHICS"].includes(value)
-      || key === "size" && !(kind === "filter-grid" ? /^(?:20|30|40|50)$/ : kind === "catalog-order" ? /^(?:10|20|30|40|50)$/ : /^(?:10|20|30|50)$/).test(value)
+      // 닉네임 이력의 15개 표시를 허용하되 다른 관리 목록의 기존 개수 제한은 유지한다.
+      || key === "size" && !(kind === "history" ? /^(?:10|15|20|30)$/ : kind === "filter-grid" ? /^(?:20|30|40|50)$/ : kind === "catalog-order" ? /^(?:10|20|30|40|50)$/ : /^(?:10|20|30|50)$/).test(value)
       || key === "cursor" && !(kind === "roles" ? gameCodePattern : kind === "users" || kind === "history" ? /^[1-9]\d{0,18}$/ : /^\d{1,7}:\d{1,19}$/).test(value)) throw new ApiError("INVALID_REQUEST_BODY");
   }
   if (kind === "delete" && !url.searchParams.has("expectedVersion")) throw new ApiError("INVALID_REQUEST_BODY");
@@ -189,6 +191,10 @@ export async function handleAdminRequest(request: Request, segments: readonly st
       // 최대 장르 연결·카드 라벨·한글 설명을 함께 저장할 수 있게 게임 정보만 32KiB까지 허용한다.
       const input = await readJsonBody(request, spec.fields.includes("metadata") ? 32768 : 16384);
       assertFields(input, spec.fields);
+      // 계정 상태·강제 로그아웃 사유는 UI를 우회해도 누락·공백·초과 길이를 거절한다. 서명된 본문 값은 변경하지 않는다.
+      if (segments[0] === "users" && (segments.length === 3 && segments[2] === "status"
+        || segments.length === 4 && segments[2] === "sessions" && segments[3] === "revoke")
+        && (typeof input.reason !== "string" || !input.reason.trim() || input.reason.length > 300)) throw new ApiError("INVALID_REQUEST_BODY");
       if ("metadata" in input) {
         assertFields(input.metadata, ["name", "summary", "description", "genreCodes", "cardLabelCodes"]);
         const codes = input.metadata.genreCodes;
