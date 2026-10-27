@@ -17,6 +17,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - 게임 카드의 가장 바깥 요소에는 `data-hover-frame`을 붙인다. 마우스 호버와 키보드 포커스는 공통 1px 테두리를 사용하며, 클릭만으로 떨어진 굵은 테두리가 남지 않게 한다. 내부 링크의 중복 포커스 테두리는 해당 컴포넌트 범위에서 제거한다.
 - 기존 코드의 주석을 유지하고, 공통 스타일을 우회해야 하는 변경에는 이유를 설명하는 주석을 추가한다.
 
+## 공통 선택·달력·검색 UI
+
+- 모든 단일 선택은 `src/components/ui/select.tsx`의 `Select`를 사용한다. 브라우저 기본 `<select>` UI를 새 화면에 직접 추가하지 않는다. 공통 컴포넌트 내부의 숨긴 `<select>`는 FormData·필수 입력 검증·폼 reset·변경 감지를 위한 연결이며 화면에 표시하지 않는다.
+- 검색·다중 선택·이어 읽기가 필요한 콤보박스는 `src/components/ui/combobox.tsx`의 `Combobox`를 사용하고 조회와 권한·저장 정책은 기능별 래퍼에 둔다. 공통 팝업·선택 목록 CSS를 복제하지 않는다.
+- 날짜 입력과 캘린더는 `src/components/ui/date-picker.tsx`의 `DatePicker`를 사용한다. 네이티브 `input type="date"`·직접 만든 별도 달력을 추가하지 않는다. 값은 `YYYY-MM-DD` 문자열로 유지하고 `min`·`max`·`required`·`disabled`와 키보드 조작을 지원한다.
+- 검색 입력은 `src/components/ui/search-input.tsx`의 `SearchInput`을 사용한다. 별도 검색 실행 버튼이 필요하면 같은 파일의 `SearchButton`을 사용하고 '검색' 텍스트 대신 돋보기와 접근 가능한 이름을 제공한다. 다른 폼 안의 독립 검색은 `onSearch`로 처리해 부모 저장을 제출하지 않는다.
+- 사용자 요청에 따라 홈의 게임 검색(`site-header.tsx`)과 방 검색(`room-list.tsx`) 입력 UI·동작은 현재 상태로 유지한다. 이 두 입력은 별도 요청 없이 공통 검색 입력으로 교체하지 않는다.
+- 관리자 표시 개수는 `PageSizeSelect` 래퍼를 사용하며 내부의 전역 `Select`를 재사용한다. 기존 선택지·첫 페이지 이동·상세 초기화 규칙은 유지한다.
+- 공통 아이콘은 `src/components/ui/icon.tsx`의 `Icon`을 사용한다. 기존 `LobbyIcon` 경로도 이 정의를 재사용한다. 상세 API·폼·접근성 사용법은 `docs/shared-controls.md`를 따른다.
+
 ## 페이지네이션
 
 - 앞으로 새로 개발하는 화면의 페이징은 페이지 번호 방식으로 구현한다. 첫 페이지·이전·페이지 번호·다음·마지막 페이지 이동을 제공한다.

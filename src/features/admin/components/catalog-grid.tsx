@@ -8,6 +8,7 @@ import { Loading, useAdminScope } from "./admin-ui";
 import { CatalogOrderEditor } from "./catalog-order-editor";
 import { NumberedPagination } from "./numbered-pagination";
 import { PageSizeSelect } from "./page-size-select";
+import { SearchInput } from "@/components/ui/search-input";
 import styles from "./admin.module.css";
 import grid from "./catalog-grid.module.css";
 
@@ -45,9 +46,9 @@ export function CatalogGrid<T extends GridItem>({ area, label, columns, dialog, 
           {createAllowed && <button type="button" className={styles.smallPrimary} disabled={createLoading} onClick={() => setSelected(null)}>+ {label === "게임" ? "등록" : "추가"}</button>}</div>}
       </div>
       <div className={grid.toolbar}>
-        <form className={styles.search} data-focus-frame onSubmit={event => { event.preventDefault(); setQuery(search); setPage(1); }}>
-          <input type="search" aria-label={`${label} 검색`} placeholder="이름 또는 코드 검색" maxLength={100}
-            value={search} onChange={event => setSearch(event.target.value)} /><button type="submit">검색</button>
+        <form className={styles.search} onSubmit={event => { event.preventDefault(); setQuery(search); setPage(1); }}>
+          {/* 그리드 검색도 공통 돋보기 입력을 사용하며 조회 조건은 기존대로 유지한다. */}
+          <SearchInput label={`${label} 검색`} placeholder="이름 또는 코드 검색" maxLength={100} value={search} onChange={event => setSearch(event.target.value)} />
         </form>
         {/* 공통 개수 선택창에서도 기존 첫 페이지 이동과 조회 조건을 유지한다. */}
         <PageSizeSelect className={grid.pageSize} value={size} change={next => { setSize(next); setPage(1); }} />

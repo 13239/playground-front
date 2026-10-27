@@ -11,6 +11,8 @@ import { CatalogOrderEditor } from "./catalog-order-editor";
 import { ConfirmDialog, Feedback, Field, Loading, useAdminMutation, useAdminScope } from "./admin-ui";
 import { NumberedPagination } from "./numbered-pagination";
 import { PageSizeSelect } from "./page-size-select";
+import { Select } from "@/components/ui/select";
+import { SearchInput } from "@/components/ui/search-input";
 import common from "./admin.module.css";
 import grid from "./catalog-grid.module.css";
 import styles from "./game-filters-panel.module.css";
@@ -76,13 +78,11 @@ export function FilterListView({ data, filters, loading, error, writable, state,
       </button>)}
     </div>
     <div className={`${grid.toolbar} ${styles.toolbar}`}>
-      <form className={common.search} data-focus-frame onSubmit={event => { event.preventDefault(); search(); }}>
-        <input type="search" aria-label="필터 검색" placeholder="이름 또는 코드 검색" maxLength={100} value={state.search} onChange={event => change({ search: event.target.value })} />
-        <button type="submit">검색</button>
+      <form className={common.search} onSubmit={event => { event.preventDefault(); search(); }}>
+        {/* 검색·상태·편집 입력은 공통 UI로 제공하고 실제 필터 값은 그대로 사용한다. */}
+        <SearchInput label="필터 검색" placeholder="이름 또는 코드 검색" maxLength={100} value={state.search} onChange={event => change({ search: event.target.value })} />
       </form>
-      <label className={styles.status}><span className={common.visuallyHidden}>사용 여부</span><select aria-label="사용 여부" value={state.enabled} onChange={event => change({ enabled: event.target.value })}>
-        <option value="">모든 상태</option><option value="true">사용</option><option value="false">미사용</option>
-      </select></label>
+      <Select className={styles.status} label="사용 여부" value={state.enabled} onValueChange={value => change({ enabled: value })} options={[{ value: "", label: "모든 상태" }, { value: "true", label: "사용" }, { value: "false", label: "미사용" }]} />
       {/* 필터 관리 전용 20·30·40·50개 선택지는 그대로 공통 UI에 전달한다. */}
       <PageSizeSelect className={grid.pageSize} sizes={FILTER_PAGE_SIZES} value={state.size} change={size => change({ size })} />
     </div>
@@ -152,16 +152,16 @@ function FilterEditor({ item, saved }: { item?: AdminGameFilter; saved: () => vo
     void mutation.run(`game-filters/${code}`, item ? "PUT" : "POST", body, saved);
   }}><fieldset className={common.formFields} disabled={!can("GAME_WRITE") || mutation.busy}>
     <div className={common.formColumns}>
-      <Field label="필터 유형"><select value={type} disabled={!!item} onChange={event => setType(event.target.value as GameFilterType)}>{filterTypes.map(value => <option key={value} value={value}>{filterTypeNames[value]}</option>)}</select></Field>
+      <Field label="필터 유형"><Select label="필터 유형" name="type" value={type} disabled={!!item} onValueChange={value => setType(value as GameFilterType)} options={filterTypes.map(value => ({ value, label: filterTypeNames[value] }))} /></Field>
       <Field label="필터 코드" hint="영문 대문자·숫자·밑줄, 대문자로 시작"><input name="code" required maxLength={64} pattern="[A-Z][A-Z0-9_]{0,63}" defaultValue={item?.code} disabled={!!item} /></Field>
     </div>
     <Field label="필터 이름"><input name="name" required maxLength={50} defaultValue={item?.name} /></Field>
-    <Field label="아이콘"><span className={styles.iconPicker}><LobbyIcon name={icon} /><select value={icon} onChange={event => setIcon(event.target.value as typeof icon)}>{filterIcons.map(value => <option key={value} value={value}>{icons[value]}</option>)}</select></span></Field>
+    <Field label="아이콘"><span className={styles.iconPicker}><LobbyIcon name={icon} /><Select label="아이콘" name="icon" value={icon} onValueChange={value => setIcon(value as typeof icon)} options={filterIcons.map(value => ({ value, label: icons[value] }))} /></span></Field>
     {type === "PLAYERS" && <div className={common.formColumns}>
       <Field label="최소 인원"><input type="number" name="minPlayers" min={1} max={10000} required defaultValue={item?.minPlayers ?? 1} /></Field>
       <Field label="최대 인원"><input type="number" name="maxPlayers" min={1} max={10000} required defaultValue={item?.maxPlayers ?? 1} /></Field>
     </div>}
-    {type === "GRAPHICS" && <Field label="그래픽 조건"><select name="graphicsType" defaultValue={item?.graphicsType ?? "TWO_D"}><option value="TWO_D">2D</option><option value="THREE_D">3D</option></select></Field>}
+    {type === "GRAPHICS" && <Field label="그래픽 조건"><Select label="그래픽 조건" name="graphicsType" defaultValue={item?.graphicsType ?? "TWO_D"} options={[{ value: "TWO_D", label: "2D" }, { value: "THREE_D", label: "3D" }]} /></Field>}
     <label className={common.checkRow}><input name="enabled" type="checkbox" defaultChecked={item?.enabled ?? true} /><span>사용</span></label>
   </fieldset>
     {can("GAME_WRITE") && <div className={common.actions}><button className={common.primary} disabled={mutation.busy}>{mutation.busy ? "저장 중…" : item ? "필터 저장" : "필터 추가"}</button></div>}

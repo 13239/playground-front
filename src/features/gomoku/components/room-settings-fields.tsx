@@ -1,6 +1,7 @@
 "use client";
 
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
+import { Select } from "@/components/ui/select";
 import type { RoomDraft } from "../contracts";
 import styles from "./gomoku.module.css";
 
@@ -148,20 +149,19 @@ export function RoomSettingsFields({ draft, errors, disabled, preservePassword =
           금수 규칙
         </label>
         <div className={styles.field}>
-          <select
+          {/* 방 설정도 공통 선택 UI를 사용하고 실제 금수 규칙 코드와 폼 이름은 유지한다. */}
+          <Select label="금수 규칙"
             id="forbidden-rule"
             name="forbiddenRule"
             value={draft.forbiddenRule}
-            onChange={(event) =>
+            onValueChange={(value) =>
               update({
                 forbiddenRule:
-                  event.target.value === "STANDARD" ? "STANDARD" : "NONE",
+                  value === "STANDARD" ? "STANDARD" : "NONE",
               })
             }
-          >
-            <option value="NONE">사용 안 함 (자유 룰)</option>
-            <option value="STANDARD">금수 적용 (3·3, 4·4, 장목)</option>
-          </select>
+            options={[{ value: "NONE", label: "사용 안 함 (자유 룰)" }, { value: "STANDARD", label: "금수 적용 (3·3, 4·4, 장목)" }]}
+          />
           <small>금수 적용 시 흑돌의 3·3, 4·4, 장목을 제한해요.</small>
         </div>
       </div>

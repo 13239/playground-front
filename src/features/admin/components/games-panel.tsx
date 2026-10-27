@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Select } from "@/components/ui/select";
 import type { Game, Implementation } from "../contracts";
 import type { GameGridItem } from "../catalog-grid-contracts";
 import { useFilterOptions } from "../client/use-filter-options";
@@ -61,7 +62,8 @@ function NewGame({ implementations, saved }: { implementations: readonly Impleme
   const implementation = implementations.find(i => i.code === code);
   // 이미 등록한 구현은 선택지에서 제외해 같은 오목을 다시 등록하는 불필요한 동작을 만들지 않는다.
   if (!implementation) return <p className={styles.empty}>등록할 수 있는 새 게임이 없어요.</p>;
-  return <><p className={styles.hint}>등록 후 모드와 공개 상태를 설정하세요.</p><Field label="등록할 게임"><select value={code} onChange={e => { const next = e.target.value; if (next !== code) navigate(() => setCode(next)); }}>{implementations.map(i => <option key={i.code}>{i.code}</option>)}</select></Field><GameMetadataEditor key={code} implementation={implementation} saved={saved} /></>;
+  // 탐색용 선택창은 저장 필드로 표시하지 않고 기존 미저장 변경 확인을 거쳐 이동한다.
+  return <><p className={styles.hint}>등록 후 모드와 공개 상태를 설정하세요.</p><Field label="등록할 게임"><Select label="등록할 게임" value={code} onValueChange={next => { if (next !== code) navigate(() => setCode(next)); }} options={implementations.map(i => ({ value: i.code, label: i.code }))} /></Field><GameMetadataEditor key={code} implementation={implementation} saved={saved} /></>;
 }
 function GameDetails({ game, implementation, saved }: { game: Game; implementation: Implementation; saved: () => void }) {
   const { navigate } = useCatalogDialog();
@@ -73,7 +75,7 @@ function GameDetails({ game, implementation, saved }: { game: Game; implementati
     {tab === "information" ? <GameMetadataEditor key={game.version} game={game} implementation={implementation} saved={saved} /> : tab === "availability" ? <GameAvailabilityEditor key={game.version} item={game} path={`games/${game.code}/availability`} saved={saved} />
       : <div className={styles.stack}>
         {/* 모드가 늘어나도 모든 편집 폼을 한꺼번에 만들지 않고 선택한 모드만 표시한다. */}
-        <Field label="관리할 모드"><select value={modeCode} onChange={e => { const next = e.target.value; if (next !== modeCode) navigate(() => setModeCode(next)); }}>{implementation.modes.map(d => { const existing = game.modes.find(m => m.code === d.code); return <option key={d.code} value={d.code}>{existing?.name ?? `${d.code} (미등록)`}</option>; })}</select></Field>
+        <Field label="관리할 모드"><Select label="관리할 모드" value={modeCode} onValueChange={next => { if (next !== modeCode) navigate(() => setModeCode(next)); }} options={implementation.modes.map(d => ({ value: d.code, label: game.modes.find(m => m.code === d.code)?.name ?? `${d.code} (미등록)` }))} /></Field>
         {definition && <GameModeEditor key={`${definition.code}:${mode?.version ?? "new"}`} gameCode={game.code} mode={mode} definition={definition} saved={saved} />}
         {game.modes.filter(m => !implementation.modes.some(d => d.code === m.code)).map(m => <p key={m.code} className={styles.error}>{m.name}: 현재 지원하지 않는 모드예요.</p>)}
       </div>}

@@ -11,6 +11,9 @@ import { LogDetailsDialog } from "./log-details-dialog";
 import { LogPersonLabel } from "./log-person";
 import { NumberedPagination } from "./numbered-pagination";
 import { PageSizeSelect } from "./page-size-select";
+import { Select } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
+import { SearchInput } from "@/components/ui/search-input";
 import { RefreshButton } from "./refresh-button";
 import { displayDate } from "./user-display";
 import admin from "./admin.module.css";
@@ -62,18 +65,16 @@ function LogList({ kind, tabs, changeTab }: { kind: LogKind; tabs: readonly { ki
       setFilters({ ...draft, query: draft.query.trim() }); setPage(1); setSelected(undefined); list.reload();
     }}>
       <fieldset className={styles.period}><legend>기간</legend><div className={styles.dates}>
-        <input type="date" aria-label="조회 시작일" required min="1000-01-01" max="9999-12-30" value={draft.from} onChange={event => update("from", event.target.value)} aria-invalid={invalidDates || undefined} aria-describedby={invalidDates ? "log-date-error" : undefined} />
+        <DatePicker label="조회 시작일" required min="1000-01-01" max="9999-12-30" value={draft.from} onValueChange={value => update("from", value)} aria-invalid={invalidDates || undefined} aria-describedby={invalidDates ? "log-date-error" : undefined} />
         <span aria-hidden="true">~</span>
-        <input type="date" aria-label="조회 종료일" required min="1000-01-01" max="9999-12-30" value={draft.to} onChange={event => update("to", event.target.value)} aria-invalid={invalidDates || undefined} aria-describedby={invalidDates ? "log-date-error" : undefined} />
+        <DatePicker label="조회 종료일" required min="1000-01-01" max="9999-12-30" value={draft.to} onValueChange={value => update("to", value)} aria-invalid={invalidDates || undefined} aria-describedby={invalidDates ? "log-date-error" : undefined} />
       </div></fieldset>
-      <label className={styles.filter}><span>{kind === "activities" ? "회원" : "관리자"}</span><input type="search" aria-label={kind === "activities" ? "회원 검색" : "관리자 검색"} maxLength={100} placeholder="아이디·닉네임·회원 번호" value={draft.query} onChange={event => update("query", event.target.value)} /></label>
-      <label className={styles.filter}><span>{kind === "activities" ? "활동" : "작업"}</span><select aria-label={kind === "activities" ? "활동 종류" : "작업 종류"} value={draft.type} onChange={event => update("type", event.target.value)} disabled={!options.data}>
-        <option value="">{kind === "activities" ? "전체 활동" : "전체 작업"}</option>{options.data?.types.map(option => <option key={option.code} value={option.code}>{option.label}</option>)}
-      </select></label>
-      <label className={styles.filter}><span>{kind === "activities" ? "결과" : "대상"}</span><select aria-label={kind === "activities" ? "활동 결과" : "대상 종류"} value={kind === "activities" ? draft.result : draft.targetType} onChange={event => update(kind === "activities" ? "result" : "targetType", event.target.value)} disabled={!options.data}>
-        <option value="">{kind === "activities" ? "전체 결과" : "전체 대상"}</option>{(kind === "activities" ? options.data?.results : options.data?.targets)?.map(option => <option key={option.code} value={option.code}>{option.label}</option>)}
-      </select></label>
-      <button type="submit" className={admin.primary}>검색</button>
+      {/* 기간·종류·결과는 공통 컨트롤을 사용하고 돋보기 한 번으로 같은 필터 폼을 제출한다. */}
+      <label className={styles.filter}><span>{kind === "activities" ? "회원" : "관리자"}</span><SearchInput label={kind === "activities" ? "회원 검색" : "관리자 검색"} maxLength={100} placeholder="아이디·닉네임·회원 번호" value={draft.query} onChange={event => update("query", event.target.value)} /></label>
+      <label className={styles.filter}><span>{kind === "activities" ? "활동" : "작업"}</span><Select label={kind === "activities" ? "활동 종류" : "작업 종류"} value={draft.type} onValueChange={value => update("type", value)} disabled={!options.data}
+        options={[{ value: "", label: kind === "activities" ? "전체 활동" : "전체 작업" }, ...(options.data?.types.map(option => ({ value: option.code, label: option.label })) ?? [])]} /></label>
+      <label className={styles.filter}><span>{kind === "activities" ? "결과" : "대상"}</span><Select label={kind === "activities" ? "활동 결과" : "대상 종류"} value={kind === "activities" ? draft.result : draft.targetType} onValueChange={value => update(kind === "activities" ? "result" : "targetType", value)} disabled={!options.data}
+        options={[{ value: "", label: kind === "activities" ? "전체 결과" : "전체 대상" }, ...((kind === "activities" ? options.data?.results : options.data?.targets)?.map(option => ({ value: option.code, label: option.label })) ?? [])]} /></label>
       {/* 검색 조건은 유지하고 표시 개수 변경 시 첫 페이지와 상세 선택만 초기화한다. */}
       <PageSizeSelect className={styles.pageSize} value={size} change={next => { setSize(next); setPage(1); setSelected(undefined); }} />
     </form>

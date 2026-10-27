@@ -1,0 +1,23 @@
+/* 달력도 프로젝트의 보라색·둥근 모서리·공통 1px 포커스와 rem 터치 크기를 사용한다. */
+.calendar.calendar { padding: .75rem; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: .25rem; margin-bottom: .625rem; }
+.calendar.calendar button { display: inline-flex; align-items: center; justify-content: center; min-width: 2.5rem; min-height: 2.5rem; margin: 0; padding: .375rem; border: 1px solid transparent; border-radius: .625rem; background: transparent; color: #654c7e; font: inherit; font-size: .85rem; line-height: 1.5; }
+.calendar.calendar button:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+.calendar.calendar button:disabled { opacity: .35; cursor: not-allowed; }
+.calendar.calendar button:hover:not(:disabled) { background: #f3ebff; color: #8428e9; }
+.nav svg { width: 1rem; height: 1rem; }
+.nav:first-child svg { transform: rotate(180deg); }
+.heading { display: flex; align-items: center; justify-content: center; gap: .125rem; }
+.heading button { padding-inline: .625rem; font-weight: 700; }
+.calendar .days { width: 100%; margin: 0; table-layout: fixed; border: 0; border-spacing: .125rem; border-collapse: separate; }
+.days th { height: 2rem; padding: 0; background: transparent; color: #a18ab6; font-size: .75rem; font-weight: 500; }
+.days td { height: auto; padding: 0; border: 0; text-align: center; background: transparent; }
+.calendar.calendar .days button { width: 100%; min-width: 0; min-height: 2.5rem; padding: .25rem; font-variant-numeric: tabular-nums; }
+.days button[data-outside="true"] { color: #b8abc5; }
+.days button[aria-current="date"] { border-color: #cbb3ed; }
+.calendar.calendar button[data-selected="true"], .calendar.calendar button[data-selected="true"]:hover { background: #8b32f5; color: #fff; font-weight: 700; }
+.periodGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .375rem; padding: .375rem 0; }
+.periodGrid button { min-height: 3rem; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .625rem; padding-top: .5rem; border-top: 1px solid #eee5fa; }
+.footer button { padding-inline: .75rem; color: #8b32f5; }
+@media (forced-colors: active) { .calendar.calendar button[data-selected="true"] { outline: 1px solid Highlight; background: Highlight; color: HighlightText; } }

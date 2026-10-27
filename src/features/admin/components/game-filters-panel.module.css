@@ -12,8 +12,8 @@
 .tabs button[aria-pressed="true"] { border-color: #8b35f1; background: #8b35f1; color: white; }
 .toolbar { flex-wrap: wrap; }
 .toolbar > form { min-width: 180px; }
-.status { margin-left: auto; }
-.status select { width: 130px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: white; }
+/* 상태 선택의 배치 폭만 남기고 실제 입력·목록은 공통 Select에서 표시한다. */
+.status.status { margin-left: auto; width: 8.125rem; flex-shrink: 0; }
 .table { min-width: 950px; }
 /* 아이콘 열의 가로 고정은 해제하되 헤더의 세로 고정은 유지하고 본문 셀만 일반 배치한다. */
 .table :is(th,td):nth-child(2) { min-width: 54px; max-width: none; }
@@ -36,8 +36,8 @@
 .previewItems svg { flex: 0 0 auto; width: 22px; height: 22px; color: #8b35f1; }
 .pagination { display: flex; justify-content: center; padding-top: 18px; margin-top: 18px; border-top: 1px solid #eee8fa; }
 .iconPicker { display: flex; align-items: center; gap: 12px; }
-.iconPicker svg { width: 25px; height: 25px; color: #8b35f1; }
-.iconPicker select { flex: 1; }
+.iconPicker > svg { width: 1.5625rem; height: 1.5625rem; flex-shrink: 0; color: #8b35f1; }
+.iconPicker > [data-ui-select] { flex: 1; }
 /* 공통 순서 편집도 필터 화면에 한해서 개수 표기를 없애고 탐색을 중앙에 둔다. */
 .orderPanel > div:last-of-type { justify-content: center; }
 @media (max-width: 680px) { .toolbar > form { flex-basis: 100%; max-width: none; } .status { margin-left: 0; } .preview { padding: 12px; } .tabs button { flex: 1 1 auto; justify-content: center; } }

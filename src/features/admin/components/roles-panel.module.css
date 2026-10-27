@@ -71,7 +71,6 @@
   .categorySidebar { padding: 1rem; border-bottom: 1px solid #eee8fa; }
   .categoryTabs { display: none; }
   .mobileCategory { display: grid; gap: .5rem; color: #67517f; font-size: .8rem; font-weight: 650; }
-  .mobileCategory select { width: 100%; min-height: 2.75rem; padding: .625rem .75rem; border: 1px solid #e0dcf0; border-radius: .625rem; background: #fff; }
   .categorySidebar .lockHint { margin-top: .75rem; }
   .permissionPanel { padding: 1rem; border-left: 0; }
   .permissionRow { gap: .625rem; padding: .875rem .75rem; }

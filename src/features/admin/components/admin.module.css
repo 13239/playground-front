@@ -41,9 +41,8 @@
 .screen button.primary { min-width: 96px; }
 .screen button.smallPrimary { padding: 6px 10px; min-height: 34px; }
 .screen button.danger { margin-right: auto; color: #c94464; border-color: #f2d7df; }
-.search { display: flex; align-items: center; min-width: 0; overflow: hidden; border: 1px solid #e1def7; border-radius: 10px; background: #fcfcff; }
-.search input { width: 100%; min-width: 0; padding: 10px 12px; border: 0; background: transparent; }
-.screen .search button { border: 0; border-radius: 0; background: transparent; white-space: nowrap; padding-inline: 12px; }
+/* 검색의 프레임·돋보기·포커스는 전역 SearchInput이 소유하고 여기서는 배치만 정한다. */
+.search { display: block; min-width: 0; }
 .listItems { display: grid; gap: 5px; margin-block: 14px; }
 .screen button.listItem { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-width: 0; min-height: 67px; padding: 12px; border-color: transparent; border-radius: 11px; text-align: left; background: transparent; }
 .screen button.listItem[aria-pressed="true"] { color: #7b28ed; background: #f0e9ff; }
@@ -159,7 +158,7 @@
 /* 회원 행은 아바타·상태를 함께 표시하고 작은 화면에서는 표 내부만 가로로 이동한다. */
 .visuallyHidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .userGridPanel { padding: clamp(14px, 1.7vw, 28px); }
-.userToolbar { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(140px, 0.35fr) minmax(160px, 0.35fr) 110px; align-items: start; gap: 12px; margin-bottom: 20px; }
+.userToolbar { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(140px, 0.35fr) minmax(160px, 0.35fr) 6.875rem; align-items: start; gap: 12px; margin-bottom: 20px; }
 .userToolbar .search { min-height: 44px; }
 /* 회원 목록의 개수 선택 칸도 공통 선택창의 rem 폭과 함께 확대한다. */
 .userFilter { display: block; min-width: 0; }

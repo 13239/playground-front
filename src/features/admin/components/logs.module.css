@@ -2,14 +2,16 @@
 .panel { padding: clamp(14px, 1.7vw, 28px); }
 .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid #eae3f6; }
 .heading .tabs { min-width: 0; margin-bottom: 0; border-bottom: 0; }
-.filters { display: grid; grid-template-columns: minmax(290px, 1.45fr) minmax(175px, 1fr) minmax(125px, .65fr) minmax(120px, .6fr) auto 6.875rem; align-items: end; gap: 12px; margin-bottom: 20px; }
+/* 검색은 작성자 입력의 돋보기에서 실행하므로 별도 텍스트 검색 버튼의 열을 만들지 않는다. */
+.filters { display: grid; grid-template-columns: minmax(18rem, 1.45fr) minmax(11rem, 1fr) minmax(8rem, .65fr) minmax(8rem, .6fr) 6.875rem; align-items: end; gap: .75rem; margin-bottom: 1.25rem; }
 .filter { display: grid; gap: 7px; min-width: 0; color: #51416f; font-size: .78rem; font-weight: 650; }
 .filter input, .filter select, .dates input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: #fff; font: inherit; color: #30234c; }
-.period { min-width: 0; margin: 0; padding: 0; border: 0; }
+.period { min-width: 0; margin: 0; padding: 0; border: 0; container-type: inline-size; }
 .period legend { margin-bottom: 7px; padding: 0; color: #51416f; font-size: .78rem; font-weight: 650; }
 .dates { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; color: #9184a7; }
+/* 실제 기간 칸이 좁으면 날짜 입력을 쌓아 날짜·달력 버튼이 서로 가리지 않게 한다. */
+@container (max-width: 20rem) { .dates { grid-template-columns: minmax(0, 1fr); gap: .375rem; } .dates > span { display: none; } }
 .dates input { padding-inline: 9px; font-size: .8rem; }
-.filters > button { min-height: 44px; }
 /* 로그 행을 모두 펼쳐 내부 세로 스크롤 없이 페이지에서 탐색한다. */
 .tableScroll { min-width: 0; overflow-x: auto; border: 1px solid #eee8fa; border-radius: 12px; }
 .tableScroll:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
@@ -53,7 +55,7 @@
 .comparison td { background: white; color: #655077; }
 .comparison td:last-child { color: #6c31ba; }
 .savedReason { margin: 0; padding: 12px 14px; border: 1px solid #eee5f8; border-radius: 8px; background: white; overflow-wrap: anywhere; white-space: pre-wrap; }
-@media (max-width: 1650px) { .filters { grid-template-columns: minmax(280px, 1fr) minmax(200px, 1fr) 6.875rem; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: 2; } .filters > button { grid-row: 2; grid-column: 3; } .pageSize { grid-column: 3; grid-row: 1; } }
+@media (max-width: 1650px) { .filters { grid-template-columns: minmax(280px, 1fr) minmax(200px, 1fr) 6.875rem; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: 2; } .pageSize { grid-column: 3; grid-row: 1; } }
 @media (max-width: 1300px) { .footer { display: flex; flex-direction: column; align-items: stretch; } }
-@media (max-width: 680px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .period { grid-column: 1 / -1; } .filters > :nth-child(2) { grid-column: 1 / -1; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: auto; } .filters > button { grid-row: auto; grid-column: 1; } .pageSize { grid-column: 2; grid-row: auto; justify-self: end; width: 6.875rem; } .heading { gap: 8px; } .heading .tabs button { padding-inline: 10px; font-size: .78rem; } .comparison th, .comparison td { padding: 10px 8px; font-size: .8rem; } }
+@media (max-width: 680px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .period { grid-column: 1 / -1; } .filters > :nth-child(2) { grid-column: 1 / -1; } .filters > :nth-child(3), .filters > :nth-child(4) { grid-row: auto; } .pageSize { grid-column: 2; grid-row: auto; justify-self: end; width: 6.875rem; } .heading { gap: 8px; } .heading .tabs button { padding-inline: 10px; font-size: .78rem; } .comparison th, .comparison td { padding: 10px 8px; font-size: .8rem; } }
 @media (max-width: 360px) { .dates { grid-template-columns: minmax(0, 1fr); gap: 6px; } .dates > span { display: none; } .heading .tabs button { padding-inline: 7px; font-size: .74rem; } }

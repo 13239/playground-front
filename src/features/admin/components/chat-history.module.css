@@ -2,15 +2,17 @@
 .panel { padding: clamp(14px, 1.7vw, 28px); }
 .heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
 .heading h2 { margin: 0; font-size: 1.1rem; }
-.filters { display: grid; grid-template-columns: minmax(270px, 1.65fr) minmax(160px, 1fr) minmax(130px, .75fr) minmax(125px, .75fr) minmax(105px, .65fr) auto 6.875rem; align-items: end; gap: 12px; margin-bottom: 22px; }
+/* 조건 검색은 작성자 입력의 공통 돋보기에서 실행하고 나머지 조건은 같은 폼으로 유지한다. */
+.filters { display: grid; grid-template-columns: minmax(17rem, 1.65fr) minmax(10rem, 1fr) minmax(8rem, .75fr) minmax(8rem, .75fr) minmax(6.5rem, .65fr) 6.875rem; align-items: end; gap: .75rem; margin-bottom: 1.375rem; }
 .filter { display: grid; gap: 7px; min-width: 0; font-size: .78rem; color: #51416f; font-weight: 650; }
 .filter input, .filter select, .dates input { min-width: 0; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #e0dcf0; border-radius: 9px; background: #fff; color: #30234c; font: inherit; }
 .filter :disabled { background: #f8f6fc; color: #a298b6; }
-.period { min-width: 0; margin: 0; padding: 0; border: 0; }
+.period { min-width: 0; margin: 0; padding: 0; border: 0; container-type: inline-size; }
 .period legend { margin-bottom: 7px; padding: 0; font-size: .78rem; color: #51416f; font-weight: 650; }
 .dates { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 7px; align-items: center; color: #9184a7; }
+/* 화면 폭이 아니라 실제 기간 칸을 기준으로 날짜 입력의 읽기·터치 폭을 확보한다. */
+@container (max-width: 20rem) { .dates { grid-template-columns: minmax(0, 1fr); gap: .375rem; } .dates > span { display: none; } }
 .dates input { padding-inline: 7px; font-size: .78rem; }
-.filters > button { min-height: 44px; }
 /* 메시지 그리드는 행 수에 맞춰 늘리고 표 위의 세로 휠도 페이지로 전달한다. */
 .tableScroll { min-width: 0; overflow-x: auto; border: 1px solid #eee8fa; border-radius: 12px; }
 .tableScroll:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
@@ -33,7 +35,7 @@
 .messageSection { margin-top: 22px; }
 .messageSection h3 { margin: 0 0 12px; font-size: .92rem; }
 .content { min-height: 130px; margin: 0; padding: 20px; border: 1px solid #e9defa; border-radius: 12px; background: #fbf9ff; color: #51416f; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
-@media (max-width: 1800px) { .filters { grid-template-columns: minmax(280px, 1.4fr) minmax(170px, 1fr) minmax(140px, 1fr) 6.875rem; }.filters > :nth-child(4) { grid-column: 1; grid-row: 2; }.filters > :nth-child(5) { grid-column: 2; grid-row: 2; }.filters > button { grid-column: 3; grid-row: 2; }.pageSize { grid-column: 4; grid-row: 1; } }
-@media (max-width: 1300px) { .filters { grid-template-columns: minmax(280px, 1.4fr) minmax(160px, 1fr) 6.875rem; }.filters > :nth-child(3) { grid-column: 1; grid-row: 2; }.filters > :nth-child(4) { grid-column: 2; grid-row: 2; }.filters > :nth-child(5) { grid-column: 1; grid-row: 3; }.filters > button { grid-column: 2; grid-row: 3; }.pageSize { grid-column: 3; grid-row: 1; }.footer { display: flex; flex-direction: column; align-items: stretch; } }
-@media (max-width: 760px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }.period, .filters > :nth-child(2) { grid-column: 1 / -1; }.filters > :nth-child(3), .filters > :nth-child(4), .filters > :nth-child(5), .filters > button, .pageSize { grid-column: auto; grid-row: auto; }.pageSize { grid-column: 2; width: 6.875rem; justify-self: end; } }
+@media (max-width: 1800px) { .filters { grid-template-columns: minmax(280px, 1.4fr) minmax(170px, 1fr) minmax(140px, 1fr) 6.875rem; }.filters > :nth-child(4) { grid-column: 1; grid-row: 2; }.filters > :nth-child(5) { grid-column: 2; grid-row: 2; }.pageSize { grid-column: 4; grid-row: 1; } }
+@media (max-width: 1300px) { .filters { grid-template-columns: minmax(280px, 1.4fr) minmax(160px, 1fr) 6.875rem; }.filters > :nth-child(3) { grid-column: 1; grid-row: 2; }.filters > :nth-child(4) { grid-column: 2; grid-row: 2; }.filters > :nth-child(5) { grid-column: 1; grid-row: 3; }.pageSize { grid-column: 3; grid-row: 1; }.footer { display: flex; flex-direction: column; align-items: stretch; } }
+@media (max-width: 760px) { .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }.period, .filters > :nth-child(2) { grid-column: 1 / -1; }.filters > :nth-child(3), .filters > :nth-child(4), .filters > :nth-child(5), .pageSize { grid-column: auto; grid-row: auto; }.pageSize { grid-column: 2; width: 6.875rem; justify-self: end; } }
 @media (max-width: 360px) { .dates { grid-template-columns: minmax(0, 1fr); }.dates > span { display: none; } }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Select } from "@/components/ui/select";
 import type { AdminUser } from "../user-contracts";
 import { ROOT_ROLE_CODE } from "../contracts";
 import { revalidateAuthSession } from "@/features/auth/client/session-store";
@@ -25,7 +26,8 @@ export function UserActions({user,saved}:{user:AdminUser;saved:()=>void}) {
       </form></section>}
     {can("USER_STATUS_UPDATE")&&!protectedUser&&<section className={styles.inset}><h3>계정 상태</h3>
       <form onSubmit={e=>{e.preventDefault();if(mutation.busy)return;const form=new FormData(e.currentTarget);const status=formText(form,"status");setPending({title:status==="INACTIVE"?"계정을 비활성화할까요?":"계정을 활성화할까요?",message:status==="INACTIVE"?`${user.username} 회원의 기존 로그인이 종료되고 새 로그인이 차단돼요.`:`${user.username} 회원의 새 로그인을 허용해요. 종료된 세션은 복원되지 않아요.`,path:`users/${user.id}/status`,method:"PUT",body:{status,expectedVersion:user.managementVersion,reason:formText(form,"reason")}});}}>
-        <Field label="변경할 상태"><select name="status" defaultValue={user.status==="INACTIVE"||user.id===context.userId?"ACTIVE":"INACTIVE"} disabled={mutation.busy}><option value="ACTIVE">활성</option><option value="INACTIVE" disabled={user.id===context.userId}>비활성</option></select></Field>
+        {/* 본인 비활성화 금지와 저장 중 잠금은 공통 선택 옵션에서도 유지한다. */}
+        <Field label="변경할 상태"><Select label="변경할 상태" name="status" defaultValue={user.status==="INACTIVE"||user.id===context.userId?"ACTIVE":"INACTIVE"} disabled={mutation.busy} options={[{ value: "ACTIVE", label: "활성" }, { value: "INACTIVE", label: "비활성", disabled: user.id===context.userId }]} /></Field>
         <ActionReason disabled={mutation.busy}/><div className={styles.actions}><button className={styles.primary} disabled={mutation.busy}>상태 변경</button></div>
       </form></section>}
     {can("USER_SESSION_REVOKE")&&(!protectedUser||context.roleCode===ROOT_ROLE_CODE)&&<section className={styles.inset}><h3>강제 로그아웃</h3><p className={styles.hint}>이 회원의 모든 로그인 세션을 종료해요. 계정 상태는 바뀌지 않아요.</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type KeyboardEvent } from "react";
+import { Select } from "@/components/ui/select";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { ROOT_ROLE_CODE, type Permission, type PermissionCode, type Role } from "../contracts";
 import { toggleRolePermission } from "../permission-selection";
@@ -113,10 +114,9 @@ function RoleEditor({ formId, role, permissions, editable, activeCategory, chang
               </button>;
             })}
           </div>
-          {/* 좁은 모달은 같은 분야 선택을 네이티브 선택 상자로 제공해 가로 넘침과 작은 터치 영역을 피한다. */}
-          <label className={styles.mobileCategory}><span>기능 분야</span><select aria-label="기능 분야 선택" value={current} onChange={event => changeCategory(event.target.value)}>
-            {groupCodes.map(code => <option key={code} value={code}>{category(code).name} ({checkedCount(permissions.filter(permission => permission.category === code))} / {permissions.filter(permission => permission.category === code).length})</option>)}
-          </select></label>
+          {/* 좁은 모달은 같은 분야 선택을 공통 선택창으로 제공해 가로 넘침과 작은 터치 영역을 피한다. */}
+          <label className={styles.mobileCategory}><span>기능 분야</span><Select label="기능 분야 선택" value={current} onValueChange={changeCategory}
+            options={groupCodes.map(code => ({ value: code, label: `${category(code).name} (${checkedCount(permissions.filter(permission => permission.category === code))} / ${permissions.filter(permission => permission.category === code).length})` }))} /></label>
           <p className={styles.lockHint}><LobbyIcon name="lock" />잠금 기능은 ROOT 전용이에요.</p>
         </aside>
         <section className={styles.permissionPanel} id={`${groupId}-panel`} role="tabpanel" aria-labelledby={`${groupId}-${current}`} tabIndex={0}>

@@ -8,6 +8,7 @@ import { useAdminResource } from "../client/use-admin-resource";
 import { RoleDetailsDialog } from "./role-details-dialog";
 import { NumberedPagination } from "./numbered-pagination";
 import { PageSizeSelect } from "./page-size-select";
+import { SearchInput } from "@/components/ui/search-input";
 import { Loading, useAdminScope } from "./admin-ui";
 import styles from "./admin.module.css";
 import grid from "./catalog-grid.module.css";
@@ -35,9 +36,9 @@ export function RolesPanel() {
       {can("ROLE_WRITE") && <button type="button" className={styles.smallPrimary} onClick={() => setSelected(null)}>+ 추가</button>}
     </div>
     <div className={grid.toolbar}>
-      <form className={styles.search} data-focus-frame onSubmit={event => { event.preventDefault(); setQuery(search); setPage(1); }}>
-        <input type="search" aria-label="권한 검색" placeholder="이름 또는 코드 검색" maxLength={100}
-          value={search} onChange={event => setSearch(event.target.value)} /><button type="submit">검색</button>
+      <form className={styles.search} onSubmit={event => { event.preventDefault(); setQuery(search); setPage(1); }}>
+        {/* 공통 검색 프레임의 돋보기와 Enter는 기존 검색·페이지 초기화를 함께 실행한다. */}
+        <SearchInput label="권한 검색" placeholder="이름 또는 코드 검색" maxLength={100} value={search} onChange={event => setSearch(event.target.value)} />
       </form>
       {/* 표시 개수 변경은 공통 선택창을 사용하고 첫 페이지부터 다시 조회한다. */}
       <PageSizeSelect className={grid.pageSize} value={size} change={next => { setSize(next); setPage(1); }} />

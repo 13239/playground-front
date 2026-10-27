@@ -5,6 +5,7 @@ import { useAdminResource } from "../client/use-admin-resource";
 import { listPath } from "../client/api";
 import type { Page } from "../contracts";
 import { useAdminScope, Loading } from "./admin-ui";
+import { SearchInput } from "@/components/ui/search-input";
 import styles from "./admin.module.css";
 
 /** 전체 건수를 세지 않고 서버 커서로 이동한다. 검색 변경 시 선택·페이지를 함께 초기화한다. */
@@ -28,9 +29,9 @@ export function AdminList<T extends { code: string; name: string }>({ list, labe
 }) {
   return <section className={styles.listPanel} aria-label={`${label} 목록`}>
     <div className={styles.listHeading}><h2>{label} 목록</h2>{extra}</div>
-    <form className={styles.search} data-focus-frame onSubmit={event => { event.preventDefault(); list.submit(); }}>
-      <input aria-label={`${label} 검색`} placeholder="이름 또는 코드 검색" maxLength={100} value={list.search} onChange={event => list.setSearch(event.target.value)} />
-      <button type="submit">검색</button>
+    <form className={styles.search} onSubmit={event => { event.preventDefault(); list.submit(); }}>
+      {/* 커서 목록도 공통 돋보기 입력과 기존 submit 동작을 공유한다. */}
+      <SearchInput label={`${label} 검색`} placeholder="이름 또는 코드 검색" maxLength={100} value={list.search} onChange={event => list.setSearch(event.target.value)} />
     </form>
     {!list.data ? <Loading error={list.error} retry={list.reload} /> : list.data.items.length === 0 ? <p className={styles.empty}>검색 결과가 없어요.</p>
       : <div className={styles.listItems}>{list.data.items.map(item => <button type="button" key={item.code} className={styles.listItem} aria-pressed={list.selected === item.code} onClick={() => { onSelect?.(); list.select(item.code); }}><span><strong>{item.name}</strong><small>{item.code}</small></span>{detail?.(item)}</button>)}</div>}

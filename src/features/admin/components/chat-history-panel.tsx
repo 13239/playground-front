@@ -10,6 +10,9 @@ import { Loading, useAdminScope } from "./admin-ui";
 import { ChatAuthor, ChatScopeBadge } from "./chat-message-display";
 import { NumberedPagination } from "./numbered-pagination";
 import { PageSizeSelect } from "./page-size-select";
+import { Select } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
+import { SearchInput } from "@/components/ui/search-input";
 import { RefreshButton } from "./refresh-button";
 import { ChatMessageDialog } from "./chat-message-dialog";
 import admin from "./admin.module.css";
@@ -47,14 +50,14 @@ function ChatMessageList() {
       setFilters({ ...draft, query: draft.query.trim() }); setPage(1); setSelected(undefined); list.reload();
     }}>
       <fieldset className={styles.period}><legend>기간</legend><div className={styles.dates}>
-        <input type="date" aria-label="조회 시작일" required min="1000-01-01" max="9999-12-30" value={draft.from} onChange={event => update("from", event.target.value)} aria-invalid={invalid || undefined} aria-describedby={invalid ? "chat-date-error" : undefined} />
-        <span aria-hidden="true">~</span><input type="date" aria-label="조회 종료일" required min="1000-01-01" max="9999-12-30" value={draft.to} onChange={event => update("to", event.target.value)} aria-invalid={invalid || undefined} aria-describedby={invalid ? "chat-date-error" : undefined} />
+        <DatePicker label="조회 시작일" required min="1000-01-01" max="9999-12-30" value={draft.from} onValueChange={value => update("from", value)} aria-invalid={invalid || undefined} aria-describedby={invalid ? "chat-date-error" : undefined} />
+        <span aria-hidden="true">~</span><DatePicker label="조회 종료일" required min="1000-01-01" max="9999-12-30" value={draft.to} onValueChange={value => update("to", value)} aria-invalid={invalid || undefined} aria-describedby={invalid ? "chat-date-error" : undefined} />
       </div></fieldset>
-      <label className={styles.filter}><span>작성자</span><input type="search" aria-label="작성자 검색" placeholder="닉네임·회원 번호" maxLength={100} value={draft.query} onChange={event => update("query", event.target.value)} /></label>
-      <label className={styles.filter}><span>채팅 구분</span><select aria-label="채팅 구분" value={draft.scope} onChange={event => update("scope", event.target.value)}><option value="">전체 채팅</option><option value="GLOBAL">공용 채팅</option><option value="GAME_ROOM">게임방 채팅</option></select></label>
-      <label className={styles.filter}><span>게임</span><select aria-label="게임" value={draft.gameCode} disabled={draft.scope === "GLOBAL" || !games.data} onChange={event => update("gameCode", event.target.value)}><option value="">전체 게임</option>{games.data?.map(game => <option key={game.code} value={game.code}>{game.name}</option>)}</select></label>
+      {/* 공용 채팅의 게임 선택 비활성화와 기존 조건 검색은 공통 UI에서도 유지한다. */}
+      <label className={styles.filter}><span>작성자</span><SearchInput label="작성자 검색" placeholder="닉네임·회원 번호" maxLength={100} value={draft.query} onChange={event => update("query", event.target.value)} /></label>
+      <label className={styles.filter}><span>채팅 구분</span><Select label="채팅 구분" value={draft.scope} onValueChange={value => update("scope", value)} options={[{ value: "", label: "전체 채팅" }, { value: "GLOBAL", label: "공용 채팅" }, { value: "GAME_ROOM", label: "게임방 채팅" }]} /></label>
+      <label className={styles.filter}><span>게임</span><Select label="게임" value={draft.gameCode} disabled={draft.scope === "GLOBAL" || !games.data} onValueChange={value => update("gameCode", value)} options={[{ value: "", label: "전체 게임" }, ...(games.data?.map(game => ({ value: game.code, label: game.name })) ?? [])]} /></label>
       <label className={styles.filter}><span>방 번호</span><input type="text" inputMode="numeric" aria-label="방 번호" placeholder="방 번호 입력" pattern="[1-9][0-9]{0,15}" maxLength={16} disabled={draft.scope === "GLOBAL"} value={draft.roomId} onChange={event => update("roomId", event.target.value)} /></label>
-      <button type="submit" className={admin.primary}>검색</button>
       {/* 공통 선택창의 버튼은 폼 검색을 제출하지 않고 표시 개수만 변경한다. */}
       <PageSizeSelect className={styles.pageSize} value={size} change={next => { setSize(next); setPage(1); setSelected(undefined); }} />
     </form>

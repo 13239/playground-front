@@ -10,6 +10,8 @@ import { Loading, useAdminScope } from "./admin-ui";
 import { CodePicker } from "./code-picker";
 import { NumberedPagination } from "./numbered-pagination";
 import { PageSizeSelect } from "./page-size-select";
+import { Select } from "@/components/ui/select";
+import { SearchInput } from "@/components/ui/search-input";
 import { RefreshButton } from "./refresh-button";
 import { UserDetailsDialog } from "./user-details-dialog";
 import { displayDate, userStatus } from "./user-display";
@@ -44,9 +46,9 @@ export function UsersPanel() {
       <RefreshButton onRefresh={list.reload} loading={list.loading} label="회원 목록 새로고침" />
     </div>
     <div className={styles.userToolbar}>
-      <form className={styles.search} data-focus-frame onSubmit={event => { event.preventDefault(); setQuery(search); reset(); }}>
-        <input type="search" maxLength={100} aria-label="회원 검색" placeholder="아이디·닉네임 앞부분, 회원 번호"
-          value={search} onChange={event => setSearch(event.target.value)} /><button type="submit">검색</button>
+      <form className={styles.search} onSubmit={event => { event.preventDefault(); setQuery(search); reset(); }}>
+        {/* 회원 검색과 계정 상태도 전역 입력 UI를 사용하되 기존 검색·필터 초기화를 유지한다. */}
+        <SearchInput label="회원 검색" maxLength={100} placeholder="아이디·닉네임 앞부분, 회원 번호" value={search} onChange={event => setSearch(event.target.value)} />
       </form>
       <details ref={roleFilter} className={styles.userRoleFilter}>
         <summary>{role || "전체 권한"}</summary>
@@ -54,9 +56,9 @@ export function UsersPanel() {
           change={codes => { setRole(codes.at(-1) ?? ""); reset(); if (roleFilter.current) roleFilter.current.open = false; }} /></div>
       </details>
       <label className={styles.userFilter}><span className={styles.visuallyHidden}>계정 상태</span>
-        <select aria-label="계정 상태" value={status} onChange={event => { setStatus(event.target.value); reset(); }}>
-          <option value="">전체 상태 (탈퇴 제외)</option><option value="ACTIVE">활성</option><option value="INACTIVE">비활성</option><option value="PENDING">가입대기</option><option value="DELETED">탈퇴</option>
-        </select>
+        <Select label="계정 상태" value={status} onValueChange={value => { setStatus(value); reset(); }} options={[
+          { value: "", label: "전체 상태 (탈퇴 제외)" }, { value: "ACTIVE", label: "활성" }, { value: "INACTIVE", label: "비활성" }, { value: "PENDING", label: "가입대기" }, { value: "DELETED", label: "탈퇴" },
+        ]} />
       </label>
       {/* 개수 선택 UI만 공통화하고 회원 목록의 첫 페이지·상세 선택 초기화는 유지한다. */}
       <PageSizeSelect className={styles.userPageSize} sizes={USER_PAGE_SIZES} value={size} change={next => { setSize(next); reset(); }} />
