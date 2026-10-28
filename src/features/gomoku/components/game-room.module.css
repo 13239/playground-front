@@ -1,6 +1,6 @@
 /* 대국판은 터치에서 같은 교차점을 두 번 눌러 착수하고, 브라우저의 기본 확대·스크롤을 유지한다. */
 /* 제공된 대국 시안: 왼쪽 참가자·타이머, 가운데 좌표판, 오른쪽 실시간 채팅을 같은 보라색 톤으로 연결한다. */
-/* 판은 짧은 창에 맞춰 줄이고 공통 rem 상한까지만 완만하게 커진다. 남는 공간은 바깥 여백이다. */
+/* 판은 동작 버튼 하단이 채팅 하단과 같도록 맞추고, 32rem보다 낮은 창에서는 본문을 스크롤한다. */
 /* 차례와 타이머는 왼쪽 카드에 표시하고 중앙 상태 안내는 화면 낭독기에 유지한다. */
 
 .gameLayout {
@@ -39,27 +39,26 @@
 
 .players {
   display: flex;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
   margin: 0;
   flex-direction: column;
-  padding: 1.2rem .8rem;
-  border: 1px solid #fff;
-  border-radius: 1.5rem;
-  background: #ffffffbb;
+  padding: 0;
+  min-width: 0;
+  font-size: var(--gomoku-player-unit, 1rem);
 }
 
+/* A안: 짧은 차례 배지 아래 아바타·이름·시계를 한 줄에 두고 시간 막대만 카드 전체 폭을 쓴다. */
 .player {
-  display: flex;
-  align-items: stretch;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .45em .6em;
   min-width: 0;
-  padding: 1rem .7rem;
+  padding: .75em;
   border: 1px solid #ede7ff;
   border-radius: 1rem;
   background: linear-gradient(140deg, #ffffffb0, #f3efffaa);
   position: relative;
-  flex-direction: column;
 }
 
 .player[data-active="true"] {
@@ -71,12 +70,9 @@
   overflow-wrap: anywhere;
 }
 
-.player span {
-  font-size: .85rem;
-}
-
 .player small {
-  font-size: .72rem;
+  grid-column: 1 / -1;
+  font-size: .72em;
   color: #756d8b;
 }
 
@@ -424,12 +420,13 @@
 }
 
 .playerBadge {
-  align-self: flex-start;
-  padding: .4rem .8rem;
-  border-radius: .6rem;
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: .25em .6em;
+  border-radius: .55em;
   color: #7b71a3;
   background: #ece8f8;
-  font-size: .8rem;
+  font-size: .72em;
   font-weight: 800;
 }
 
@@ -442,19 +439,24 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: .65rem;
+  grid-column: 1;
+  grid-row: 2;
+  gap: .55em;
   min-width: 0;
 }
 
 .playerIdentity > div:last-child {
   display: flex;
   flex-direction: column;
-  gap: .65rem;
+  gap: .3em;
   min-width: 0;
 }
 
+/* AI·별도 팝업처럼 카드 안 시계가 없는 경우에는 프로필이 한 행 전체를 사용한다. */
+.player:not(:has(.playerTimer)) .playerIdentity { grid-column: 1 / -1; }
+
 .playerIdentity strong {
-  font-size: 1.1rem;
+  font-size: .95em;
   color: #15105e;
 }
 
@@ -464,7 +466,7 @@
 }
 
 .avatarWrap > :first-child {
-  width: 72px;
+  width: 2.75em;
   height: auto;
 }
 
@@ -472,9 +474,9 @@
   position: absolute;
   bottom: 2px;
   right: 2px;
-  width: 16px;
-  height: 16px;
-  border: 3px solid #fff;
+  width: .7em;
+  height: .7em;
+  border: 2px solid #fff;
   border-radius: 50%;
   background: #a6a3b9;
 }
@@ -486,16 +488,16 @@
 .playerColor {
   display: flex;
   align-items: center;
-  gap: .45rem;
+  gap: .35em;
   color: #605b9d;
   font-weight: 700;
-  font-size: .9rem;
+  font-size: .72em;
 }
 
 .colorStone {
   display: inline-block;
   flex: 0 0 auto;
-  width: 1.7rem;
+  width: 1.1em;
   aspect-ratio: 1;
   border-radius: 50%;
   box-shadow: 0 1px 2px #0003;
@@ -511,43 +513,51 @@
 }
 
 .playerTimer {
-  padding: .8rem;
-  background: #efedfc;
-  border-radius: 1rem;
+  /* contents는 시계와 막대를 같은 카드 grid에 놓으면서 시계만 초 단위로 갱신하게 한다. */
+  display: contents;
   color: #9691c5;
 }
 
 .playerTimer > div {
   display: flex;
-  gap: .5rem;
+  grid-column: 2;
+  grid-row: 2;
+  gap: .25em;
   align-items: center;
   justify-content: center;
 }
 
 .playerTimer strong {
-  font-size: 2.25rem;
+  font-size: 1.5em;
+  line-height: 1;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
 .playerTimer svg {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: .9em;
+  height: .9em;
 }
 
 .playerTimer[data-active="true"] {
   color: #861fff;
-  background: linear-gradient(135deg, #f4edff, #e7dbff);
 }
+
+/* 색상만으로 촉박한 차례를 알리지 않도록 숫자와 차례 배지를 함께 유지한다. */
+.playerTimer[data-urgent="true"] { color: #b3384d; }
 
 .playerTimer progress {
   display: block;
+  grid-column: 1 / -1;
+  grid-row: 3;
   width: 100%;
-  height: .5rem;
-  margin-top: .5rem;
+  height: .25em;
+  margin: .15em 0 0;
   border: 0;
   border-radius: 1rem;
   overflow: hidden;
   appearance: none;
+  background: #e1d9f7;
 }
 
 .playerTimer progress::-webkit-progress-bar {
@@ -564,16 +574,17 @@
 }
 
 .playerTimer progress::-moz-progress-bar {
-  background: #9671dc;
+  background: #a59bd1;
 }
+.playerTimer[data-active="true"] progress::-moz-progress-bar { background: linear-gradient(90deg, #8624ff, #b575ff); }
 
 .versus {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin: 1.8rem .3rem;
+  gap: .6em;
+  margin: .65em .3em;
   color: #9890cd;
-  font-size: 1.5rem;
+  font-size: .72em;
   font-weight: 800;
 }
 
@@ -787,7 +798,8 @@
 
 @media (max-width: 1400px) {
   .gameLayout {
-    grid-template-columns: minmax(0, 1fr) minmax(250px, 26%);
+    /* 짧은 창의 두 열 배치에서도 채팅 비율은 대기실과 같다. */
+    grid-template-columns: minmax(0, 1fr) max(290px, 29%);
     gap: .7rem;
     padding: .5rem;
   }
@@ -797,17 +809,6 @@
     gap: .7rem;
   }
 
-  .playerIdentity {
-    flex-wrap: wrap;
-  }
-
-  .players {
-    padding: .7rem .5rem;
-  }
-
-  .playerTimer {
-    padding: .5rem;
-  }
 }
 
 @media (max-width: 1100px) {
@@ -825,9 +826,12 @@
   }
 }
 
-/* 판 옆 참가자 패널은 카드 두 장 높이만 유지한다. 세로 배치인 좁은 화면은 기존 전체 폭을 쓴다. */
+/* 태블릿에서는 두 소형 카드를 판 위 한 줄에 배치하고 채팅을 아래로 옮긴다. */
 @media (max-width: 1100px) and (min-width: 701px) {
-  .gameScene > .players { align-self: start; justify-self: start; width: min(100%, 22rem); height: auto; max-height: 100%; }
+  .gameScene { grid-template-columns: minmax(0, 1fr); }
+  .gameScene > .players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; width: 100%; }
+  .gameScene .versus { display: none; }
+  .playArea { width: min(100%, var(--layout-board-max)); margin-inline: auto; }
 
   .playerIdentity {
     flex-wrap: nowrap;
@@ -843,21 +847,6 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-  }
-
-  .player {
-    padding: .6rem;
-    gap: .5rem;
-    flex-wrap: wrap;
-    height: 100%;
-  }
-
-  .player strong {
-    font-size: .85rem;
-  }
-
-  .player span {
-    font-size: .75rem;
   }
 
   .boardSection {
@@ -881,9 +870,9 @@
   }
 
   .players {
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: .5rem;
-    padding: .5rem;
   }
 
   .playerSlot {
@@ -892,36 +881,6 @@
 
   .versus {
     display: none;
-  }
-
-  .playerIdentity {
-    gap: .4rem;
-    flex-wrap: wrap;
-  }
-
-  .avatarWrap > :first-child {
-    width: 52px;
-  }
-
-  .playerIdentity strong {
-    font-size: .9rem;
-  }
-
-  .playerColor {
-    font-size: .75rem;
-  }
-
-  .colorStone {
-    width: 1rem;
-  }
-
-  .playerTimer strong {
-    font-size: 1.8rem;
-  }
-
-  .playerBadge {
-    padding: .25rem .5rem;
-    font-size: .7rem;
   }
 
   .columnLabels, .rowLabels {
@@ -954,6 +913,12 @@
   }
 }
 
+/* 휴대폰은 카드 두 장을 세로로 쌓아 이름·시간을 읽을 수 있는 폭과 프로필 터치 영역을 확보한다. */
+@media (max-width: 480px) {
+  .players { grid-template-columns: minmax(0, 1fr); }
+  .player { padding: .65em .8em; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gameScene *, .gameScene *::before, .gameScene *::after {
     scroll-behavior: auto;
@@ -963,22 +928,25 @@
 /* 팝업은 데스크톱 기기에서만 열며, 작은 창의 너비는 모바일 기기 판정에 사용하지 않는다. */
 .gameContainer { min-width: 0; }
 
-/* 가용 높이는 오목 셸이 계산한다. 상단 전환 버튼·하단 대국 동작을 먼저 확보하고 판은 공통 상한까지만 키운다. */
+/* 데스크톱 판은 전체화면 높이에 맞춘다. 더 낮은 창에서는 그 크기에서 멈추고 본문을 스크롤한다. */
 @media (min-width: 1101px) and (min-height: 600px) {
   .gameLayout[data-gomoku-game] {
     width: 100%;
-    height: auto;
-    min-height: 0;
+    /* 본문 높이에서 팝업 줄·여백·좌표·동작 버튼을 빼 버튼 하단을 채팅 하단에 맞춘다. 32rem은 그보다 낮은 창의 하한이다. */
+    --gomoku-board-size: clamp(32rem, calc(100cqh - 10.125rem), var(--layout-board-max));
+    --gomoku-player-unit: clamp(.8rem, calc(var(--gomoku-board-size) * .022), 1rem);
+    min-height: 100%;
     margin-inline: auto;
-    /* 같은 폭의 좌우 열 사이에 판을 두고, 참가자·채팅은 이 간격보다 판에서 멀어지지 않는다. */
-    /* 22rem은 헤더·제목·버튼·푸터 높이다. 남은 높이보다 공통 판 상한이 작으면 상한에서 멈춘다. */
-    grid-template-columns: minmax(0, 1fr) minmax(0, min(var(--layout-board-max), calc(100dvh - 22rem))) minmax(0, 1fr);
-    grid-template-rows: auto auto;
+    /* 오른쪽 열은 대기실 채팅과 같은 비율이다. 판 열은 그 비율과 상관없이 위 높이를 유지한다. */
+    grid-template-columns: minmax(13rem, 1fr) minmax(var(--gomoku-board-size), var(--gomoku-board-size)) max(290px, 28%);
+    /* 제비 화면처럼 내용이 짧으면 남은 높이를 가운데 열이 채워 푸터 바로 위까지 쓴다. */
+    grid-template-rows: auto minmax(0, 1fr);
     column-gap: 1.25rem;
     row-gap: .75rem;
     padding: .5rem;
-    align-items: stretch;
+    align-items: start;
   }
+  /* 연결 안내가 붙으면 판을 줄이지 않고 본문 스크롤로 문구와 동작을 모두 도달하게 한다. */
   .gameLayout .gameContainer {
     display: grid;
     grid-column: 1 / -1;
@@ -1000,30 +968,32 @@
     min-height: 0;
     align-items: stretch;
   }
-  .gameLayout .playArea { display: flex; flex-direction: column; grid-column: 2; width: 100%; min-height: 0; max-width: none; }
+  .gameLayout .playArea { display: flex; flex-direction: column; grid-column: 2; width: 100%; height: 100%; min-height: 0; max-width: none; }
   .gameLayout > aside {
     position: relative;
     z-index: 1;
     grid-column: 3;
     grid-row: 2;
-    justify-self: start;
-    width: min(100%, 22rem);
-    height: 100%;
-    min-height: 0;
-    max-height: 100%;
+    justify-self: stretch;
+    width: 100%;
+    /* auto 행은 내용 높이를 따른다. 높이를 0으로 두어 채팅이 행을 늘리지 않고, 판이 만든 높이만 채운 뒤 본문에서 스크롤한다. */
+    height: 0;
+    min-height: 100%;
+    overflow: hidden;
   }
-  /* 바깥 배경은 두 참가자 높이에서 멈추고, 카드는 판 바로 옆에 22rem까지 둔다. */
-  .gameLayout .players { grid-column: 1; justify-self: end; align-self: start; width: min(100%, 22rem); height: auto; max-height: 100%; min-height: 0; padding: 1rem; overflow: auto; }
-  .gameLayout .player { padding: .85rem .65rem; gap: .75rem; }
-  .gameLayout .playerIdentity { flex-wrap: nowrap; }
-  .gameLayout .playerIdentity strong { font-size: 1.1rem; }
-  .gameLayout .avatarWrap > :first-child { width: 72px; }
-  .gameLayout .playerTimer { padding: .5rem; }
-  .gameLayout .playerTimer strong { font-size: 2.25rem; }
-  .gameLayout .versus { margin-block: .9rem; font-size: 1.15rem; }
+  /* 참가자 카드는 판 옆에 두고, 왼쪽 열이 카드보다 좁아지면 그 열 너비에서 멈춘다. */
+  .gameLayout .players {
+    grid-column: 1;
+    justify-self: end;
+    align-self: start;
+    width: min(100%, clamp(13rem, calc(var(--gomoku-board-size) * .41), 19rem));
+    height: auto;
+    min-height: 0;
+  }
   .gameLayout .playArea > .actions { flex: 0 0 auto; width: min(100%, 36rem); margin-inline: auto; }
-  .gameLayout .lottery { flex: 1 1 0%; min-height: 0; padding: 1rem 0; overflow-y: auto; }
-  .gameLayout .drawCard { width: min(42%, 200px); gap: .8rem; }
+  /* 제비 영역은 판과 같은 열 높이를 채우고, 카드는 그 안에서만 커진다. */
+  .gameLayout .lottery { flex: 1 1 auto; min-height: 0; height: 100%; padding: 0.75rem 0; overflow: hidden; justify-content: center; }
+  .gameLayout .drawCard { width: min(42%, 15rem); gap: .8rem; }
   .gameLayout .cardSymbol { font-size: 2.5rem; }
 
   /* 두 대국이 같은 좌표판을 공유한다. 좌표 글자·위아래 패딩과 좌우 좌표 폭의 차이까지 빼서 실제 높이가 넘치지 않는다. */
@@ -1036,11 +1006,17 @@
     container-type: inline-size;
   }
   [data-gomoku-game] .boardScroll {
-    width: min(100%, var(--layout-board-max), calc(100dvh - 22rem));
+    width: 100%;
     margin-inline: auto;
   }
   [data-gomoku-game] .columnLabels,
   [data-gomoku-game] .rowLabels { font-size: var(--board-label-size); line-height: 1.5; }
+}
+/* 1500px 이하 대기실 채팅이 29%이므로 대국 채팅 열도 같은 비율을 쓴다. */
+@media (max-width: 1500px) and (min-width: 1101px) and (min-height: 600px) {
+  .gameLayout[data-gomoku-game] {
+    grid-template-columns: minmax(13rem, 1fr) minmax(var(--gomoku-board-size), var(--gomoku-board-size)) max(290px, 29%);
+  }
 }
 
 .displayActions {

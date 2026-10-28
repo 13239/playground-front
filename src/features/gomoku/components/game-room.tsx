@@ -111,7 +111,7 @@ export function GameRoom({ room, receivedAt, pending, error, reconnectAttempt, c
             </button>;
           })}
         </div>
-        <small>{game.phase === "DRAWING" ? <><CountdownSeconds serverTime={room.serverTime} deadline={game.deadline} maximum={20} />초 안에 선택하지 않으면 자동으로 추첨해요.</> : game.round > 1 ? "같은 상대와 재대국하면 직전 패자가 흑돌이에요." : "흑돌부터 한 수씩 번갈아 두세요."}</small>
+        <small>{game.phase === "DRAWING" ? <><CountdownSeconds serverTime={room.serverTime} deadline={game.deadline} maximum={10} />초 안에 선택하지 않으면 자동으로 추첨해요.</> : game.round > 1 ? "같은 상대와 재대국하면 직전 패자가 흑돌이에요." : "흑돌부터 한 수씩 번갈아 두세요."}</small>
       </div> : <>
         <div className={styles.turnBar} role="status" aria-live="polite">
           <strong>{game.phase === "FINISHED" ? game.winnerSeat === 0 ? "무승부" : winner?.self ? "승리했어요!" : `${winner?.nickname}님이 승리했어요`

@@ -228,17 +228,65 @@
   gap: 1.2em;
 }
 /* 관리자가 입력한 긴 이름·장르·줄바꿈 설명도 작은 화면의 본문 폭 안에서 읽힌다. */
-.heroHeading > div:not(.cover) { min-width: 0; }
-.hero h1, .hero p, .breadcrumb, .sidebar h2, .startCard button, .sectionHeading p, .catalogNotice { overflow-wrap: anywhere; }
-.catalogGenres { display: flex; flex-wrap: wrap; gap: 0.4em; margin-top: 0.65em; }
-.catalogGenres > span { max-width: 100%; padding: 0.25em 0.7em; border-radius: 1em; background: #eee5ff; color: #7042b5; font-size: 0.75em; overflow-wrap: anywhere; }
-.catalogDescription { margin-top: 0.65em; font-size: 0.85em; }
-.catalogDescription > summary { width: fit-content; cursor: pointer; color: #7042b5; }
-.catalogDescription > p { white-space: pre-wrap; overflow-wrap: anywhere; }
-.catalogNotice { padding: 0.9em 1.1em; border: 1px solid #e4dcfa; border-radius: 1em; background: #faf7ff; }
-.catalogNotice p { margin: 0 0 0.35em; }
-.catalogNotice small { display: block; margin-top: 0.5em; color: #74749f; }
-.mobileActions :is(a, button) { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.heroHeading > div:not(.cover) {
+  min-width: 0;
+}
+.hero h1,
+.hero p,
+.breadcrumb,
+.sidebar h2,
+.startCard button,
+.sectionHeading p,
+.catalogNotice {
+  overflow-wrap: anywhere;
+}
+.catalogGenres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  margin-top: 0.65em;
+}
+.catalogGenres > span {
+  max-width: 100%;
+  padding: 0.25em 0.7em;
+  border-radius: 1em;
+  background: #eee5ff;
+  color: #7042b5;
+  font-size: 0.75em;
+  overflow-wrap: anywhere;
+}
+.catalogDescription {
+  margin-top: 0.65em;
+  font-size: 0.85em;
+}
+.catalogDescription > summary {
+  width: fit-content;
+  cursor: pointer;
+  color: #7042b5;
+}
+.catalogDescription > p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.catalogNotice {
+  padding: 0.9em 1.1em;
+  border: 1px solid #e4dcfa;
+  border-radius: 1em;
+  background: #faf7ff;
+}
+.catalogNotice p {
+  margin: 0 0 0.35em;
+}
+.catalogNotice small {
+  display: block;
+  margin-top: 0.5em;
+  color: #74749f;
+}
+.mobileActions :is(a, button) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 .cover {
   position: relative;
   flex: 0 0 auto;
@@ -310,6 +358,88 @@
 .listMain,
 .roomSection {
   min-width: 0;
+}
+/* 넓은 목록 화면은 지금 창 높이를 기준으로 헤더와 푸터 사이를 채운다. */
+/* 규칙 행 간격이 남는 높이를 먹고, 카드와 푸터 사이에는 아래 여백만 남긴다. */
+@media (min-width: 1201px) {
+  .screen:has(.listLayout) {
+    height: 100dvh;
+  }
+  .screen:has(.listLayout) > .main {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-bottom: 0.9em;
+  }
+  .screen:has(.listLayout) .heroContent {
+    padding-block: 0.75em;
+  }
+  .screen:has(.listLayout) .breadcrumb {
+    margin-bottom: 0.4em;
+  }
+  .screen:has(.listLayout) .sidebar {
+    gap: 0.85em;
+    height: 100%;
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .screen:has(.listLayout) .panel {
+    padding: 1.15em 1.25em;
+  }
+  .screen:has(.listLayout) .startCard {
+    padding-top: 1.15em;
+  }
+  .screen:has(.listLayout) .startCard > p {
+    /* 고양이 크기는 유지하고, 설명 아래에서 AI 대국 버튼이 시작되게 간격을 늘린다. */
+    margin-bottom: 4.2em;
+    line-height: 1.55;
+  }
+  .screen:has(.listLayout) .rules {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .screen:has(.listLayout) .rules dl {
+    flex: 1 1 auto;
+    align-content: space-between;
+    gap: 0.55em;
+    margin-block: 0.7em;
+  }
+  .screen:has(.listLayout) .rules > p {
+    padding-top: 0.75em;
+  }
+  .screen:has(.listLayout) .toolbar {
+    margin-block: 0.75em 0.35em;
+  }
+  .listLayout {
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .listMain,
+  .roomSection,
+  .roomBoard {
+    display: flex;
+    flex-direction: column;
+  }
+  .listMain,
+  .roomSection,
+  .roomBoard {
+    min-height: 0;
+  }
+  .roomSection,
+  .roomBoard {
+    flex: 1 1 auto;
+  }
+  .roomBoard > .empty,
+  .roomBoard > .roomList {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+  .roomBoard > .roomList {
+    align-content: start;
+  }
 }
 .mobileActions {
   display: none;
@@ -530,10 +660,9 @@
 .tableHeader,
 .roomRow {
   display: grid;
-  grid-template-columns: minmax(180px, 2.5fr) minmax(100px, 1.15fr) minmax(
-      70px,
-      0.7fr
-    ) minmax(186px, 1.7fr) minmax(70px, 0.65fr) minmax(65px, 0.65fr);
+  grid-template-columns:
+    minmax(180px, 2.5fr) minmax(100px, 1.15fr) minmax(70px, 0.7fr)
+    minmax(186px, 1.7fr) minmax(70px, 0.65fr) minmax(65px, 0.65fr);
   align-items: center;
   gap: 0.7em;
 }
@@ -547,6 +676,10 @@
 }
 .tableHeader > span {
   text-align: center;
+}
+.tableHeader + .empty {
+  /* 헤더 막대와 목록 박스가 붙지 않도록 한 칸 띄운다. */
+  margin-top: 0.65em;
 }
 .roomList {
   display: grid;
@@ -1017,28 +1150,32 @@
   max-width: 60%;
 }
 
-/* 데스크톱 대국은 판·버튼 묶음을 내용 높이로 두고, 창이 더 높으면 푸터만 뷰포트 맨 아래로 내린다.
-   판 크기는 공통 상한과 뷰포트에서 헤더·푸터를 뺀 높이 중 작은 값을 쓴다.
-   목록·대기실·작은 터치 화면은 기존 문서 흐름을 유지하고 브라우저 확대·키보드 탐색을 제한하지 않는다. */
+/* 데스크톱 대기실·대국은 헤더·푸터의 실제 높이를 제외한 본문 공간을 공유한다.
+   대국 판은 전체화면 높이에 맞추고, 더 낮은 창에서는 그 크기에서 본문을 스크롤한다.
+   목록·작은 터치 화면·확대로 좁아진 화면은 문서 흐름을 유지해 브라우저 확대·키보드 탐색을 제한하지 않는다. */
 @media (min-width: 1101px) and (min-height: 600px) {
-  .screen:has([data-gomoku-game]) {
+  .screen:has([data-gomoku-game], [data-gomoku-waiting]) {
     min-height: 100dvh;
-    height: auto;
+    height: 100dvh;
     font-size: var(--app-font-size);
   }
-  .screen:has([data-gomoku-game]) > header,
-  .screen:has([data-gomoku-game]) > footer { flex: 0 0 auto; }
-  .screen:has([data-gomoku-game]) > .main {
-    flex: 0 1 auto;
-    min-height: 0;
-    height: auto;
-    padding-block: .25em .5em;
-    container-type: inline-size;
+  .screen:has([data-gomoku-game], [data-gomoku-waiting]) > header,
+  .screen:has([data-gomoku-game], [data-gomoku-waiting]) > footer {
+    flex: 0 0 auto;
   }
-  .screen:has([data-gomoku-game]) > footer {
-    margin-top: auto;
+  .screen:has([data-gomoku-game], [data-gomoku-waiting]) > .main {
+    flex: 1 1 0;
+    min-height: 0;
+    padding-block: 0.25em 0.5em;
+    /* cqw·cqh가 모니터 대신 현재 본문의 실제 폭·높이를 참조하도록 한다. */
+    container-type: size;
+    /* 긴 이름·연결 오류·사용자 글꼴로 내용이 늘면 푸터와 겹치지 않고 본문에서 끝까지 접근한다. */
+    overflow-y: auto;
+  }
+  .screen:has([data-gomoku-game], [data-gomoku-waiting]) > footer {
+    margin-top: 0;
     margin-bottom: 0;
-    padding-block: .8em;
+    padding-block: 0.8em;
   }
 }
 .dialog {
@@ -1117,10 +1254,9 @@
   }
   .tableHeader,
   .roomRow {
-    grid-template-columns: minmax(160px, 2fr) minmax(90px, 1fr) 65px minmax(
-        155px,
-        1.55fr
-      ) 66px 60px;
+    grid-template-columns:
+      minmax(160px, 2fr) minmax(90px, 1fr) 65px minmax(155px, 1.55fr)
+      66px 60px;
     gap: 0.5em;
   }
   .ruleBadges {

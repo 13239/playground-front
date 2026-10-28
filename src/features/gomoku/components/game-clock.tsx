@@ -57,13 +57,13 @@ export function useRemainingSeconds(serverTime: string, deadline: string | null 
   return remaining;
 }
 
-/** 참가자 카드의 초 단위 시계만 업데이트하고 오목판은 렌더링하지 않는다. */
+/** A안 카드의 인라인 시계·얇은 시간 막대만 업데이트하고 오목판은 렌더링하지 않는다. */
 export function PlayerTurnTimer({ nickname, playing, active, serverTime, deadline }: {
   nickname: string; playing: boolean; active: boolean; serverTime: string; deadline: string | null;
 }) {
   const remaining = useRemainingSeconds(serverTime, active ? deadline : null, 30);
   const value = !playing ? 0 : active ? remaining : 30;
-  return <div className={styles.playerTimer} data-active={active}>
+  return <div className={styles.playerTimer} data-active={active} data-urgent={playing && active && value <= 10}>
     <div><LobbyIcon name="clock" /><strong>00:{String(value).padStart(2, "0")}</strong></div>
     <progress max={30} value={value} aria-label={`${nickname}님 남은 턴 시간`} />
   </div>;

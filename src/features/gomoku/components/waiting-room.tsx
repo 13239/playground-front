@@ -443,8 +443,10 @@ function AuthenticatedWaitingRoom({
     </RoomDialog>
   );
 
+  // 대기실도 대국과 같은 셸의 실제 가용 높이를 사용하며 모바일에서는 문서 흐름으로 전환한다.
   return (
-    <div className={room.game ? gameStyles.gameLayout : styles.waitingPage} data-gomoku-game={room.game ? "multiplayer" : undefined}>
+    <div className={room.game ? gameStyles.gameLayout : styles.waitingPage}
+      data-gomoku-game={room.game ? "multiplayer" : undefined} data-gomoku-waiting={!room.game ? "" : undefined}>
       {/* 같은 방의 재대국에서도 대국 컨트롤러를 유지해 열린 팝업와 기존 연결을 재사용한다. */}
       {room.game ? <GameRoom room={{ ...room, game: room.game }} receivedAt={snapshot.receivedAt} pending={pending !== null || !pageId} error={error}
         reconnectAttempt={sync.attempt} connectionLost={sync.lost} onAction={action => void gameAction(action)}
@@ -484,10 +486,10 @@ function AuthenticatedWaitingRoom({
             <button
               type="button"
               onClick={() => void copyCode()}
-              aria-label="방 코드 복사"
+              aria-label={copied ? "복사 완료" : "방 코드 복사"}
+              title={copied ? "복사 완료" : "코드 복사"}
             >
               <LobbyIcon name={copied ? "check" : "copy"} />
-              {copied ? "복사 완료" : "코드 복사"}
             </button>
           </div><button type="button" className={styles.inviteButton} aria-haspopup="dialog" disabled={!pageId||pending!==null||room.participants.length!==1} onClick={()=>setInviteOpen(true)}><LobbyIcon name="userPlus"/>친구 초대</button></div>}
         </div>
@@ -687,9 +689,12 @@ function ParticipantCard({
     );
   // 서버가 확정한 승패만 승률에 포함한다. 승패가 없으면 0%이고, 소수 첫째 자리가 0이면 정수만 보여준다.
   const winRate = formatWinRate(participant.wins, participant.losses);
+  // 긴 닉네임도 생략하지 않고 표시하도록 데스크톱 프로필 이미지가 이름에 공간을 양보한다.
+  const longName = [...participant.nickname].length > 20;
   return (
     <article
       className={`${styles.playerCard} ${participant.self ? styles.selfCard : ""}`}
+      data-long-name={longName}
     >
       {participant.host && <span className={styles.hostBadge}>♛ 방장</span>}
       {/* 본인 카드와 빈 좌석에는 강퇴 버튼을 표시하지 않는다. */}
