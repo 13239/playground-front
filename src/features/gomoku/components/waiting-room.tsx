@@ -21,6 +21,7 @@ import type { RoomDraft } from "../contracts";
 import type { WaitingParticipant, WaitingRoom } from "../waiting-contracts";
 import { RoomDialog } from "./room-dialog";
 import { RoomSettingsDialog } from "./room-settings-dialog";
+import { GomokuInviteDialog } from "./gomoku-invite-dialog";
 import { RoomChatPanel } from "./room-chat-panel";
 import { GameRoom } from "./game-room";
 import gameStyles from "./game-room.module.css";
@@ -149,6 +150,8 @@ function AuthenticatedWaitingRoom({
   const [pending, setPending] = useState<"ready" | "leave" | "kick" | "game" | "settings" | null>(null);
   // 설정 폼은 현재 스냅샷과 별개로 입력을 보존하며 대국 시작·방장 변경 시 화면에서 해제한다.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // 친구 선택 창은 현재 방장의 빈 대기 좌석에서만 유지한다.
+  const [inviteOpen, setInviteOpen] = useState(false);
   // 확인 중 다른 사용자가 같은 좌석에 들어오면 이전 선택을 취소하도록 당시 revision을 함께 보관한다.
   const [kickTarget, setKickTarget] = useState<Readonly<{ participant: WaitingParticipant; revision: number }>>();
   const [kickMode, setKickMode] = useState<"allow" | "block" | null>(null);
@@ -180,6 +183,7 @@ function AuthenticatedWaitingRoom({
     onMembership(sessionId, next.membershipId);
     setSnapshot({ room: next, receivedAt: performance.now() });
     if (next.status !== "WAITING" || !next.participants.some(p => p.self && p.host)) setSettingsOpen(false);
+    if (next.status !== "WAITING" || next.participants.length !== 1 || !next.participants.some(p => p.self && p.host)) setInviteOpen(false);
     // 좌석이 같아도 revision이 변경되면 재확인을 받아 새 참가자를 잘못 강퇴하지 않는다.
     setKickTarget(current => current && next.revision === current.revision && next.participants.some(
       p => p.seat === current.participant.seat && p.nickname === current.participant.nickname && !p.self,
@@ -388,7 +392,7 @@ function AuthenticatedWaitingRoom({
     !pageId
       ? ["방 입장을 확인하고 있어요", connectionError ? "연결 상태를 확인한 뒤 다시 연결해 주세요." : "확인이 끝나면 준비하기를 누를 수 있어요."]
       : room.participants.length === 1
-      ? ["상대를 기다리고 있어요", room.participants.some(p => p.self && p.host) ? "상단 방 코드를 복사해 친구에게 알려주세요." : "다른 참가자가 입장할 때까지 기다려 주세요."]
+      ? ["상대를 기다리고 있어요", room.participants.some(p => p.self && p.host) ? "친구를 초대하거나 상단 방 코드를 공유해 함께해요." : "다른 참가자가 입장할 때까지 기다려 주세요."]
       : room.allReady
         ? [
             "두 명 모두 준비를 마쳤어요",
@@ -472,7 +476,7 @@ function AuthenticatedWaitingRoom({
               <p title={room.title}>{room.title}</p>
             </div>
           </div>
-          {self.host && room.inviteCode && <div className={styles.roomCode}>
+          {self.host && room.inviteCode && <div className={styles.headerActions}><div className={styles.roomCode}>
             <span>
               <LobbyIcon name="link" /> 방 코드
             </span>
@@ -485,7 +489,7 @@ function AuthenticatedWaitingRoom({
               <LobbyIcon name={copied ? "check" : "copy"} />
               {copied ? "복사 완료" : "코드 복사"}
             </button>
-          </div>}
+          </div><button type="button" className={styles.inviteButton} aria-haspopup="dialog" disabled={!pageId||pending!==null||room.participants.length!==1} onClick={()=>setInviteOpen(true)}><LobbyIcon name="userPlus"/>친구 초대</button></div>}
         </div>
         {self.host && room.inviteCode && copyFallback && (
           <label className={styles.manualCopy}>
@@ -614,6 +618,9 @@ function AuthenticatedWaitingRoom({
         <RoomSettingsDialog room={room} busy={pending === "settings"}
           onSave={saveSettings} onClose={() => setSettingsOpen(false)} />
       )}
+      {inviteOpen && !room.game && self.host && room.participants.length===1 && pageId && (
+        <GomokuInviteDialog roomId={room.id} pageId={pageId} sessionId={sessionId} onClose={()=>setInviteOpen(false)}/>
+      )}
       {kickTarget && !room.game && self.host && (
         <RoomDialog
           title="강퇴 방식 선택"
@@ -689,13 +696,12 @@ function ParticipantCard({
       {canKick && onKick && <button type="button" className={styles.kickButton}
         aria-label={`${participant.nickname} 강퇴`} disabled={kickDisabled} onClick={onKick}>강퇴</button>}
       {/* 게임 참가자도 전체 채팅과 같은 작은 프로필 팝업에서 친구 요청을 보낸다. */}
-      <SocialProfileButton publicId={participant.publicUserId} nickname={participant.nickname} disabled={participant.self}><div className={styles.avatarCircle}>
+      <SocialProfileButton publicId={participant.publicUserId} nickname={participant.nickname} disabled={participant.self} className={styles.participantProfile}><span className={styles.avatarCircle}>
         <ProfileAvatar avatarId={participant.avatarId} size={256} />
-      </div></SocialProfileButton>
-      <h2 title={participant.nickname}>
+      </span><span className={styles.playerName} title={participant.nickname}>
         {participant.nickname}
         {participant.self && <small>나</small>}
-      </h2>
+      </span></SocialProfileButton>
       {/* 서버가 확정한 온라인 대국만 집계한다. 무승부는 별도 횟수로 보여주고 승률 분모에서는 제외한다. */}
       <div className={styles.playerStats} role="group" aria-label="온라인 오목 전적">
         <span className={styles.statsResults}>

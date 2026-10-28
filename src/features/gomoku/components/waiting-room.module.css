@@ -45,6 +45,12 @@
   gap: 1em;
   flex-wrap: wrap;
 }
+/* 코드와 초대 버튼은 좁은 화면에서 줄바꿈하고 각 버튼의 크기를 화면 폭으로 확대하지 않는다. */
+.headerActions { display:flex; align-items:center; flex-wrap:wrap; gap:.6em; max-width:100%; }
+.inviteButton { display:inline-flex; align-items:center; justify-content:center; gap:.4em; min-height:2.75rem; max-width:100%; padding:.6em .85em; border:1px solid #b388ed; border-radius:.8em; color:#7a34cf; background:#ffffffd9; font:inherit; font-size:.85em; font-weight:750; cursor:pointer; }
+.inviteButton:disabled { opacity:.55; cursor:not-allowed; }
+.inviteButton:focus-visible { outline:var(--control-focus-width,1px) solid var(--control-focus-color,#a78bfa); outline-offset:var(--control-focus-offset,-1px); }
+.inviteButton svg { width:1.2em; height:1.2em; }
 .heading {
   gap: 0.9em;
   min-width: 0;
@@ -276,7 +282,8 @@
   object-fit: cover;
   mix-blend-mode: multiply;
 }
-.playerCard h2 {
+.playerCard h2,
+.playerName {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -289,7 +296,8 @@
   font-weight: 900;
   text-align: center;
 }
-.playerCard h2 small {
+.playerCard h2 small,
+.playerName small {
   padding: 0.25em 0.5em;
   border-radius: 0.8em;
   background: #e5d5ff;
@@ -297,6 +305,8 @@
   font-size: 0.5em;
   flex-shrink: 0;
 }
+/* 아바타·닉네임을 한 프로필 버튼으로 묶어 이미지의 백분율 폭과 카드의 정렬을 유지한다. */
+.participantProfile { display:flex; flex-direction:column; align-items:center; gap:.8em; width:100%; max-width:100%; border-radius:1em; }
 /* 닉네임 아래 승·패·무를 한 줄로 두고, 승률은 그 아래에 둔다. */
 .playerStats {
   display: flex;
@@ -892,6 +902,7 @@
   .heading {
     flex-basis: 100%;
   }
+  .headerActions { width:100%; }
   .titleRow {
     gap: 0.5em;
   }
@@ -922,7 +933,8 @@
   .emptyAvatar {
     width: 85%;
   }
-  .playerCard h2 {
+  .playerCard h2,
+  .playerName {
     font-size: 1.1em;
   }
   .emptyPlayer h2 {

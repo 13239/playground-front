@@ -5,6 +5,6 @@ import type { SocialStore } from "./social-store";
 export const SocialContext=createContext<SocialStore|null>(null);
 export function useSocialStore(){const store=useContext(SocialContext);if(!store)throw new Error("친구 기능은 SocialProvider 내부에서 사용합니다.");return store;}
 export function useSocial(){const store=useSocialStore();return useSyncExternalStore(store.subscribe,store.getSnapshot,store.getServerSnapshot);}
-/** 홈 전체 메시지 영역은 소셜 초안 입력마다 다시 렌더링하지 않고 표시 위치만 구독한다. */
-export function useHomeSocialActive(){const store=useSocialStore();return useSyncExternalStore(store.subscribe,()=>store.getSnapshot().surface==="home",()=>false);}
+/** 홈 전체 메시지 영역은 소셜 초안 입력마다 다시 렌더링하지 않고 홈의 탭 선택만 구독한다. */
+export function useHomeSocialActive(){const store=useSocialStore();return useSyncExternalStore(store.subscribe,()=>store.getSnapshot().homeTab!=="all",()=>false);}
 

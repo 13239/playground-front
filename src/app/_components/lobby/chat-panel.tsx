@@ -24,7 +24,7 @@ export function ChatPanel({
   const previousActive = useRef(active);
   useEffect(() => {
     // 닫힌 모바일 인스턴스는 데스크톱 탭을 닫지 않고 실제 열림→닫힘 전환만 정리한다.
-    if (previousActive.current && !active && social.getSnapshot().surface === "home") social.close();
+    if (previousActive.current && !active && social.getSnapshot().surface === "home") social.all();
     previousActive.current = active;
   }, [active, social]);
   const headingId = useId();

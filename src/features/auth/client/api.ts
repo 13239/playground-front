@@ -32,7 +32,9 @@ type FeaturePath = "/api/auth/profile" | "/api/auth/profile/nickname" | "/api/go
   // 테트리스도 기존 브라우저 증명·계정 변경·토큰 갱신 경계를 그대로 공유한다.
   | "/api/tetris/overview" | "/api/tetris/start" | "/api/tetris/finish"
   // 전역 친구·알림도 기존 세션 잠금과 브라우저 서명을 공유한다.
-  | `/api/social/${string}`;
+  | `/api/social/${string}`
+  // 오목 친구 초대도 같은 인증 갱신·브라우저 증명을 공유한다.
+  | `/api/gomoku/invitations/${"send"|"accept"|"reject"|"cancel"}`;
 type AuthPath = "/api/auth/login" | "/api/auth/logout" | "/api/auth/withdrawal" | "/api/auth/refresh" | "/api/auth/session" | "/api/auth/activity" | "/api/auth/password" | FeaturePath;
 
 async function authRequest(path: AuthPath, context: AuthRequestContext, input?: LoginInput | SessionMutationInput): Promise<Response> {

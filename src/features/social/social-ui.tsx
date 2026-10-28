@@ -8,6 +8,7 @@ import { getGamePopup, subscribeToGamePopup } from "@/features/games/client/game
 import { useSocial, useSocialStore } from "./context";
 import { SocialProfileButton } from "./social-profile-button";
 import { isRoom, type Page, type Person } from "./contracts";
+import { GomokuInvitationHost } from "@/features/gomoku/components/gomoku-invitation-prompt";
 import styles from "./social.module.css";
 
 const badge=(n:number)=>n>99?"99+":n.toLocaleString("ko-KR");
@@ -218,22 +219,26 @@ function Contents(){
   const s=useSocial();if(!s.authorized)return <p className={styles.empty}>로그인 상태를 확인하고 있어요.</p>;if(!s.data)return <p className={styles.empty}>{s.error?"친구 정보를 확인하지 못했어요.":"친구 정보를 불러오고 있어요…"}</p>;
   return s.view==="requests"?<Requests/>:s.view==="conversation"?<Conversation/>:s.view==="create"?<GroupForm/>:s.view==="invite"?<GroupForm inviting/>:s.view==="members"?<Members/>:s.tab==="friends"?<FriendsList/>:<Conversations/>;
 }
-/** 홈의 탭도 동일한 화면을 표시하고 헤더 창과 동시에 두 벌을 렌더링하지 않는다. */
+/** 홈과 헤더 창은 데이터를 공유하되 홈의 선택과 팝업 내부 화면은 각각 유지한다. */
 export function HomeSocialTabs(){
-  const s=useSocial();const store=useSocialStore();const active=s.surface==="home"?s.tab:"all";
+  const s=useSocial();const store=useSocialStore();const active=s.homeTab;
   const unread=Object.values(s.summaries).reduce((sum,v)=>sum+v.unread,0);
   // 탭과 본문은 구분선 없이 연결하고 기존 높이와 간격은 유지한다.
   return <div className={styles.homeTabs}>
     <div className={styles.tabs} role="tablist" aria-label="실시간 채팅 종류">
-      <button type="button" role="tab" aria-selected={active==="all"} onClick={store.close}>전체</button>
+      <button type="button" role="tab" aria-selected={active==="all"} onClick={store.all}>전체</button>
       <button type="button" role="tab" aria-selected={active==="friends"} onClick={event=>store.home("friends",event.currentTarget.ownerDocument)}>친구{!!s.data?.received.total&&<span className={styles.count}>{badge(s.data.received.total)}</span>}</button>
       <button type="button" role="tab" aria-selected={active==="conversations"} onClick={event=>store.home("conversations",event.currentTarget.ownerDocument)}>대화{unread>0&&<span className={styles.count}>{badge(unread)}</span>}</button>
     </div>
   </div>;
 }
-export function HomeSocialPanel(){return <section className={`${styles.root} ${styles.embedded}`} data-social-ui><ErrorNotice/><Contents/></section>;}
+export function HomeSocialPanel(){
+  const s=useSocial();
+  // 팝업을 표시하는 동안에도 배경 홈은 선택한 목록을 유지하고 팝업의 상세 화면을 복제하지 않는다.
+  return <section className={`${styles.root} ${styles.embedded}`} data-social-ui>{s.surface==="home"||!s.authorized||!s.data?<><ErrorNotice/><Contents/></>:s.homeTab==="friends"?<FriendsList/>:<Conversations/>}</section>;
+}
 function ErrorNotice(){
-  const s=useSocial();const store=useSocialStore();return s.error?<div className={styles.error} role="alert"><span>{s.error}</span><button type="button" className={styles.quiet} onClick={()=>void store.refresh(false)}>다시 확인</button></div>:null;
+  const s=useSocial();const store=useSocialStore();return s.error?<div className={styles.error} role="alert"><span>{s.error}</span><button type="button" className={styles.quiet} onClick={()=>void store.recover()}>다시 확인</button></div>:null;
 }
 function FriendsPanel(){
   const s=useSocial();const store=useSocialStore();const unread=Object.values(s.summaries).reduce((sum,n)=>sum+n.unread,0);
@@ -243,7 +248,7 @@ function FriendsPanel(){
 }
 function Notifications(){
   const s=useSocial();const store=useSocialStore();const page=s.data?.notifications;
-  return <><header className={styles.panelHeader}><h2><Icon name="bell"/>알림</h2><button type="button" className={styles.quiet} disabled={!!s.busy||!s.data?.unreadNotifications} onClick={()=>void store.command("notifications-read",{beforeId:s.data?.notificationBoundary})}>모두 읽음</button><button type="button" className={styles.icon} aria-label="알림 닫기" onClick={store.close}><Icon name="close"/></button></header><ErrorNotice/><div className={styles.scroll}>
+  return <><header className={styles.panelHeader}><h2><Icon name="bell"/>알림</h2><button type="button" className={styles.quiet} disabled={s.readingNotifications||!s.data?.unreadNotifications} onClick={()=>void store.markNotificationsRead()}>{s.readingNotifications?"읽음 처리 중":"모두 읽음"}</button><button type="button" className={styles.icon} aria-label="알림 닫기" onClick={store.close}><Icon name="close"/></button></header><ErrorNotice/><div className={styles.scroll}>
     {page?.items.map(n=><button type="button" className={styles.notification} data-unread={!n.read} key={n.id} disabled={!!s.busy} onClick={()=>void store.openNotification(n)}>
       <Avatar person={n.actor}/><span className={styles.identity}><strong>{n.actor.nickname}</strong><span>{n.kind==="FRIEND_REQUEST"?"친구 요청을 보냈어요.":n.kind==="FRIEND_ACCEPTED"?"친구 요청을 수락했어요.":"그룹에 초대했어요."}</span><small>{ago(n.createdAt)}</small></span>{!n.read&&<i className={styles.unreadDot}/>}<Icon name="chevronRight"/></button>)}
     {page?.total===0&&<p className={styles.empty}>아직 새로운 알림이 없어요.</p>}
@@ -260,6 +265,11 @@ function DialogShell({children,kind,owner}:{children:ReactNode;kind:"friends"|"n
   },[owner]);
   return <dialog ref={ref} className={`${styles.root} ${styles.panel}`} data-kind={kind} data-social-ui aria-label={kind==="friends"?"친구 및 대화":"알림"}
     onCancel={event=>{event.preventDefault();event.stopPropagation();store.close();}} onKeyDown={event=>{if(event.key==="Escape"){event.preventDefault();event.stopPropagation();store.close();}}}>{children}</dialog>;
+}
+/** 확인은 안내만 닫는다. 모달이 열린 경우 그 안에 배치해 모바일에서도 클릭할 수 있게 한다. */
+function SocialToast(){
+  const s=useSocial();const store=useSocialStore();const toast=s.toast;
+  return toast?<div className={`${styles.root} ${styles.toast}`} role="status" data-social-ui><span>{toast.message}</span><button type="button" className={styles.quiet} onClick={()=>store.dismissToast(toast.id)}>확인</button></div>:null;
 }
 /** 작은 프로필 카드의 구성은 이미지/닉네임/한 개의 주 동작으로 제한한다. */
 function ProfilePopup(){
@@ -297,10 +307,11 @@ export function SocialOverlayHost(){
   if(!owner||!s.sessionId||!s.authorized)return null;
   const target=owner.fullscreenElement??owner.body;
   return <>
+    <GomokuInvitationHost owner={owner}/>
     {createPortal(<>
-      {(s.surface==="friends"||s.surface==="notifications")&&<DialogShell key={s.surface} owner={owner} kind={s.surface}>{s.surface==="friends"?<FriendsPanel/>:<Notifications/>}</DialogShell>}
+      {(s.surface==="friends"||s.surface==="notifications")&&<DialogShell key={s.surface} owner={owner} kind={s.surface}>{s.surface==="friends"?<FriendsPanel/>:<Notifications/>}<SocialToast/></DialogShell>}
       {s.surface==="minimized"&&<button type="button" className={`${styles.root} ${styles.minimized}`} data-social-ui onClick={()=>store.openFriends(owner)}><Icon name="chat"/><span>{s.room?.name??"친구"}</span><Icon name="chevronUp"/></button>}
-      {s.toast&&<div className={`${styles.root} ${styles.toast}`} role="status" data-social-ui><span>{s.toast.message}</span><button type="button" className={styles.quiet} onClick={()=>store.launch("notifications",owner)}>확인</button></div>}
+      {s.surface!=="friends"&&s.surface!=="notifications"&&<SocialToast/>}
       {/* 네이티브 모달 바깥의 형제는 inert가 되므로 프로필은 클릭한 dialog 안에 표시한다. */}
       {s.profile&&createPortal(<ProfilePopup/>,s.profile.anchor.closest("dialog")??s.profile.anchor.ownerDocument.fullscreenElement??s.profile.anchor.ownerDocument.body)}
     </>,target)}
