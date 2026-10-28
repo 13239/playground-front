@@ -1,5 +1,6 @@
 import { isProfileAvatarId, type ProfileAvatarId } from "@/features/profile/catalog";
 import type { PublicChatMessage } from "@/features/chat/client/protocol";
+
 /** 친구 API와 본인 전용 실시간 연결에서 허용할 공개 데이터만 정의한다. */
 export const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 export const object = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -18,9 +19,11 @@ export type GomokuInvitation = Readonly<{
   id: string; roomId: number; roomTitle: string; visibility: "PUBLIC"|"PRIVATE";
   undoLimit: 1|3|5; forbiddenRule: "NONE"|"STANDARD"; inviter: Person; target: Person; expiresAt: string;
 }>;
+/** 30장 게임 초대는 같은 본인 전용 스냅샷에서 전달한다. */
+export type MemoryInvitation = Readonly<{id:string;roomId:number;roomTitle:string;inviter:Person;target:Person;expiresAt:string}>;
 export type Notification = Readonly<{ id: string; kind: "FRIEND_REQUEST"|"FRIEND_ACCEPTED"|"GROUP_INVITATION"; targetId: string; actor: Person; createdAt: string; read: boolean }>;
 export type Page<T> = Readonly<{ items: readonly T[]; page: number; pageSize: number; total: number }>;
-export type Snapshot = Readonly<{ self: Person; friends: Page<Person>; received: Page<FriendRequest>; sent: Page<FriendRequest>; rooms: Page<Room>; invitations: readonly Invitation[]; notifications: Page<Notification>; unreadNotifications: number; notificationBoundary: string|null; gomokuInvitations?: readonly GomokuInvitation[]; serverTime?: string }>;
+export type Snapshot = Readonly<{ self: Person; friends: Page<Person>; received: Page<FriendRequest>; sent: Page<FriendRequest>; rooms: Page<Room>; invitations: readonly Invitation[]; notifications: Page<Notification>; unreadNotifications: number; notificationBoundary: string|null; gomokuInvitations?: readonly GomokuInvitation[]; memoryInvitations?: readonly MemoryInvitation[]; serverTime?: string }>;
 export type Summary = Readonly<{ conversationId: string; unread: number; preview?: string; nickname?: string; createdAt?: string; muted: boolean; writable: boolean }>;
 export type SocialMessage = PublicChatMessage & Readonly<{ conversationId: string; publicUserId?: string }>;
 export type History = Readonly<{ conversationId: string; messages: readonly SocialMessage[]; page: number; pageSize: number; total: number; writable: boolean; peerReadAt?:number }>;
@@ -41,6 +44,7 @@ export function isGomokuInvitation(v: unknown): v is GomokuInvitation {
     &&["PUBLIC","PRIVATE"].includes(v.visibility as string)&&[1,3,5].includes(v.undoLimit as number)
     &&["NONE","STANDARD"].includes(v.forbiddenRule as string)&&isPerson(v.inviter)&&isPerson(v.target)&&date(v.expiresAt);
 }
+export function isMemoryInvitation(v:unknown):v is MemoryInvitation{return object(v)&&id(v.id)&&count(v.roomId)&&v.roomId>0&&text(v.roomTitle,30)&&isPerson(v.inviter)&&isPerson(v.target)&&date(v.expiresAt);}
 export const isNotification=(v: unknown): v is Notification => object(v)&&id(v.id)&&id(v.targetId)&&["FRIEND_REQUEST","FRIEND_ACCEPTED","GROUP_INVITATION"].includes(v.kind as string)&&isPerson(v.actor)&&date(v.createdAt)&&typeof v.read==="boolean";
 export function isPage<T>(v: unknown, check: (value: unknown)=>value is T): v is Page<T> {
   return object(v)&&Array.isArray(v.items)&&v.items.length<=12&&v.items.every(check)&&count(v.total)&&count(v.page)&&v.page>=1&&v.pageSize===12;
@@ -50,6 +54,7 @@ export function isSnapshot(v: unknown): v is Snapshot {
     &&isPage(v.notifications,isNotification)&&Array.isArray(v.invitations)&&v.invitations.length<=100&&v.invitations.every(isInvitation)&&count(v.unreadNotifications)&&(v.notificationBoundary===null||id(v.notificationBoundary))
     // 이전 서버의 스냅샷은 허용하되 새 초대와 시각 필드는 실제 계약을 검증한다.
     &&(v.gomokuInvitations===undefined||Array.isArray(v.gomokuInvitations)&&v.gomokuInvitations.length<=20&&v.gomokuInvitations.every(isGomokuInvitation))
+    &&(v.memoryInvitations===undefined||Array.isArray(v.memoryInvitations)&&v.memoryInvitations.length<=20&&v.memoryInvitations.every(isMemoryInvitation))
     &&(v.serverTime===undefined||date(v.serverTime));
 }
 export const isSummary=(v: unknown): v is Summary => object(v)&&id(v.conversationId)&&count(v.unread)&&typeof v.muted==="boolean"&&typeof v.writable==="boolean"&&(v.preview==null||text(v.preview,250))&&(v.nickname==null||text(v.nickname,50))&&(v.createdAt==null||date(v.createdAt));
@@ -75,4 +80,3 @@ export function isResponse(op: Operation,v: unknown) {
   return op==="snapshot"?isSnapshot(v):op==="request-location"?object(v)&&typeof v.active==="boolean"&&count(v.page)&&v.page>=1:op==="profile"||op==="friend-request"?isPerson(v):
     ["direct","group-create","room"].includes(op)?isRoom(v):op==="invitation-accept"?isRoom(v)||object(v)&&v.ok===true:object(v)&&v.ok===true;
 }
-

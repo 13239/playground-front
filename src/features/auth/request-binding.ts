@@ -1,5 +1,11 @@
 /** 로그인·방 비밀번호의 빠른 해시를 증명에 남기지 않는다. 자격 증명은 HTTPS/mTLS 안에서 직접 검증한다. */
 export function proofBody(path: string, body: string): string {
+  // 카드 게임의 짧은 방 비밀번호도 오프라인 대입 가능한 빠른 서명 해시에서 제외한다.
+  if (path === "/api/memory/create" || path === "/api/memory/join") {
+    const input: unknown = JSON.parse(body);
+    if (typeof input !== "object" || input === null || Array.isArray(input)) throw new TypeError("Invalid memory room binding");
+    return JSON.stringify(Object.fromEntries(Object.entries(input).filter(([key]) => key !== "password")));
+  }
   // 비밀번호 변경·회원탈퇴도 빠른 해시에서 비밀번호를 제외하고 변경 대상인 현재 세션만 서명에 결합한다.
   if (path === "/api/auth/password" || path === "/api/auth/withdrawal") {
     const input: unknown = JSON.parse(body);

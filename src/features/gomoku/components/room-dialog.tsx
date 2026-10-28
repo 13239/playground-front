@@ -19,6 +19,7 @@ export function RoomDialog({
   busy = false,
   showClose = true,
   className,
+  illustration,
 }: {
   title: string;
   children: ReactNode;
@@ -27,6 +28,8 @@ export function RoomDialog({
   showClose?: boolean;
   // 새 팝업이 공통 동작을 유지하면서 자신에게 필요한 반응형 배치만 보완할 수 있다.
   className?: string;
+  // 캐릭터 안내가 필요한 팝업도 기존 모달의 접근성·Escape·요청 중 닫기 방지를 그대로 공유한다.
+  illustration?: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -43,6 +46,7 @@ export function RoomDialog({
       }}
     >
       <div className={styles.dialogHeading}>
+        {illustration && <div data-dialog-illustration>{illustration}</div>}
         <h2 id={titleId}>{title}</h2>
         {showClose && (
           <button

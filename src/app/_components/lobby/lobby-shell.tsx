@@ -17,6 +17,7 @@ import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 import { GomokuCover } from "./gomoku-cover";
 import { TetrisCover } from "@/features/tetris/components/tetris-cover";
+import { MemoryCover } from "@/features/memory/components/memory-cover";
 import { HeroBanner } from "./hero-banner";
 import { LobbyIcon } from "./lobby-icon";
 import styles from "./lobby.module.css";
@@ -235,7 +236,7 @@ export function LobbyShell({ account }: { account: ReactNode }) {
                       <div className={styles.gameCover}>
                         {/* 관리자 이미지 선택 없이 배포한 게임 코드에 맞는 기존 표지를 사용한다. */}
                         {/* 배포한 게임의 코드별 표지만 연결하고 엔진은 게임에 입장할 때 불러온다. */}
-                        {game.id === "GOMOKU" ? <GomokuCover /> : game.id === "TETRIS" ? <TetrisCover /> : <div className={styles.genericCover}><LobbyIcon name="gamepad" /></div>}
+                        {game.id === "GOMOKU" ? <GomokuCover /> : game.id === "TETRIS" ? <TetrisCover /> : game.id === "MEMORY" ? <MemoryCover /> : <div className={styles.genericCover}><LobbyIcon name="gamepad" /></div>}
                         {/* 입장 가능한 게임은 표지에 게임 보기를 붙이지 않고, 준비 중과 이용 안내만 표시한다. */}
                         {(!gameHref(game.id) || !game.available) && (
                           <span className={styles.comingSoon}>{!gameHref(game.id) ? "준비 중" : "이용 안내"}</span>

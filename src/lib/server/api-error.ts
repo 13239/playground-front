@@ -15,6 +15,12 @@ const errors = {
   ACCOUNT_WITHDRAWAL_RATE_LIMIT_EXCEEDED: [429, "회원탈퇴 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   // 테트리스 기록 오류는 계정 만료와 구분해 게임 화면에서 재시도를 제공한다.
   TETRIS_RUN_CHANGED: [409, "이전 게임의 기록입니다. 현재 화면에서 새 게임을 시작해 주세요."],
+  // 같은 그림 찾기도 서버 원문 대신 고정된 공개 안내만 제공한다.
+  MEMORY_CHANGED: [409, "카드 상태가 변경되었습니다. 현재 판을 확인해 주세요."],
+  MEMORY_RATE_LIMIT: [429, "게임 요청이 많습니다. 잠시 후 다시 시도해 주세요."],
+  MEMORY_UNAVAILABLE: [503, "같은 그림 찾기를 일시적으로 이용할 수 없습니다."],
+  MEMORY_INVITATION_EXPIRED: [409, "초대가 만료되었거나 방 상태가 변경되었습니다."],
+  MEMORY_INVITATION_BUSY: [409, "이미 응답을 기다리는 초대가 있습니다."],
   TETRIS_REPLAY_INVALID: [400, "플레이 기록을 검증하지 못했습니다."],
   TETRIS_RATE_LIMIT_EXCEEDED: [429, "테트리스 요청이 많습니다. 잠시 후 다시 시도해 주세요."],
   TETRIS_UNAVAILABLE: [503, "테트리스를 일시적으로 이용할 수 없습니다."],

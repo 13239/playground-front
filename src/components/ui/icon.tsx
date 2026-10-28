@@ -10,6 +10,10 @@ export const gearIcon = (
 );
 
 const paths = {
+  // 게임 로비의 참여코드·카드·랭킹도 기존 공통 SVG 좌표계와 선 굵기로 표시한다.
+  ticket: <><path d="M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4V6Z"/><path d="M15 7v2m0 2v2m0 2v2"/></>,
+  cards: <><rect x="7" y="4" width="13" height="17" rx="2"/><path d="m4 17-2-11a2 2 0 0 1 1.6-2.3L12 2M11 9h5m-5 4h5"/></>,
+  trophy: <><path d="M7 3h10v6a5 5 0 0 1-10 0V3ZM7 5H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4M12 14v5m-5 2h10m-8-2h6"/></>,
   // 전역 친구창의 방향 아이콘도 공통 벡터 좌표계와 선 굵기를 사용한다.
   arrowLeft: <path d="M20 12H4m7-7-7 7 7 7" />,
   chevronRight: <path d="m9 5 7 7-7 7" />,

@@ -1,5 +1,5 @@
 import "server-only";
-import { isPerson, isRoom, isSnapshot, type Person, type Room, type Page, type GomokuInvitation } from "../contracts";
+import { isPerson, isRoom, isSnapshot, type Person, type Room, type Page, type GomokuInvitation, type MemoryInvitation } from "../contracts";
 
 /** 응답에 새 내부 필드가 생겨도 브라우저에는 명시한 공개 필드만 전달한다. */
 function person(value: Person): Person {
@@ -9,6 +9,11 @@ function person(value: Person): Person {
     ...(value.online !== undefined ? { online: value.online } : {}),
     ...(value.blocked !== undefined ? { blocked: value.blocked } : {}),
   };
+}
+
+/** 새 카드 게임 초대도 명시적인 공개 필드만 복사한다. */
+export function publicMemoryInvitation(value:MemoryInvitation):MemoryInvitation {
+  return {id:value.id,roomId:value.roomId,roomTitle:value.roomTitle,inviter:person(value.inviter),target:person(value.target),expiresAt:value.expiresAt};
 }
 
 /** 오목 초대도 중첩 회원 엔티티·향후 서버 필드를 전개하지 않고 허용한 공개 값만 복사한다. */
@@ -48,6 +53,7 @@ export function publicSocialResponse(value: unknown): object {
     })),
     unreadNotifications: value.unreadNotifications, notificationBoundary: value.notificationBoundary,
     gomokuInvitations: value.gomokuInvitations?.map(publicGomokuInvitation) ?? [],
+    memoryInvitations: value.memoryInvitations?.map(publicMemoryInvitation) ?? [],
     ...(value.serverTime ? {serverTime:value.serverTime} : {}),
   };
   if (isPerson(value)) return person(value);

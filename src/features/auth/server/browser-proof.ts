@@ -26,7 +26,9 @@ export async function readBrowserProof(request: Request): Promise<BrowserRequest
   // 비밀번호 변경·회원탈퇴 원문도 로그인과 같이 빠른 증명 해시에서 제외한다.
   // 방 설정 변경의 새 비밀번호도 브라우저와 동일하게 빠른 해시에서 제외한다.
   const sensitiveBody = url.pathname === "/api/auth/login" || url.pathname === "/api/auth/password" || url.pathname === "/api/auth/withdrawal"
-    || url.pathname === "/api/gomoku/rooms" || url.pathname === "/api/gomoku/rooms/join" || url.pathname === "/api/gomoku/rooms/settings";
+    || url.pathname === "/api/gomoku/rooms" || url.pathname === "/api/gomoku/rooms/join" || url.pathname === "/api/gomoku/rooms/settings"
+    // 같은 그림 찾기의 방 비밀번호도 클라이언트와 같은 제외 정책으로 해시를 계산한다.
+    || url.pathname === "/api/memory/create" || url.pathname === "/api/memory/join";
   const credentialBody: Buffer[] = [];
   const hash = createHash("sha256");
   let size = 0;

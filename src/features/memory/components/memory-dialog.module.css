@@ -1,0 +1,60 @@
+/* 같은 그림 찾기 전용 캐릭터형 모달. 공통 dialog의 포커스·Escape·제목 연결을 재사용한다. */
+.dialog.dialog { width: min(calc(100% - 2rem), 30rem); max-height: calc(100dvh - 2rem); padding: 2.6rem 1.7rem 1.3rem; border-radius: 1.4rem; background: #fff; color: #261b44; }
+.dialog > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: .2rem; }
+.dialog.dialog h2 { margin: 0; padding-inline: .6rem; font-size: 1.5rem; line-height: 1.4; letter-spacing: -.04em; text-align: center; }
+.dialog button[aria-label="닫기"] { position: absolute; inset: .8rem .8rem auto auto; width: max(2.75rem, 44px); height: max(2.75rem, 44px); min-width: 44px; min-height: 44px; color: #89749f; background: #f3eeff; }
+.fox { display: block; width: 8rem; height: 8rem; object-fit: contain; margin: -.5rem auto .25rem; }
+.description { text-align: center; color: #8a789e; font-size: .85rem; line-height: 1.65; margin: .55rem 0 1.25rem; }
+.form { display: grid; gap: 1rem; }
+.field { display: grid; gap: .45rem; font-size: .9rem; font-weight: 600; }
+/* 모바일에서도 입력 글자를 16px 이상으로 유지해 읽기와 화면 키보드 조작을 보호한다. */
+.field input { width: 100%; min-width: 0; min-height: max(3rem, 44px); padding: .7rem .85rem; border: 1px solid #dfd2ee; border-radius: .75rem; background: #fff; color: #493460; font: inherit; font-size: max(1rem, 16px); font-weight: 400; }
+.field input::placeholder { color: #aa9bb8; }
+.privacySetting { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .9rem 1rem; border: 1px solid #efe7fb; border-radius: .85rem; background: #f7f2ff; }
+.privacyLabel { display: flex; align-items: center; gap: .7rem; }
+.privacyLabel > svg { width: 1.4rem; height: 1.4rem; color: #8f5bdc; flex-shrink: 0; }
+.privacyLabel > span { display: grid; gap: .25rem; }
+.privacyLabel strong { font-size: .9rem; }
+.privacyLabel small { color: #9785aa; font-size: .72rem; line-height: 1.5; }
+/* 작은 스위치 모양은 유지하면서 실제 버튼의 터치·포커스 영역은 44px 이상 확보한다. */
+.switch { position: relative; width: max(2.8rem, 44px); height: 44px; flex: 0 0 auto; border: 0; border-radius: .7rem; background: transparent; padding: 0; cursor: pointer; }
+.switch::before { content: ""; position: absolute; inset-inline: 0; top: 50%; height: 1.65rem; transform: translateY(-50%); border: 1px solid #d8c9ec; border-radius: 2rem; background: #ded4ec; }
+.switch[aria-checked="true"]::before { background: #8950e5; border-color: #8950e5; }
+.switch > span { position: absolute; left: .2rem; top: 50%; transform: translateY(-50%); width: 1.2rem; height: 1.2rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #35204725; }
+.switch[aria-checked="true"] > span { left: calc(100% - 1.4rem); }
+.submit { width: 100%; min-height: max(3rem, 44px); border-radius: .75rem; background: linear-gradient(115deg, #9657f4, #763ce9); border-color: transparent; }
+.cancel { min-height: max(2.75rem, 44px); justify-self: center; border: 0; background: none; color: #9987ab; font: inherit; font-size: .9rem; padding: .4rem 1.2rem; cursor: pointer; }
+.dialog button:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+/* 작은 화면의 기본 글꼴이 줄어도 44px 닫기 영역 아래에 제목 행을 확보한다. */
+.modeDialog.modeDialog { width: min(calc(100% - 2rem), 39rem); padding-top: calc(max(2.75rem, 44px) + 1.5rem); }
+.modeChoices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+.modeCard { display: flex; flex-direction: column; align-items: center; gap: .6rem; min-width: 0; padding: 1rem .8rem 1.2rem; border: 1px solid #e6d8fb; border-radius: 1rem; background: linear-gradient(#fdfbff, #f7f1ff); color: #35234f; font: inherit; cursor: pointer; }
+.modeCard:hover:not(:disabled) { background: #f4ebff; }
+.modeCard:disabled { opacity: .55; cursor: not-allowed; }
+.modeCard > strong { font-size: 1.1rem; }
+.modeCard > span:not(.characters) { color: #957da9; font-size: .8rem; line-height: 1.6; }
+.modeCard > b { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; color: #8a42ed; font-size: .85rem; margin-top: auto; padding-top: .35rem; }
+.modeCard > b svg { width: 1.1rem; height: 1.1rem; }
+.characters { display: flex; align-items: center; justify-content: center; width: 100%; height: 8.3rem; }
+.characters > span { width: 8.3rem; height: 8.3rem; flex-shrink: 0; }
+.characters[data-pair="true"] > span { width: 58%; height: 100%; }
+.characters[data-pair="true"] > span + span { margin-left: -12%; }
+.leaveCharacters { display: flex; justify-content: center; align-items: center; width: 14rem; max-width: 100%; height: 8rem; margin: 0 auto .6rem; }
+.leaveCharacters > span { width: 8.4rem; height: 8.4rem; flex-shrink: 0; }
+.leaveCharacters > span + span { margin-left: -1.2rem; }
+.leaveActions { display: grid; gap: .6rem; }
+.leaveActions > button { width: 100%; min-height: max(3rem, 44px); }
+@media (max-width: 480px) {
+  .dialog.dialog { padding-inline: 1.1rem; }
+  .dialog.dialog h2 { font-size: 1.3rem; }
+  .modeChoices { gap: .6rem; }
+  .modeCard { padding: .75rem .45rem 1rem; }
+  .modeCard > strong { font-size: .95rem; }
+  .modeCard > span:not(.characters) { font-size: .73rem; }
+  .modeCard > b { font-size: .75rem; }
+  .characters, .characters > span { height: 6rem; }
+  .characters > span { width: 6rem; }
+  .privacySetting { padding: .8rem; gap: .5rem; }
+}
+@media (max-width: 340px) { .modeChoices { grid-template-columns: minmax(0, 1fr); } }
+@media (max-height: 650px) { .fox { width: 5rem; height: 5rem; } .leaveCharacters { height: 5.5rem; } .leaveCharacters > span { width: 6rem; height: 6rem; } }

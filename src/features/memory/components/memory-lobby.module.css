@@ -1,0 +1,161 @@
+/* 승인된 A안은 로비에만 적용해 플레이 중 카드판과 공통 헤더의 크기·상호작용을 바꾸지 않는다. */
+.lobby {
+  display: grid;
+  gap: clamp(.85rem, 1.2vw, 1.25rem);
+  color: #201a45;
+  min-width: 0;
+}
+/* 경로는 배너의 첫 행에서 제공해 목록 버튼과 중복되지 않게 한다. */
+.breadcrumb { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; font-size: .8rem; color: #a17be1; }
+.breadcrumb a { color: inherit; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; text-underline-offset: .2em; }
+.breadcrumb svg { width: .9rem; height: .9rem; }
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding: clamp(1.25rem, 2vw, 2rem);
+  overflow: hidden;
+  border: 1px solid #e3d7ff;
+  border-radius: 1.25rem;
+  background: radial-gradient(ellipse at 90% 45%, #e6ddffb3, transparent 48%), linear-gradient(115deg, #f2edff, #fcf9ff 58%, #eee8ff);
+}
+.heroBody { position: relative; z-index: 1; min-width: 0; }
+.eyebrow { font-size: .75rem; font-weight: 750; letter-spacing: .14em; color: #9b76eb; }
+.hero h1 { font-size: clamp(2rem, 2.7vw, 3.25rem); line-height: 1.2; letter-spacing: -.065em; font-weight: 850; margin: .65rem 0 .8rem; color: #191338; overflow-wrap: anywhere; }
+.summary { color: #84749d; font-size: clamp(.9rem, 1vw, 1.05rem); line-height: 1.65; margin: 0 0 1.35rem; }
+.heroControls { display: flex; align-items: stretch; flex-wrap: wrap; gap: .6rem; }
+.primary.primary { border-color: transparent; background: linear-gradient(115deg, #9453ff, #6b36f5); box-shadow: 0 .3rem .7rem #793fee25; color: white; }
+.primary.primary:hover:not(:disabled) { background: linear-gradient(115deg, #8643f2, #5e2bdf); }
+.secondary.secondary { border-color: #cfb7ff; color: #8151e5; background: #fff; }
+.secondary.secondary:hover:not(:disabled) { background: #f6f0ff; }
+.start { min-height: 3.5rem; padding: .8rem 1.1rem; font-size: 1.1rem; border-radius: .85rem; }
+.start > svg:first-child { width: 1.5rem; height: 1.5rem; }
+.start > svg:last-child { margin-left: .25rem; width: 1.15rem; height: 1.15rem; }
+.ruleChips { display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
+.ruleChips > div { display: flex; align-items: center; gap: .5rem; padding: .6rem .7rem; background: #ffffffb5; border: 1px solid #ffffffd9; border-radius: .85rem; }
+.ruleChips svg { color: #8b55ef; flex: 0 0 auto; width: 1.4rem; height: 1.4rem; }
+.ruleChips span { display: grid; gap: .2rem; }
+.ruleChips strong { font-size: .76rem; font-weight: 700; white-space: nowrap; }
+.ruleChips small { font-size: .65rem; color: #9281a4; white-space: nowrap; }
+.heroArt { min-width: 0; }
+.heroArt > div { height: clamp(12rem, 16vw, 17rem); padding: 1.1rem .4rem; background: none; overflow: visible; gap: 3%; }
+.heroArt > div > span { width: min(30%, 11rem); border-radius: 1rem; box-shadow: 0 .8rem 1.8rem #9778bf1c; }
+.heroArt > div > span:nth-child(2) { transform: rotate(4deg) translateY(-.8rem); }
+.resume { display: inline-flex; align-items: center; gap: .2rem; color: #8056c3; font-size: .78rem; margin-top: .9rem; text-underline-offset: .2em; }
+.resume svg { width: 1em; height: 1em; }
+.availability { font-size: .8rem; margin: .8rem 0 0; color: #8b659c; }
+.panels { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: clamp(.85rem, 1.2vw, 1.25rem); align-items: stretch; }
+.panel { display: flex; flex-direction: column; min-width: 0; padding: clamp(1rem, 1.35vw, 1.4rem); border: 1px solid #e6e0f7; border-radius: 1.15rem; background: #fff; box-shadow: 0 .2rem 1rem #5d3b8a03; }
+.panelHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; }
+.panelTitle { display: flex; align-items: flex-start; gap: .65rem; min-width: 0; }
+.panelTitle > svg { color: #9965ef; width: 1.8rem; height: 1.8rem; flex: 0 0 auto; margin-top: .1rem; }
+.panelTitle h2 { font-size: 1.15rem; line-height: 1.4; margin: 0; letter-spacing: -.035em; color: #241b45; }
+.panelTitle p { margin: .3rem 0 0; color: #9a8bac; font-size: .75rem; line-height: 1.5; }
+.rankingTitle > svg { color: #efb243; }
+.roomActions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.roomActions button { min-height: 2.75rem; padding: .6rem .75rem; font-size: .78rem; border-radius: .7rem; }
+.roomActions svg { width: 1.1rem; height: 1.1rem; }
+.roomToolbar { display: flex; align-items: center; justify-content: space-between; gap: .5rem; border-bottom: 1px solid #f0eaf7; margin-top: .8rem; padding-bottom: .65rem; color: #aaa0b6; font-size: .7rem; }
+.refresh { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem; border: 0; background: none; color: #9b8da9; font: inherit; cursor: pointer; }
+.refresh svg { width: .9rem; height: .9rem; }
+.personal { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .85rem 1rem; margin-top: 1rem; background: #f4efff; border-radius: .8rem; font-size: .8rem; }
+.personal > span { font-weight: 600; }
+.personal > strong { color: #926bd0; font-variant-numeric: tabular-nums; }
+.personal > small { margin-inline-start: auto; color: #a08bb8; }
+.emptyState { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 13rem; text-align: center; padding: 1.2rem .4rem; }
+.emptyState h3 { margin: .75rem 0 .35rem; font-size: .95rem; font-weight: 650; letter-spacing: -.03em; }
+.emptyState > p { font-size: .75rem; color: #a293b2; line-height: 1.6; margin: 0; }
+.emptyCards { display: flex; align-items: center; justify-content: center; gap: .45rem; padding: .4rem 0; }
+.emptyCards > span { width: 4.1rem; height: 4.7rem; border: 3px solid #fff; border-radius: .65rem; background: #fff0f9; box-shadow: 0 0 0 1px #f9dfef, 0 .3rem .7rem #d9b3d624; transform: rotate(-12deg); }
+.emptyCards > span:last-child { background: #fff7ea; box-shadow: 0 0 0 1px #f3e5ce, 0 .3rem .7rem #ddcaaa24; transform: rotate(12deg); }
+.emptyCards > span > span { opacity: .72; }
+.rankingMascot { position: relative; width: 6.5rem; height: 6rem; }
+.rankingMascot > span:first-child { height: 5.5rem; }
+.rankingMascot > span:last-child { position: absolute; left: 1rem; right: 1rem; bottom: 0; height: 2rem; display: grid; place-items: center; border: 3px solid #fff; border-radius: .5rem; color: #ab8bd7; background: #eee6ff; box-shadow: 0 .15rem .4rem #d5c9ec42; }
+.rankingMascot svg { width: 1.4rem; height: 1.4rem; }
+.loading { padding: 3rem .5rem; text-align: center; font-size: .8rem; color: #9e8bad; }
+.roomList { display: grid; gap: .6rem; margin: .8rem 0; }
+.roomItem { display: flex; align-items: center; gap: .7rem; min-width: 0; padding: .65rem; border: 1px solid #eee7f7; border-radius: .75rem; font-size: .85rem; }
+.roomItem > strong { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roomItem > span:not(.roomIcon) { color: #a28fb4; font-size: .75rem; }
+.roomItem > button { font-size: .75rem; padding: .5rem .8rem; }
+.roomIcon { display: flex; padding: .55rem; background: #f4eefa; color: #ac88ce; border-radius: .6rem; }
+.roomIcon svg { width: 1.1rem; height: 1.1rem; }
+
+/* 기존 dialog의 제목 연결·포커스 제한을 유지하고, 선택한 캐릭터형 헤더만 이 팝업 안에서 재배치한다. */
+.joinDialog.joinDialog { width: min(calc(100% - 2rem), 27rem); max-height: calc(100dvh - 2rem); padding: 1.4rem 1.65rem 1rem; background: #fff; border-radius: 1.2rem; }
+.joinDialog > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; justify-items: center; gap: 0; }
+.joinDialog [data-dialog-illustration] { line-height: 0; }
+.joinFox { display: block; width: 11rem; height: 11rem; object-fit: contain; }
+.joinDialog.joinDialog h2 { font-size: 1.5rem; line-height: 1.35; margin: .2rem 0 0; letter-spacing: -.04em; color: #261b44; text-align: center; }
+.joinDialog button[aria-label="닫기"] { position: absolute; right: .8rem; top: .8rem; color: #8e80a3; }
+.joinDialog.joinDialog .joinDescription { text-align: center; font-size: .85rem; color: #9a89ac; margin: .55rem 0 1.1rem; line-height: 1.6; }
+.joinForm { display: grid; gap: .8rem; }
+.codeFrame { display: flex; align-items: center; gap: .65rem; min-height: 3.4rem; border: 1px solid #d9c7f3; border-radius: .7rem; background: #fff; padding-inline: .9rem; }
+.codeFrame > svg { width: 1.45rem; height: 1.45rem; flex: 0 0 auto; color: #8a54e7; }
+.joinDialog .codeFrame > input { flex: 1; min-width: 0; width: 100%; min-height: 0; border: 0; border-radius: 0; background: transparent; padding: .85rem 0; font-size: 1rem; color: #49356e; font-weight: 600; letter-spacing: .1em; }
+/* 공통 프레임이 포커스를 표시하므로 모달 내부 입력의 브라우저 기본 외곽선을 중복 표시하지 않는다. */
+.joinDialog .codeFrame > input:focus { outline: none; }
+.codeFrame input::placeholder { color: #b1a2c3; font-weight: 400; letter-spacing: 0; }
+.codeFrame:has([aria-invalid="true"]) { border-color: var(--control-error-color); }
+.joinForm > .primary { width: 100%; min-height: 3rem; font-size: 1rem; }
+.joinDialog.joinDialog .joinError { color: #b35370; background: #fff3f6; border-radius: .6rem; padding: .65rem; font-size: .8rem; line-height: 1.5; margin: 0; }
+.cancelJoin { justify-self: center; min-height: 2.75rem; padding: .4rem 1.4rem; border: 0; background: none; color: #a193b1; font: inherit; font-size: .9rem; }
+.cancelJoin:hover:not(:disabled) { color: #7c57ac; }
+.lobby button:focus-visible, .joinDialog.joinDialog button:focus-visible { outline: var(--control-focus-width) solid var(--control-focus-color); outline-offset: var(--control-focus-offset); }
+
+/* 데스크톱에서는 헤더·푸터를 제외한 실제 본문 여유 높이를 두 목록에 나눠 주고 푸터와 1rem만 띄운다.
+   인증 경계의 래퍼까지 높이를 연결하되, 내용이 많으면 자연스럽게 늘어나 가독성과 페이지 탐색을 유지한다. */
+@media (min-width: 1101px) and (min-height: 700px) {
+  :global(#memory-main):has(.lobby) { display: flex; flex-direction: column; padding-bottom: 1rem; }
+  :global(#memory-main) > div:has(> .lobby) { display: flex; flex-direction: column; flex: 1; }
+  .lobby { display: flex; flex-direction: column; flex: 1; }
+  .hero { flex-shrink: 0; }
+  .panels { flex: 1 0 auto; }
+}
+
+/* 입력·버튼의 최소 조작 크기를 지키고 중간 폭부터 패널과 제목 동작을 재배치한다. */
+@media (max-width: 1100px) {
+  .hero { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  .ruleChips { flex: 1 1 100%; }
+  .heroArt > div { height: 13rem; }
+  .panels { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  .roomActions { flex: 1 1 100%; }
+}
+@media (max-width: 760px) {
+  .hero { grid-template-columns: minmax(0, 1fr); gap: .4rem; padding: 1.25rem; }
+  .hero h1 { font-size: 2rem; }
+  .heroArt { grid-row: 2; }
+  .heroBody { grid-row: 3; }
+  .heroArt > div { height: 9rem; max-width: 25rem; margin-inline: auto; }
+  .heroArt > div > span { width: 27%; max-width: 7rem; }
+  .panels { grid-template-columns: minmax(0, 1fr); }
+  .start { flex: 1 1 100%; }
+  .ruleChips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ruleChips > div { flex-direction: column; gap: .4rem; padding: .6rem .35rem; text-align: center; }
+  .ruleChips strong { font-size: .7rem; white-space: normal; }
+  .ruleChips small { font-size: .6rem; white-space: normal; }
+  .ruleChips svg { width: 1.25rem; height: 1.25rem; }
+  .summary { font-size: .85rem; margin-bottom: 1rem; }
+  .panelHeader { gap: .75rem; }
+  .panelTitle h2 { font-size: 1.05rem; }
+  .roomActions > button { flex: 1; }
+  .emptyState { min-height: 12rem; }
+}
+@media (max-width: 400px) {
+  .hero { padding: 1rem; }
+  .hero h1 { font-size: 1.75rem; }
+  .ruleChips { gap: .3rem; }
+  .ruleChips small { display: none; }
+  .roomActions > button { padding-inline: .45rem; font-size: .75rem; }
+  .joinDialog.joinDialog { padding-inline: 1.1rem; }
+  .joinFox { width: 9rem; height: 9rem; }
+  .joinDialog.joinDialog h2 { font-size: 1.35rem; }
+  .joinDialog.joinDialog .joinDescription { font-size: .8rem; }
+}
+@media (max-height: 620px) {
+  .joinFox { width: 7rem; height: 7rem; }
+  .joinDialog.joinDialog { padding-top: .8rem; }
+}
