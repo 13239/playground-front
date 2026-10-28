@@ -7,7 +7,7 @@ import { useRetryCountdown } from "@/lib/client/use-retry-countdown";
 import styles from "../auth.module.css";
 
 /** 브라우저 키·최신 Redis 검증 후 로그인된 사용자는 홈으로 보낸다. 오래된 쿠키나 쿠키 존재만으로 이동하지 않는다. */
-export function GuestFormGate({ children }: { children: (ready: boolean) => ReactNode }) {
+export function GuestFormGate({ children, showAccessNotice = true }: { children: (ready: boolean) => ReactNode; showAccessNotice?: boolean }) {
   const state = useAuthSession();
   // 로그인·가입 폼도 공통 세션의 지연·제한 대기를 표시하며 입력값은 기존 DOM 안에 유지한다.
   const seconds = useRetryCountdown(state.status === "checking"
@@ -23,7 +23,8 @@ export function GuestFormGate({ children }: { children: (ready: boolean) => Reac
   return (
     <>
       {/* 긴 운영 안내도 기존 반응형 문구 스타일로 표시하며 HTML로 해석하지 않는다. */}
-      {state.status === "anonymous" && state.message && <p role="status" className={styles.formStatus}>{state.message}</p>}
+      {/* 로그인처럼 제출 결과를 확인창으로 보여 주는 화면은 저장된 운영 안내를 중복 표시하지 않는다. */}
+      {showAccessNotice && state.status === "anonymous" && state.message && <p role="status" className={styles.formStatus}>{state.message}</p>}
       {state.status !== "anonymous" && (
         <div aria-busy={state.status === "checking" || state.status === "error" && state.pending}>
           <p role={waiting ? undefined : "status"} className={styles.formStatus}>{state.status === "error" ? state.message : checkingMessage}</p>

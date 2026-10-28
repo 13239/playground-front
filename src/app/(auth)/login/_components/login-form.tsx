@@ -5,6 +5,7 @@ import { AuthRequestError, login } from "@/features/auth/client/api";
 import { Icon } from "../../_components/icon";
 import { NoticeButton } from "./notice-button";
 import { LoginReplacementDialog } from "./login-replacement-dialog";
+import { LoginRestrictionDialog } from "./login-restriction-dialog";
 import styles from "../../auth.module.css";
 
 const subscribe = () => () => {};
@@ -24,6 +25,8 @@ export function LoginForm({ ready }: { ready: boolean }) {
   const [retryUntil, setRetryUntil] = useState(0);
   const [retryRemaining, setRetryRemaining] = useState(0);
   const [confirmationRequired, setConfirmationRequired] = useState(false);
+  // 접속 제한은 일반 입력 오류와 분리해 관리자 안내를 확인창 한 곳에서만 표시한다.
+  const [restrictionMessage, setRestrictionMessage] = useState<string>();
   const submitting = useRef(false);
   // 비밀번호는 확인 팝업 동안에도 폼 안에만 유지하고 상태·저장소·로그에 복사하지 않는다.
   const formRef = useRef<HTMLFormElement>(null);
@@ -46,11 +49,12 @@ export function LoginForm({ ready }: { ready: boolean }) {
   }
 
   // 오류·취소 후에는 비밀번호를 지우고 모달이 닫힌 다음 실제 입력 필드로 포커스를 되돌린다.
-  function clearPassword() {
+  function clearPassword(restoreFocus = true) {
     const password = formRef.current?.elements.namedItem("password");
     if (password instanceof HTMLInputElement) {
       password.value = "";
-      requestAnimationFrame(() => { if (password.isConnected) password.focus(); });
+      // 제한 확인창이 열릴 때는 포커스를 옮기지 않고 사용자가 확인한 뒤 입력으로 돌려준다.
+      if (restoreFocus) requestAnimationFrame(() => { if (password.isConnected) password.focus(); });
     }
   }
 
@@ -58,6 +62,12 @@ export function LoginForm({ ready }: { ready: boolean }) {
     if (submitting.current) return;
     setConfirmationRequired(false);
     setStatus("로그인을 취소했어요. 기존 로그인은 유지됩니다.");
+    clearPassword();
+  }
+
+  // Escape와 확인 버튼은 안내만 닫으며 비밀번호 입력으로 돌아가 재시도할 수 있게 한다.
+  function dismissRestriction() {
+    setRestrictionMessage(undefined);
     clearPassword();
   }
 
@@ -70,6 +80,7 @@ export function LoginForm({ ready }: { ready: boolean }) {
     submitting.current = true;
     setPending(true);
     setStatus("");
+    setRestrictionMessage(undefined);
 
     // 자격 증명은 동일 Origin BFF에만 보내며 저장소·로그에 남기지 않는다.
     try {
@@ -90,6 +101,12 @@ export function LoginForm({ ready }: { ready: boolean }) {
         return;
       }
       setConfirmationRequired(false);
+      // 서버의 최신 권한 판정은 유지하고 공개된 차단 문구를 덧붙임 없이 평문으로 표시한다.
+      if (error instanceof AuthRequestError && error.code === "ACCESS_RESTRICTED") {
+        setRestrictionMessage(error.message);
+        clearPassword(false);
+        return;
+      }
       setStatus(error instanceof AuthRequestError ? error.message : "로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.");
       if (error instanceof AuthRequestError && error.retryAfterSeconds) {
         setRetryUntil(Date.now() + error.retryAfterSeconds * 1000);
@@ -209,6 +226,9 @@ export function LoginForm({ ready }: { ready: boolean }) {
           onCancel={cancelReplacement}
           onConfirm={() => { void submitLogin(true); }}
         />
+      )}
+      {restrictionMessage !== undefined && (
+        <LoginRestrictionDialog ready={ready} message={restrictionMessage} onClose={dismissRestriction} />
       )}
     </>
   );

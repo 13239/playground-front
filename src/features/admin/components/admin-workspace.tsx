@@ -28,7 +28,8 @@ const sections = [
   { key: "dashboard", name: "운영 대시보드", menuName: "대시보드", icon: "home", permissions: ["DASHBOARD_READ"], description: "오늘의 가입과 접속 흐름을 확인하세요." },
   { key: "users", name: "유저 관리", icon: "user", permissions: ["USER_READ"], description: "회원 정보와 계정 상태, 권한, 닉네임 변경 이력을 확인하세요." },
   { key: "roles", name: "권한 관리", icon: "users", permissions: ["ROLE_READ"], description: "역할별로 사용할 수 있는 기능을 설정하세요." },
-  { key: "operations", name: "운영 설정", icon: "gear", permissions: ["ACCESS_POLICY_READ"], description: "로그인과 기존 접속의 운영 정책을 관리하세요." },
+  // 가입 제한도 같은 운영 설정에서 관리하고 안내 문구는 로그인 차단에만 사용한다.
+  { key: "operations", name: "운영 설정", icon: "gear", permissions: ["ACCESS_POLICY_READ"], description: "로그인·회원가입과 기존 접속의 운영 정책을 관리하세요." },
   { key: "games", name: "게임 관리", icon: "gamepad", permissions: ["GAME_READ"], description: "게임 정보, 플레이 모드와 공개 상태를 관리하세요." },
   { key: "filters", name: "게임 필터 관리", icon: "grid", permissions: ["GAME_READ"], description: "장르 · 플레이 인원 · 그래픽을 한곳에서 관리하세요." },
   { key: "logs", name: "로그 조회", icon: "book", permissions: ["ACTIVITY_LOG_READ", "ADMIN_AUDIT_READ"], description: "사용자 활동과 관리자 작업 기록을 확인하세요." },

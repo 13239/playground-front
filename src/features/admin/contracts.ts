@@ -14,7 +14,8 @@ export const ROOT_ROLE_CODE = "ROOT";
 export type RoleSummary = Readonly<{ code: string; name: string; description: string | null; version: number }>;
 export type Role = RoleSummary & Readonly<{ editable: boolean; permissions: readonly PermissionCode[] }>;
 export type Page<T> = Readonly<{ items: readonly T[]; nextCursor: string | null }>;
-export type AccessPolicy = Readonly<{ enabled: boolean; message: string; exemptRoleCodes: readonly string[]; version: number; changedAt: string }>;
+// 저장된 허용 권한의 이름은 현재 목록 페이지와 분리해 유지한다.
+export type AccessPolicy = Readonly<{ enabled: boolean; signUpRestricted: boolean; message: string; exemptRoleCodes: readonly string[]; exemptRoles: readonly RoleSummary[]; version: number; changedAt: string }>;
 export type Genre = Readonly<{ code: string; name: string; enabled: boolean; sortOrder: number; version: number }>;
 // 플레이 모드의 표시 순서는 백엔드 구현 정의에서 결정한다.
 export type Mode = CatalogMode & Readonly<{ version: number; definitionVersion: number }>;
@@ -53,8 +54,13 @@ export function parseRole(v: unknown): Role {
   return { ...base, editable: v.editable, permissions: array(v.permissions, p => { assert(permission(p)); return p; }) };
 }
 export function parsePolicy(v: unknown): AccessPolicy {
-  assert(object(v) && typeof v.enabled === "boolean" && text(v.message, 300) && integer(v.version) && text(v.changedAt, 60) && Number.isFinite(Date.parse(v.changedAt)));
-  return { enabled: v.enabled, message: v.message, version: v.version, changedAt: v.changedAt, exemptRoleCodes: array(v.exemptRoleCodes, c => { assert(code(c)); return c; }) };
+  assert(object(v) && typeof v.enabled === "boolean" && typeof v.signUpRestricted === "boolean" && text(v.message, 300) && integer(v.version) && text(v.changedAt, 60) && Number.isFinite(Date.parse(v.changedAt)));
+  const exemptRoleCodes = array(v.exemptRoleCodes, c => { assert(code(c) && c !== ROOT_ROLE_CODE); return c; });
+  const exemptRoles = array(v.exemptRoles, parseRoleSummary);
+  // 잘못된 이름·코드 매핑이나 중복 선택을 BFF에서 통과시키지 않는다.
+  assert(new Set(exemptRoleCodes).size === exemptRoleCodes.length && exemptRoles.length === exemptRoleCodes.length
+    && new Set(exemptRoles.map(role => role.code)).size === exemptRoles.length && exemptRoles.every(role => exemptRoleCodes.includes(role.code)));
+  return { enabled: v.enabled, signUpRestricted: v.signUpRestricted, message: v.message, version: v.version, changedAt: v.changedAt, exemptRoleCodes, exemptRoles };
 }
 export function parseGenre(v: unknown): Genre {
   assert(object(v) && code(v.code) && text(v.name, 50) && typeof v.enabled === "boolean" && integer(v.sortOrder) && v.sortOrder <= 1000000 && integer(v.version));

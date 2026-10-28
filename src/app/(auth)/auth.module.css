@@ -462,6 +462,11 @@
   font-weight: 700;
 }
 
+/* 차단 확인창은 관리자가 저장한 문구의 공백을 유지하고 긴 내용은 기존 모달 안에서 줄바꿈한다. */
+.restrictionMessage {
+  white-space: pre-wrap;
+}
+
 /* 로그인 교체는 두 선택을 명확히 보여 주고 좁은 화면·큰 글자에서는 버튼을 자연스럽게 줄바꿈한다. */
 .dialogActions {
   display: flex;

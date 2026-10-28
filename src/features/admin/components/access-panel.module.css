@@ -1,0 +1,48 @@
+/* 공통 rem 배율 안에서 두 제한 스위치를 재배치하고 최소 조작 크기를 유지한다. */
+.switches { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 23rem), 1fr)); gap: 1rem; }
+.switches > label { flex-wrap: wrap; }
+.switches > label > span { flex: 1 1 10rem; min-width: 0; }
+.switches > label > input { margin-inline-start: auto; }
+.statuses { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+.count { display: inline-block; max-width: 100%; padding: .35rem .65rem; border-radius: .7rem; background: #f1eaff; color: #7c2ee8; font-size: .8rem; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+.picker { min-width: 0; container: access-picker / inline-size; }
+.panes { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); align-items: start; gap: 1rem; }
+.available, .selection { min-width: 0; border: 1px solid #e6def9; border-radius: .9rem; padding: 1rem; }
+.listHeading { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-bottom: .9rem; }
+.listHeading h3 { margin: 0; font-size: 1rem; color: #28204f; }
+.listHeading > span:not(.count) { color: #7d7596; font-size: .85rem; }
+.toolbar { display: grid; grid-template-columns: minmax(0, 1fr) 7rem; gap: .65rem; margin-bottom: .9rem; }
+.options { min-width: 0; margin: 0; padding: 0; border: 0; }
+/* 이름과 코드가 길어져도 셀 안에서 줄바꿈하며 행 전체가 선택 대상이 된다. */
+.row { display: grid; grid-template-columns: 1.25rem minmax(0, 1.1fr) minmax(0, 1fr); align-items: center; gap: .7rem; min-height: 2.8rem; padding: .55rem .75rem; border-bottom: 1px solid #f0ebfa; color: #342754; font-size: .9rem; line-height: 1.5; cursor: pointer; }
+.row input { margin: 0; }
+.row code, .roleName { min-width: 0; overflow-wrap: anywhere; }
+.row code { color: #7f7299; font-family: inherit; font-size: .82rem; }
+.row[data-selected="true"] { background: #f5efff; }
+.row[data-selected="true"] .roleName { font-weight: 650; }
+.columns { min-height: 2.5rem; border: 0; background: #f8f6fc; color: #76678e; font-size: .78rem; font-weight: 650; cursor: default; }
+/* 같은 폭의 좌우 열을 확보해 집계 문구 길이가 달라도 페이지 번호의 중앙을 유지한다. */
+.listFooter { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .5rem; margin-top: .8rem; }
+.range { margin: 0; color: #807495; font-size: .75rem; line-height: 1.5; overflow-wrap: anywhere; }
+.rootRole { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .75rem; padding: .9rem; border: 1px solid #e8ddff; border-radius: .75rem; background: #f7f2ff; }
+.rootRole > svg { flex-shrink: 0; width: 1.65rem; height: 1.65rem; margin-top: .2rem; color: #8032e8; }
+.rootRole > div { flex: 1 1 8rem; min-width: 0; }
+.rootRole strong { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; color: #30214e; font-size: 1rem; }
+.rootRole p, .selectionHint { margin: .5rem 0 0; color: #827397; font-size: .8rem; line-height: 1.6; overflow-wrap: anywhere; }
+/* 선택 수가 늘어도 패널을 무제한으로 늘리지 않고 선택 영역 안에서만 세로로 스크롤한다. */
+.selectedList { display: grid; gap: .5rem; max-height: 24rem; margin: 1rem 0 0; padding: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; list-style: none; }
+.selectedRole { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-width: 0; padding: .55rem .7rem; border: 1px solid #ece5f8; border-radius: .7rem; }
+.selectedRole > div { display: grid; gap: .2rem; min-width: 0; }
+.selectedRole strong { color: #392956; font-size: .9rem; line-height: 1.5; overflow-wrap: anywhere; }
+.selectedRole code { color: #8a7b9f; font: inherit; font-size: .75rem; overflow-wrap: anywhere; }
+.selectedRole button { display: grid; flex-shrink: 0; place-items: center; width: 2.5rem; min-height: 2.5rem; padding: .4rem; }
+.selectedRole svg { width: 1rem; height: 1rem; }
+.noSelection { padding: 1rem .25rem; color: #8a7b9f; font-size: .85rem; line-height: 1.8; }
+.actionRow { align-items: center; }
+.saveHint { flex: 1 1 13rem; margin: 0 auto 0 0; color: #897a9b; font-size: .8rem; line-height: 1.6; }
+/* 실제 패널 폭을 기준으로 두 목록을 세로로 재배치하고 모바일에서는 페이지 탐색을 별도 행에 둔다. */
+@container access-picker (width < 58rem) { .panes { grid-template-columns: minmax(0, 1fr); } .selectedList { max-height: 18rem; } }
+@container access-picker (width < 38rem) { .listFooter { grid-template-columns: minmax(0, 1fr); justify-items: center; } .range { justify-self: start; } }
+@container access-picker (width < 26rem) { .available, .selection { padding: .75rem; } .toolbar { grid-template-columns: minmax(0, 1fr); } .toolbar > :last-child { justify-self: end; width: 7rem; } .row { gap: .5rem; padding-inline: .4rem; font-size: .85rem; } }
+@media (hover: hover) { .row:not(.columns):hover { background: #f8f4ff; } }
+@media (forced-colors: active) { .row[data-selected="true"], .rootRole { outline: 1px solid Highlight; outline-offset: -1px; } }

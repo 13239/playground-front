@@ -118,8 +118,13 @@ function endpoint(segments: readonly string[], method: string): Endpoint {
     }
   }
   if (area === "access-policy" && method === "PUT") {
-    if (segments.length === 1) return { parse: parsePolicy, fields: ["enabled", "message", "expectedVersion", "reason"] };
+    // 가입 제한은 공개된 설정 필드만 전달하고 차단 안내 문구는 로그인 전용으로 유지한다.
+    if (segments.length === 1) return { parse: parsePolicy, fields: ["enabled", "signUpRestricted", "message", "expectedVersion", "reason"] };
     if (segments.length === 2 && code === "exemptions") return { parse: parsePolicy, fields: ["roleCodes", "expectedVersion", "reason"] };
+  }
+  // 접속 예외의 번호 목록은 ROOT를 제외하는 전용 경로로만 조회한다.
+  if (area === "access-policy" && code === "roles" && segments.length === 2 && method === "GET") {
+    return { parse: value => parseNumberedPage(value, parseRoleSummary), query: "catalog-grid" };
   }
   if (area === "games") {
     if (segments.length === 1 && method === "POST") return { parse: parseGame, fields: ["code", "metadata"] };
