@@ -1,14 +1,13 @@
 import "server-only";
-import { getAppOrigin } from "@/lib/server/env";
+import { getAppEnvironment, getAppOrigin } from "@/lib/server/env";
 
 /** CSP와 참가권 응답 검증이 같은 고정된 게임 서버 주소를 사용한다. */
 export function getShootingEndpoint(): string {
   const app = new URL(getAppOrigin());
-  const local =
-    ["localhost", "127.0.0.1", "[::1]"].includes(app.hostname) &&
-    app.port === "3000";
+  // 로컬은 Node 게임 서버(8082)에 직접 연결하고 dev/prod는 기존 동일 Origin 프록시를 사용한다.
+  const local = getAppEnvironment() === "local";
   const fallback = local
-    ? `${app.protocol === "https:" ? "wss" : "ws"}://${app.hostname}:9083`
+    ? `${app.protocol === "https:" ? "wss" : "ws"}://${app.hostname}:8082`
     : `${app.origin.replace(/^http/, "ws")}/game-realtime`;
   const endpoint = new URL(process.env.GAME_PUBLIC_URL || fallback);
   if (

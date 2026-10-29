@@ -97,7 +97,8 @@ export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomo
   // 호출자의 취소와 인증/스트림 연결 단계의 제한 시간을 합쳐 요청 전체를 중단할 수 있게 한다.
   // 로비는 폴링 없이 연결을 유지한다. 연결 수립 시한만 적용하고 이후에는 호출자의 취소만 따른다.
   const timeout = path === "/api/gomoku/rooms/state" ? 5_000 : 35_000;
-  const lobbyStream = path === "/api/gomoku/rooms/events";
+  // 슈팅도 인증한 변경 알림 연결을 유지하며 일반 API의 짧은 요청 기한과 분리한다.
+  const lobbyStream = path === "/api/gomoku/rooms/events" || path === "/api/shooting/events";
   const handshakeController = new AbortController();
   const requestTimeout = lobbyStream ? handshakeController.signal : AbortSignal.timeout(timeout);
   const handshakeTimer = lobbyStream ? setTimeout(() => handshakeController.abort(), timeout) : undefined;

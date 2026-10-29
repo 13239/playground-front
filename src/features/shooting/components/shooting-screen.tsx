@@ -17,6 +17,7 @@ import { BattleHud } from "./battle-hud";
 import { BattleMenus } from "./battle-menus";
 import { BattleDialog } from "./battle-dialog";
 import { Rankings } from "./rankings";
+import { ShootingNotice } from "./shooting-notice";
 import styles from "./shooting.module.css";
 
 /** 계정 변경·페이지 이탈 시 소켓과 렌더러를 함께 폐기한다. 다른 계정의 도전으로 이어지지 않는다. */
@@ -73,6 +74,8 @@ function ShootingGame({
   const [rankingOpen, setRankingOpen] = useState(false);
   const [rankingMode, setRankingMode] = useState<Mode>("SINGLE");
   const [help, setHelp] = useState(false);
+  const [sound, setSound] = useState(true);
+  const [inviteCode, setInviteCode] = useState<string>();
   const arena = useRef<HTMLElement>(null);
   const details = useGameDetails();
   const state = view.state,
@@ -88,10 +91,17 @@ function ShootingGame({
   }, []);
   useEffect(() => {
     const leaving = () => runtime.disconnect();
+    // 브라우저 자동 재생 정책을 지키며 키보드·터치·마우스의 첫 조작으로 효과음을 활성화한다.
+    const unlock = () => runtime.audio.unlock();
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    window.addEventListener("keydown", unlock);
     window.addEventListener("pagehide", leaving);
     return () => {
       window.removeEventListener("pagehide", leaving);
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
       runtime.disconnect();
+      runtime.audio.close();
     };
   }, [runtime]);
   useEffect(() => {
@@ -109,7 +119,8 @@ function ShootingGame({
       attemptedRoom.current = roomCode;
       setMode("COOP");
       router.replace("/games/shooting", { scroll: false });
-      void runtime.connect(sessionId, "COOP", roomCode);
+      // 초대 링크에도 비밀방 비밀번호가 필요하다. URL에는 비밀번호를 담지 않는다.
+      setInviteCode(roomCode);
     });
     return () => {
       cancelled = true;
@@ -154,6 +165,17 @@ function ShootingGame({
           <h1>{details.game?.name ?? "슈팅 서바이벌"}</h1>
         </div>
         <div className={styles.topActions}>
+          <button
+            aria-pressed={sound}
+            onClick={() => {
+              const enabled = !sound;
+              setSound(enabled);
+              runtime.audio.setEnabled(enabled);
+            }}
+          >
+            <Icon name={sound ? "volume" : "volumeOff"} />
+            소리 {sound ? "켜짐" : "꺼짐"}
+          </button>
           <button
             onClick={() => {
               if (
@@ -213,8 +235,11 @@ function ShootingGame({
             mode={mode}
             setMode={setMode}
             message={view.message}
-            connect={(selected, code) =>
-              void runtime.connect(sessionId, selected, code)
+            dismissMessage={() => runtime.dismissMessage()}
+            initialRoomCode={inviteCode}
+            clearInitialRoom={() => setInviteCode(undefined)}
+            connect={(selected, code, settings) =>
+              void runtime.connect(sessionId, selected, code, settings)
             }
           />
         )}
@@ -243,9 +268,11 @@ function ShootingGame({
           </BattleDialog>
         )}
         {view.message && view.connection === "connected" && (
-          <p className={styles.notice} role="status">
-            {view.message}
-          </p>
+          <ShootingNotice
+            className={styles.notice}
+            message={view.message}
+            dismiss={() => runtime.dismissMessage()}
+          />
         )}
         {help && (
           <BattleDialog title="조작 안내" close={() => setHelp(false)}>
@@ -254,8 +281,8 @@ function ShootingGame({
               <b>W A S D / 방향키</b>
               <span>조준 · 사격</span>
               <b>마우스 · 왼쪽 버튼 길게</b>
-              <span>대시 / 스킬</span>
-              <b>Space / Q · E</b>
+              <span>대시</span>
+              <b>Space</b>
               <span>무적 아이템</span>
               <b>V</b>
               <span>자기 / 아군 부활</span>

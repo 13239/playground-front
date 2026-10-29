@@ -73,8 +73,7 @@ export function Battlefield({ runtime }: { runtime: ShootingRuntime }) {
       if (!pressed || event.repeat) return;
       const actions = {
         Space: { type: "dash" },
-        KeyQ: { type: "skill", slot: 0 },
-        KeyE: { type: "skill", slot: 1 },
+        // 전투 입력은 이동·대시와 소모 아이템만 제공한다.
         KeyV: { type: "invul" },
         KeyR: { type: "revive", target: "self" },
         KeyF: { type: "revive", target: "ally" },

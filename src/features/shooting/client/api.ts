@@ -63,3 +63,57 @@ export async function readRankings(
     throw new AuthRequestError("게임 순위를 확인하지 못했습니다.", 502);
   return value;
 }
+
+/** 인증된 변경 알림을 처리하고 비밀번호·방 상세는 별도 조회로만 받는다. */
+export async function watchShootingLobby(
+  sessionId: string,
+  signal: AbortSignal,
+  onEvent: (type: "ready" | "changed") => void,
+): Promise<void> {
+  signal.throwIfAborted();
+  const response = await requestAuthenticatedApi(
+    "/api/shooting/events",
+    { sessionId },
+    signal,
+  );
+  if (
+    !response.body ||
+    !response.headers.get("Content-Type")?.startsWith("text/event-stream")
+  ) {
+    throw new AuthRequestError("로비 변경 알림에 연결하지 못했습니다.", 502);
+  }
+  const reader = response.body.getReader();
+  const cancel = () => {
+    void reader.cancel().catch(() => {});
+  };
+  signal.addEventListener("abort", cancel, { once: true });
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (!signal.aborted) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      // 분할된 CRLF까지 처리하고 서버에서 전달된 명시적인 이벤트 이름 외에는 무시한다.
+      buffer = (buffer + decoder.decode(value, { stream: true })).replaceAll(
+        "\r\n",
+        "\n",
+      );
+      if (buffer.length > 16_384)
+        throw new AuthRequestError("로비 알림을 확인하지 못했습니다.", 502);
+      let end: number;
+      while ((end = buffer.indexOf("\n\n")) >= 0) {
+        const event = buffer.slice(0, end);
+        buffer = buffer.slice(end + 2);
+        const lines = event.split("\n");
+        if (lines.some((line) => /^event:\s*changed$/.test(line)))
+          onEvent("changed");
+        else if (lines.some((line) => /^event:\s*ready$/.test(line)))
+          onEvent("ready");
+      }
+    }
+  } finally {
+    signal.removeEventListener("abort", cancel);
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}

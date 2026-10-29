@@ -6,8 +6,12 @@ import { SearchInput } from "@/components/ui/search-input";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { NumberedPagination } from "@/features/admin/components/numbered-pagination";
 import { AuthRequestError } from "@/features/auth/client/api";
-import { readShootingRooms } from "../client/api";
-import type { ShootingRooms } from "../contracts";
+import { readShootingRooms, watchShootingLobby } from "../client/api";
+import type { ShootingRooms, ShootingRoomSummary } from "../contracts";
+import type { RoomOptions } from "../client/runtime";
+import { ShootingCreateRoom } from "./shooting-create-room";
+import { JoinRoomDialog } from "./join-room-dialog";
+import { ShootingNotice } from "./shooting-notice";
 import { ShootingCover } from "./shooting-cover";
 import styles from "./lobby.module.css";
 
@@ -18,15 +22,39 @@ export function ShootingLobby({
   setMode,
   connect,
   message,
+  dismissMessage,
+  initialRoomCode,
+  clearInitialRoom,
 }: {
   sessionId: string;
   mode: Mode;
   setMode: (mode: Mode) => void;
-  connect: (mode: Mode, code?: string) => void;
+  connect: (mode: Mode, code?: string, settings?: RoomOptions) => void;
   message: string;
+  dismissMessage(): void;
+  initialRoomCode?: string;
+  clearInitialRoom(): void;
 }) {
   const [code, setCode] = useState("");
   const [showCode, setShowCode] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState<{
+    code: string;
+    title: string;
+    optional?: boolean;
+  }>();
+  const selectedRoom =
+    joining ??
+    (initialRoomCode
+      ? { code: initialRoomCode, title: "초대받은 방 참가", optional: true }
+      : undefined);
+  if (creating)
+    return (
+      <ShootingCreateRoom
+        cancel={() => setCreating(false)}
+        create={(settings) => connect("COOP", undefined, settings)}
+      />
+    );
   return (
     <div className={styles.lobby}>
       <div className={styles.modeTabs} aria-label="플레이 모드">
@@ -52,11 +80,7 @@ export function ShootingLobby({
           ? "함께 더 높은 스테이지에 도전하세요."
           : "정밀한 조준과 과감한 회피로 최고 기록에 도전하세요."}
       </p>
-      {message && (
-        <p className={styles.error} role="alert">
-          {message}
-        </p>
-      )}
+      {message && <ShootingNotice message={message} dismiss={dismissMessage} />}
       <div className={styles.content} data-solo={mode === "SINGLE"}>
         <aside className={styles.introduction}>
           <div className={styles.cover}>
@@ -97,7 +121,8 @@ export function ShootingLobby({
               className={styles.codeForm}
               onSubmit={(event) => {
                 event.preventDefault();
-                if (/^[A-Z2-9]{8}$/.test(code)) connect("COOP", code);
+                if (/^[A-Z2-9]{8}$/.test(code))
+                  setJoining({ code, title: "방 코드로 참가", optional: true });
               }}
             >
               <label htmlFor="shooting-code">8자리 방 코드</label>
@@ -135,21 +160,41 @@ export function ShootingLobby({
         {mode === "COOP" && (
           <RoomBrowser
             sessionId={sessionId}
-            connect={(code) => connect("COOP", code)}
+            create={() => setCreating(true)}
+            join={(room) =>
+              room.privateRoom
+                ? setJoining({ code: room.id, title: room.title })
+                : connect("COOP", room.id)
+            }
           />
         )}
       </div>
+      {selectedRoom && (
+        <JoinRoomDialog
+          {...selectedRoom}
+          close={() => {
+            setJoining(undefined);
+            clearInitialRoom();
+          }}
+          join={(password) => {
+            connect("COOP", selectedRoom.code, { password });
+            clearInitialRoom();
+          }}
+        />
+      )}
     </div>
   );
 }
 
-/** 보이는 대기실만 5초 간격으로 갱신하고 숨은 탭·전투 중에는 조회를 중지한다. */
+/** 변경 알림으로 즉시 갱신한다. 유실 알림 복구를 위한 낮은 빈도의 조회는 보이는 탭에서만 수행한다. */
 function RoomBrowser({
   sessionId,
-  connect,
+  create,
+  join,
 }: {
   sessionId: string;
-  connect: (code?: string) => void;
+  create(): void;
+  join(room: ShootingRoomSummary): void;
 }) {
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
@@ -162,6 +207,45 @@ function RoomBrowser({
     error?: string;
   }>();
   const key = `${sessionId}:${page}:${search}:${friendsOnly}`;
+  useEffect(() => {
+    const controller = new AbortController();
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let retry = 0;
+    // 변경 폭주를 합쳐 서버의 사용자별 목록 조회 예산을 지킨다. 필터와 현재 페이지는 유지한다.
+    const changed = () => {
+      if (refreshTimer) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = undefined;
+        if (!document.hidden) setEpoch((v) => v + 1);
+      }, 750);
+    };
+    const listen = async () => {
+      try {
+        await watchShootingLobby(sessionId, controller.signal, () => {
+          retry = 0;
+          changed();
+        });
+      } catch (error) {
+        if (
+          controller.signal.aborted ||
+          (error instanceof AuthRequestError && error.status === 401)
+        )
+          return;
+      }
+      if (!controller.signal.aborted)
+        retryTimer = setTimeout(
+          () => void listen(),
+          Math.min(10_000, 1000 * 2 ** retry++),
+        );
+    };
+    void listen();
+    return () => {
+      controller.abort();
+      clearTimeout(refreshTimer);
+      clearTimeout(retryTimer);
+    };
+  }, [sessionId]);
   useEffect(() => {
     let stopped = false;
     let controller: AbortController | undefined;
@@ -192,7 +276,7 @@ function RoomBrowser({
           });
       } finally {
         if (!stopped && !signal.aborted)
-          timer = setTimeout(() => void load(), 5000);
+          timer = setTimeout(() => void load(), 30_000);
       }
     };
     const visible = () => {
@@ -223,7 +307,7 @@ function RoomBrowser({
               : "온라인 2인 협동"}
           </small>
         </div>
-        <button className={styles.primary} onClick={() => connect()}>
+        <button className={styles.primary} onClick={create}>
           <Icon name="plus" />방 만들기
         </button>
       </div>
@@ -269,9 +353,10 @@ function RoomBrowser({
         </button>
       </div>
       {current?.error ? (
-        <p className={styles.error} role="alert">
-          {current.error}
-        </p>
+        <ShootingNotice
+          message={current.error}
+          dismiss={() => setResult({ key, data: current.data })}
+        />
       ) : !current?.data ? (
         <p className={styles.empty} role="status">
           방 목록을 불러오고 있어요.
@@ -294,7 +379,14 @@ function RoomBrowser({
                 <ProfileAvatar avatarId={room.avatar} size={48} />
               </span>
               <div className={styles.identity}>
-                <strong>{room.title}</strong>
+                <strong>
+                  {room.title}
+                  {room.privateRoom && (
+                    <span className={styles.roomLock} aria-label="비밀방">
+                      <Icon name="lock" />
+                    </span>
+                  )}
+                </strong>
                 <small>
                   {room.nickname}
                   {room.friend && <b>친구</b>}
@@ -306,7 +398,7 @@ function RoomBrowser({
               </span>
               <button
                 className={styles.joinButton}
-                onClick={() => connect(room.id)}
+                onClick={() => join(room)}
                 aria-label={`${room.nickname}님의 방 참가`}
               >
                 참가

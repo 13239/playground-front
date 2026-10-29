@@ -5,6 +5,13 @@ import {
   type PlayerView,
 } from "@playground/shooting-shared";
 import type { ShootingRuntime } from "../client/runtime";
+import { drawEnemy } from "./enemy-art";
+import {
+  drawEffect,
+  drawEnemyWarning,
+  drawHazard,
+  drawShield,
+} from "./combat-effects";
 
 /** 전투는 고정 월드 좌표를 사용하고 화면의 가로·세로 비율만 카메라에 반영한다. DOM에는 매 프레임 상태를 전달하지 않는다. */
 export function createArena(
@@ -90,10 +97,10 @@ export function createArena(
             .fillRect(x + i * 20, 32, 18, 6)
             .fillRect(x + i * 20, 922, 18, 6);
       }
+      // 중앙 바닥 장식도 얇은 십자선으로 정리해 전투 효과와 혼동하지 않게 한다.
       g.lineStyle(2, 0x80c3cf, 0.1)
-        .strokeCircle(800, 480, 150)
-        .strokeCircle(800, 480, 155);
-      g.lineBetween(765, 480, 835, 480).lineBetween(800, 445, 800, 515);
+        .lineBetween(765, 480, 835, 480)
+        .lineBetween(800, 445, 800, 515);
     }
     private buildProps(state: GameSnapshot): void {
       const g = this.props.clear();
@@ -157,25 +164,8 @@ export function createArena(
       const g = this.actors.clear(),
         fx = this.overlays.clear();
       const seen = new Set<string>();
-      for (const hazard of Object.values(state.hazards)) {
-        const pulse = 0.3 + Math.sin(this.elapsed * 14) * 0.1;
-        g.fillStyle(0xff624b, pulse).fillCircle(
-          hazard.x,
-          hazard.y,
-          hazard.radius,
-        );
-        g.lineStyle(2, 0xff8c61, 0.8).strokeCircle(
-          hazard.x,
-          hazard.y,
-          hazard.radius,
-        );
-        g.lineBetween(
-          hazard.x - 10,
-          hazard.y,
-          hazard.x + 10,
-          hazard.y,
-        ).lineBetween(hazard.x, hazard.y - 10, hazard.x, hazard.y + 10);
-      }
+      for (const hazard of Object.values(state.hazards))
+        drawHazard(g, hazard, this.elapsed);
       for (const pickup of Object.values(state.pickups)) {
         const colors = {
           xp: 0x6aafff,
@@ -217,69 +207,23 @@ export function createArena(
           { x, y } = position,
           r = enemy.radius;
         if (enemy.spawnRemaining > 0) {
-          g.lineStyle(2, 0xff685e, 0.65)
-            .strokeCircle(x, y, r + 12)
-            .lineBetween(x - 8, y - 8, x + 8, y + 8)
-            .lineBetween(x + 8, y - 8, x - 8, y + 8);
+          // 생성 예고는 바닥 모서리 표식으로 통일하고 원형 테두리를 쌓지 않는다.
+          g.lineStyle(2, 0xff887c, 0.65).strokeRect(
+            x - r - 6,
+            y - r - 6,
+            (r + 6) * 2,
+            (r + 6) * 2,
+          );
+          g.lineBetween(x - 7, y - 7, x + 7, y + 7).lineBetween(
+            x + 7,
+            y - 7,
+            x - 7,
+            y + 7,
+          );
           continue;
         }
-        if (enemy.warning > 0) {
-          g.lineStyle(enemy.boss ? 8 : 4, 0xff7854, 0.3).lineBetween(
-            x,
-            y,
-            enemy.targetX,
-            enemy.targetY,
-          );
-          g.lineStyle(2, 0xffa96a, 0.65).strokeCircle(x, y, r + 6);
-        }
-        const color = enemy.boss
-          ? 0xe8a657
-          : enemy.kind === "shield"
-            ? 0x7f9ca6
-            : enemy.kind === "shooter"
-              ? 0xb382cb
-              : enemy.kind === "artillery"
-                ? 0xb8a169
-                : 0xc05d63;
-        g.fillStyle(0x05080d, 0.5).fillEllipse(x + 2, y + r * 0.65, r * 2.5, r);
-        g.fillStyle(0x111922).fillRoundedRect(
-          x - r,
-          y - r,
-          r * 2,
-          r * 2,
-          enemy.boss ? 9 : 5,
-        );
-        g.fillStyle(color).fillRoundedRect(
-          x - r + 3,
-          y - r + 2,
-          r * 2 - 6,
-          r * 1.6,
-          4,
-        );
-        g.fillStyle(0x39434e).fillRect(
-          x - r * 0.45,
-          y - r * 0.45,
-          r * 0.9,
-          r * 0.9,
-        );
-        g.fillStyle(0xff5d54).fillRect(
-          x - r * 0.35,
-          y - r * 0.25,
-          r * 0.7,
-          r * 0.2,
-        );
-        const angle = enemy.angle;
-        g.lineStyle(enemy.boss ? 9 : 5, 0x121b24).lineBetween(
-          x,
-          y,
-          x + Math.cos(angle) * r * 1.5,
-          y + Math.sin(angle) * r * 1.5,
-        );
-        if (enemy.kind === "shield")
-          g.lineStyle(7, 0x9bb6c6)
-            .beginPath()
-            .arc(x, y, r + 5, angle - 1, angle + 1)
-            .strokePath();
+        drawEnemyWarning(g, enemy, x, y);
+        drawEnemy(g, enemy, x, y, this.elapsed);
         if (enemy.hp < enemy.maxHp && !enemy.boss) {
           g.fillStyle(0x090e16).fillRect(x - r, y - r - 9, r * 2, 3);
           g.fillStyle(0xf08079).fillRect(
@@ -338,7 +282,10 @@ export function createArena(
         label
           .setPosition(x, y - 40)
           .setText(
-            `${own ? "YOU · " : ""}${player.nickname}${!player.alive ? " · 구조 대기" : ""}`,
+            // 내 표식은 닉네임·상태 문구 없이 '나'만 표시하고 구조 상태는 HUD에서 안내한다.
+            own
+              ? "나"
+              : `${player.nickname}${!player.alive ? " · 구조 대기" : ""}`,
           )
           .setVisible(!player.departed);
       }
@@ -347,27 +294,8 @@ export function createArena(
           label.destroy();
           this.labels.delete(id);
         }
-      for (const effect of Object.values(state.effects)) {
-        const alpha = Math.min(1, effect.life * 3),
-          color =
-            effect.kind === "hit"
-              ? 0xffa47b
-              : effect.kind === "heal"
-                ? 0x5eeaa8
-                : effect.kind === "shockwave"
-                  ? 0x9bbcff
-                  : 0xffbf76;
-        fx.lineStyle(3, color, alpha).strokeCircle(
-          effect.x,
-          effect.y,
-          Math.max(3, effect.radius * (1.3 - alpha * 0.3)),
-        );
-        fx.fillStyle(color, alpha * 0.08).fillCircle(
-          effect.x,
-          effect.y,
-          effect.radius,
-        );
-      }
+      // 처치·폭발·회복·부활·무적·클리어는 의미별 전용 모션을 사용한다.
+      for (const effect of Object.values(state.effects)) drawEffect(fx, effect);
       if (
         matchMedia("(pointer: fine)").matches &&
         state.phase === "combat" &&
@@ -414,19 +342,23 @@ export function createArena(
       const color = own ? 0x66c7fa : 0x69e3b5;
       if (!player.alive) {
         g.lineStyle(3, 0xfac679, 0.8)
-          .strokeCircle(x, y, 19)
+          .strokeRoundedRect(x - 17, y - 17, 34, 34, 4)
           .lineBetween(x - 7, y - 7, x + 7, y + 7)
           .lineBetween(x + 7, y - 7, x - 7, y + 7);
         return;
       }
       g.fillStyle(0x03070c, 0.5).fillEllipse(x + 2, y + 17, 48, 20);
-      if (player.guardRemaining > 0 || player.protection > 0)
-        g.lineStyle(
-          2.5,
-          player.guardRemaining > 0 ? 0x6be9ba : 0xbb9cff,
-          0.75,
-        ).strokeCircle(x, y, 29 + Math.sin(this.elapsed * 7) * 2);
-      g.lineStyle(2, color, 0.4).strokeCircle(x, y, 24);
+      // 보호 상태는 육각 장갑, 일반 캐릭터는 실루엣만 보여 중첩 원을 줄인다.
+      if (player.protection > 0)
+        drawShield(g, x, y, 29, 0.65 + Math.sin(this.elapsed * 7) * 0.1);
+      if (player.dashRemaining > 0) {
+        g.lineStyle(5, color, 0.35).lineBetween(
+          x - player.vx * 0.04,
+          y - player.vy * 0.04,
+          x,
+          y,
+        );
+      }
       g.fillStyle(0x1b3448).fillRoundedRect(x - 16, y - 18, 32, 34, 8);
       g.fillStyle(color).fillRoundedRect(x - 13, y - 17, 26, 26, 7);
       g.fillStyle(0x203d50).fillRoundedRect(x - 10, y - 12, 20, 12, 4);

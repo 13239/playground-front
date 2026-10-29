@@ -31,6 +31,7 @@ export interface ShootingOverview {
 }
 /** 공개 방 목록은 초대용 방 번호와 표시 정보만 포함하고 계정·세션 내부 값은 포함하지 않는다. */
 export interface ShootingRoomSummary {
+  privateRoom: boolean;
   id: string;
   title: string;
   hostPublicId: string;
@@ -67,7 +68,7 @@ export function isShootingRooms(value: unknown): value is ShootingRooms {
         [...row.nickname].length <= 50 &&
         isProfileAvatarId(row.avatar) &&
         typeof row.friend === "boolean" &&
-        row.players === 1,
+        row.players === 1 && typeof row.privateRoom === "boolean",
     )
   );
 }

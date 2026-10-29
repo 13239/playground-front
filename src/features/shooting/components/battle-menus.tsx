@@ -2,21 +2,21 @@
 import { useState } from "react";
 import {
   formatTime,
-  SKILL_IDS,
-  UPGRADE_IDS,
+  BALANCE,
+  WEAPON_UPGRADES,
+  canUpgrade,
+  upgradePreview,
   UPGRADES,
   WEAPONS,
   type GameSnapshot,
   type PlayerView,
-  type SkillId,
   type WeaponId,
 } from "@playground/shooting-shared";
-import { Icon } from "@/components/ui/icon";
-import { Select } from "@/components/ui/select";
 import type { ShootingRuntime } from "../client/runtime";
 import { BattleDialog } from "./battle-dialog";
 import { ShootingWaitingRoom } from "./shooting-waiting-room";
 import { UpgradeIcon } from "./upgrade-icon";
+import { WeaponArtwork } from "./weapon-artwork";
 import styles from "./shooting.module.css";
 
 export function BattleMenus({
@@ -33,7 +33,6 @@ export function BattleMenus({
   sessionId: string;
 }) {
   const [weapon, setWeapon] = useState<WeaponId>("rifle");
-  const [slot, setSlot] = useState<0 | 1>(0);
   const [leave, setLeave] = useState(false);
   if (leave)
     return (
@@ -121,6 +120,9 @@ export function BattleMenus({
   if (state.phase === "lobby")
     return (
       <BattleDialog title="시작 무기를 선택하세요" eyebrow="SOLO SURVIVAL">
+        <p className={styles.dialogSub}>
+          선택한 총은 이번 도전이 끝날 때까지 유지됩니다.
+        </p>
         <WeaponChoices
           weapon={weapon}
           setWeapon={setWeapon}
@@ -145,63 +147,46 @@ export function BattleMenus({
         eyebrow={`LEVEL ${state.level} · ${Math.ceil(state.deadline)}초`}
         wide
       >
+        {/* 기본 능력은 자동 성장하며 현재 총 전용 강화 세 개만 선택한다. */}
         <p className={styles.dialogSub}>
-          레벨업마다 하나를 선택하세요. 시간 초과 시 무작위로 강화됩니다.
+          레벨당 공격력 +{BALANCE.growth.damage * 100}% · 체력 +{BALANCE.growth.health}{" "}
+          · 방어력 +{BALANCE.growth.armor} 자동 성장
+          <br />
+          {WEAPONS[player.weapon].name} 강화 하나를 선택하세요. 시간 초과 시
+          가능한 강화 중 하나가 선택됩니다.
         </p>
         {player.choiceDone ? (
           <div className={styles.waiting}>선택 완료 · 잠시 후 전투 재개</div>
         ) : (
           <div className={styles.upgradeChoices}>
             <div className={styles.upgradeGrid}>
-              {UPGRADE_IDS.map((id) => (
+              {WEAPON_UPGRADES[player.weapon].map((id) => (
                 <button
                   key={id}
                   className={styles.upgrade}
+                  disabled={!canUpgrade(id, player.upgrades)}
                   onClick={() =>
-                    runtime.action({
-                      type: "upgrade",
-                      upgrade: id,
-                      ...(SKILL_IDS.includes(id as SkillId) &&
-                      !player.skills.includes(id as SkillId) &&
-                      player.skills.length >= 2
-                        ? { slot }
-                        : {}),
-                    })
+                    runtime.action({ type: "upgrade", upgrade: id })
                   }
                 >
                   <div>
                     <UpgradeIcon id={id} />
-                    <span>{UPGRADES[id].category}</span>
-                    <b>
-                      Lv.{player.upgrades[id]} → {player.upgrades[id] + 1}
-                    </b>
+                    <span>무기 강화</span>
+                    <b>Lv.{player.upgrades[id]}</b>
                   </div>
                   <strong>{UPGRADES[id].name}</strong>
+                  <em className={styles.upgradeValue}>
+                    {upgradePreview(
+                      player.weapon,
+                      player.upgrades,
+                      state.level,
+                      id,
+                    )}
+                  </em>
                   <small>{UPGRADES[id].description}</small>
                 </button>
               ))}
             </div>
-            {player.skills.length >= 2 && (
-              <div className={styles.slotChoice}>
-                <span>새 스킬을 배울 때 교체할 슬롯</span>
-                {([0, 1] as const).map((index) => (
-                  <button
-                    key={index}
-                    aria-pressed={slot === index}
-                    onClick={() => setSlot(index)}
-                  >
-                    {index === 0 ? "Q" : "E"} ·{" "}
-                    {UPGRADES[player.skills[index]].name}
-                  </button>
-                ))}
-              </div>
-            )}
-            <Equipment
-              player={player}
-              equip={(skill, index) =>
-                runtime.action({ type: "equip", skill, slot: index })
-              }
-            />
           </div>
         )}
         <button
@@ -211,15 +196,6 @@ export function BattleMenus({
           선택 일시정지
         </button>
       </BattleDialog>
-    );
-  if (state.phase === "refit")
-    return (
-      <Refit
-        key={`${state.stage}:${player.id}`}
-        runtime={runtime}
-        state={state}
-        player={player}
-      />
     );
   if (state.phase === "over")
     return (
@@ -237,60 +213,17 @@ export function BattleMenus({
           <br />
           스테이지가 높을수록, 같은 스테이지에서는 빠를수록 높은 순위입니다.
         </p>
-        <button className={styles.primary} onClick={() => runtime.disconnect()}>
-          결과 확인 · 새 도전
+        <button
+          className={styles.primary}
+          disabled={player.vote}
+          onClick={() => runtime.action({ type: "replay" })}
+        >
+          {player.vote ? "팀원의 다시하기를 기다리고 있어요" : "다시하기"}
         </button>
+        <button onClick={() => void runtime.disconnect()}>나가기</button>
       </BattleDialog>
     );
   return null;
-}
-function Refit({
-  runtime,
-  state,
-  player,
-}: {
-  runtime: ShootingRuntime;
-  state: GameSnapshot;
-  player: PlayerView;
-}) {
-  const [weapon, setWeapon] = useState(player.weapon);
-  const [skills, setSkills] = useState(player.skills);
-  return (
-    <BattleDialog
-      title={
-        player.choiceDone
-          ? "팀원의 정비를 기다리고 있어요"
-          : "다음 구간을 준비하세요"
-      }
-      eyebrow={`BOSS CLEAR · ${Math.ceil(state.deadline)}초`}
-    >
-      <p>강화는 그대로 유지됩니다. 무기와 장착 스킬을 바꿀 수 있어요.</p>
-      <WeaponChoices
-        weapon={weapon}
-        setWeapon={setWeapon}
-        disabled={player.choiceDone}
-      />
-      <Equipment
-        player={{ ...player, skills }}
-        equip={(skill, slot) => {
-          if (player.choiceDone) return;
-          const next = skills.filter((value) => value !== skill);
-          next.splice(slot, 0, skill);
-          setSkills(next.slice(0, 2));
-        }}
-      />
-      <button
-        className={styles.primary}
-        disabled={player.choiceDone}
-        onClick={() => runtime.action({ type: "refit", weapon, skills })}
-      >
-        {player.choiceDone ? "정비 완료" : "정비 완료 · 다음 전투"}
-      </button>
-      <button onClick={() => runtime.action({ type: "pause" })}>
-        정비 일시정지
-      </button>
-    </BattleDialog>
-  );
 }
 function WeaponChoices({
   weapon,
@@ -302,6 +235,7 @@ function WeaponChoices({
   disabled?: boolean;
 }) {
   return (
+    // 무기 선택은 출격 전 대기 화면에서만 제공한다.
     <div className={styles.weaponChoices}>
       {(Object.keys(WEAPONS) as WeaponId[]).map((id) => (
         <button
@@ -310,37 +244,10 @@ function WeaponChoices({
           disabled={disabled}
           onClick={() => setWeapon(id)}
         >
-          <Icon name={id === "launcher" ? "sun" : "target"} />
+          <WeaponArtwork weapon={id} />
           <b>{WEAPONS[id].name}</b>
           <small>{WEAPONS[id].detail}</small>
         </button>
-      ))}
-    </div>
-  );
-}
-function Equipment({
-  player,
-  equip,
-}: {
-  player: PlayerView;
-  equip(skill: SkillId, slot: 0 | 1): void;
-}) {
-  const learned = SKILL_IDS.filter((id) => player.upgrades[id] > 0);
-  if (learned.length <= 2) return null;
-  return (
-    <div className={styles.equipment}>
-      <span>배운 스킬 장착</span>
-      {([0, 1] as const).map((slot) => (
-        <Select
-          key={slot}
-          label={`${slot === 0 ? "Q" : "E"} 장착 스킬`}
-          value={player.skills[slot] ?? ""}
-          options={learned.map((id) => ({
-            value: id,
-            label: `${slot === 0 ? "Q" : "E"} · ${UPGRADES[id].name} Lv.${player.upgrades[id]}`,
-          }))}
-          onValueChange={(value) => equip(value as SkillId, slot)}
-        />
       ))}
     </div>
   );

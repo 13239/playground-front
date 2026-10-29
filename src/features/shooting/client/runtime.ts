@@ -12,6 +12,7 @@ import {
 import { getBrowserKey } from "@/features/auth/client/browser-key";
 import { issueTicket } from "./api";
 import { admitGame } from "@/features/games/client/admission";
+import { ShootingAudio } from "./audio";
 
 export interface RuntimeView {
   state?: GameSnapshot;
@@ -23,6 +24,11 @@ export interface RuntimeView {
   latency: number;
 }
 type WireState = { toJSON(): GameSnapshot };
+export interface RoomOptions {
+  title?: string;
+  privateRoom?: boolean;
+  password?: string;
+}
 const base64url = (buffer: ArrayBuffer) =>
   btoa(String.fromCharCode(...new Uint8Array(buffer)))
     .replaceAll("+", "-")
@@ -31,7 +37,9 @@ const base64url = (buffer: ArrayBuffer) =>
 
 /** 좌표·피해·기록은 서버가 결정한다. 클라이언트에는 입력 예측과 현재 연결만 보관하며 복귀 토큰을 저장하지 않는다. */
 export class ShootingRuntime {
+  readonly audio = new ShootingAudio();
   private room?: Room<unknown, WireState>;
+  private leaving: Promise<void> = Promise.resolve();
   private view: RuntimeView = {
     id: "",
     code: "",
@@ -71,8 +79,13 @@ export class ShootingRuntime {
     return this.controls.aim;
   }
 
-  async connect(sessionId: string, mode: Mode, code?: string): Promise<void> {
-    this.disconnect();
+  async connect(
+    sessionId: string,
+    mode: Mode,
+    code?: string,
+    settings: RoomOptions = {},
+  ): Promise<void> {
+    const released = this.disconnect();
     const generation = ++this.generation;
     const controller = new AbortController();
     this.controller = controller;
@@ -86,6 +99,9 @@ export class ShootingRuntime {
     };
     this.emit();
     try {
+      // 이전 방의 사용권 반환 확인을 기다려 즉시 방 만들기가 중복 접속으로 거절되지 않게 한다.
+      await released;
+      if (generation !== this.generation) return;
       // 선택한 모드를 확인한다. 1인 모드가 점검 중이어도 허용된 2인 모드는 이용할 수 있다.
       await admitGame("SHOOTING", mode, sessionId, controller.signal);
       const ticket = await issueTicket(sessionId, mode, controller.signal);
@@ -121,7 +137,13 @@ export class ShootingRuntime {
             ]),
           }),
       });
-      const options = { ticket: ticket.ticket, mode, target, ...proof };
+      const options = {
+        ticket: ticket.ticket,
+        mode,
+        target,
+        ...proof,
+        ...settings,
+      };
       const room = code
         ? await client.joinById<WireState>(code, options)
         : await client.create<WireState>("shooting", options);
@@ -151,6 +173,10 @@ export class ShootingRuntime {
         if (generation !== this.generation) return;
         const previous = this.view.state;
         const snapshot = state.toJSON();
+        this.audio.update(previous, snapshot, room.sessionId);
+        // 같은 소켓의 재도전도 새 입력 시퀀스로 시작해 이전 전투의 예측 이동을 재생하지 않는다.
+        if (previous?.phase === "over" && snapshot.phase === "lobby")
+          this.sequence = 0;
         // 메뉴·공유 정지로 넘어갈 때 눌려 있던 입력을 폐기해 재개 순간의 의도치 않은 이동·사격을 막는다.
         if (
           snapshot.paused ||
@@ -160,6 +186,7 @@ export class ShootingRuntime {
         this.view = {
           ...this.view,
           state: snapshot,
+          hosting: snapshot.hostId === room.sessionId,
           ...(previous?.pauseReason === "authorization" &&
           snapshot.pauseReason !== "authorization"
             ? { message: "" }
@@ -209,13 +236,14 @@ export class ShootingRuntime {
         if (generation !== this.generation) return;
         this.clearInput();
         clearInterval(this.timer);
+        this.room = undefined;
         this.view = {
           ...this.view,
           connection: "closed",
           message:
-            code === 4001
-              ? "방장이 방을 나갔습니다. 다른 방에 참가해 주세요."
-              : "게임 연결이 종료되었습니다.",
+            code === 4000
+              ? "로그인 또는 게임 참가 권한이 종료되었습니다."
+              : "서버와 연결이 끊겼습니다. 다시 입장해 주세요.",
         };
         this.emit();
       });
@@ -243,13 +271,35 @@ export class ShootingRuntime {
       this.emit();
     }
   }
-  disconnect(): void {
+  disconnect(): Promise<void> {
     this.generation++;
     this.controller?.abort();
     clearInterval(this.timer);
     const room = this.room;
     this.room = undefined;
-    if (room) void room.leave(true);
+    // leave 요청의 확인 응답을 받은 뒤 소켓을 닫는다. 네트워크 단절은 제한 시간 뒤 복구 경로로 넘긴다.
+    this.leaving = this.leaving.then(() =>
+      room
+        ? new Promise<void>((resolve) => {
+            const timer = setTimeout(done, 12_000);
+            function done() {
+              clearTimeout(timer);
+              void room!.leave(true);
+              resolve();
+            }
+            room.onMessage("released", done);
+            room.onLeave(() => {
+              clearTimeout(timer);
+              resolve();
+            });
+            try {
+              room.send("leave");
+            } catch {
+              done();
+            }
+          })
+        : undefined,
+    );
     this.clearInput();
     this.pending = [];
     this.predicted = undefined;
@@ -262,6 +312,13 @@ export class ShootingRuntime {
       message: "",
       latency: 0,
     };
+    this.emit();
+    return this.leaving;
+  }
+
+  /** 알림 닫기는 표시만 지우며 접속 상태·인증 실패 처리를 변경하지 않는다. */
+  dismissMessage(): void {
+    this.view = { ...this.view, message: "" };
     this.emit();
   }
   action(action: GameAction): void {
@@ -280,6 +337,8 @@ export class ShootingRuntime {
     if (firing !== undefined) this.controls.firing = firing;
   }
   clearInput(): void {
+    // 정지·퇴장·재도전 경계에서는 미확정 예측 프레임도 버리고 서버 좌표를 따른다.
+    this.pending = [];
     this.keys.clear();
     this.controls.moveX = 0;
     this.controls.moveY = 0;
@@ -332,7 +391,7 @@ export class ShootingRuntime {
       player.dashRemaining <= 0 &&
       ["combat", "loot"].includes(state.phase)
     ) {
-      const speed = playerStats(player.upgrades).speed;
+      const speed = playerStats(state.level).speed;
       for (const { frame, dt } of this.pending)
         position = movement(
           position.x,

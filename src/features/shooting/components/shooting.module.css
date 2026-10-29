@@ -657,7 +657,7 @@
   position: absolute;
   bottom: 120px;
   right: 15px;
-  z-index: 9;
+  z-index: 35;
   background: #243144;
   padding: 0.7rem;
   border-radius: 6px;
@@ -719,6 +719,11 @@
   gap: 0.45rem;
   padding: 0.8rem;
 }
+/* 시작 무기 그림은 공통 버튼 아이콘의 20px 제한을 받지 않으며 카드 폭 안에서만 확장한다. */
+.weaponChoices button > svg {
+  width: 100% !important;
+  height: clamp(3rem, 4vw, 5rem) !important;
+}
 .weaponChoices button[aria-pressed="true"] {
   background: #2b4562;
   border-color: #8ebce6;
@@ -752,7 +757,7 @@
 }
 .upgradeGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.65rem;
 }
 .arena .upgrade {
@@ -769,7 +774,7 @@
   gap: 0.4rem;
   width: 100%;
   color: #9aaeca;
-  font-size: 0.55rem;
+  font-size: 0.75rem;
 }
 .upgrade > div svg {
   width: 18px;
@@ -780,52 +785,24 @@
   margin-left: auto;
   white-space: nowrap;
   color: #90cbdc;
-  font-size: 0.6rem;
+  font-size: 0.75rem;
 }
 .upgrade > strong {
-  font-size: 0.9rem;
+  font-size: 1.05rem;
 }
 .upgrade > small {
   color: #94a7c1;
-  font-size: 0.65rem;
+  font-size: 0.85rem;
   line-height: 1.55;
   min-height: 2em;
 }
-.slotChoice {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.slotChoice > span {
-  font-size: 0.7rem;
-  color: #a7bbd4;
-}
-.slotChoice button {
-  font-size: 0.7rem;
-  min-height: 32px;
-  padding: 0.4rem 0.7rem;
-}
-.slotChoice button[aria-pressed="true"] {
-  border-color: #aa8ce6;
-  background: #3c3453;
-}
-.equipment {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  font-size: 0.7rem;
-}
-.equipment > span {
-  color: #a4b5cc;
-}
-.equipment > :global([data-ui-select]) {
-  /* 공통 선택 UI는 재사용하고 두 슬롯의 배치 폭만 게임 패널 안에서 제한한다. */
-  flex: 1 1 14rem;
-  max-width: 18rem;
+/* 장착 슬롯 선택 UI를 제거하고 총별 세 카드의 배치 폭만 게임 패널 안에서 제한한다.
+   총 전용 강화는 실제 전후 수치를 읽기 쉽게 표시하고 작은 화면에서는 세로로 재배치한다. */
+.upgradeValue {
+  color: #a9d9ff;
+  font-size: clamp(0.85rem, 1vw, 1.1rem);
+  font-style: normal;
+  font-weight: 700;
 }
 .waiting {
   padding: 3rem;
@@ -1162,7 +1139,7 @@
     font-size: 1.15rem;
   }
   .upgradeGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 0.45rem;
   }
   .arena .upgrade {
@@ -1173,7 +1150,7 @@
     font-size: 0.8rem;
   }
   .upgrade > small {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
   }
   .upgrade > div > span {
     display: none;
@@ -1314,7 +1291,7 @@
     font-size: 1rem;
   }
   .upgradeGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .overlay {
     padding: 0.5rem;
@@ -1386,7 +1363,9 @@
     gap: 0.3rem;
     padding: 0.6rem 0.55rem;
     min-height: 2.75rem;
-    font-size: 0.75rem;
+    /* 소리·안내·랭킹 세 동작은 아이콘과 접근 가능한 이름을 유지해 좁은 헤더의 넘침을 막는다. */
+    min-width: 2.75rem;
+    font-size: 0;
   }
   .topActions svg {
     width: 1rem;

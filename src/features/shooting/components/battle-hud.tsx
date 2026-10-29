@@ -2,7 +2,8 @@
 import { useRef, useState, type PointerEvent } from "react";
 import {
   formatTime,
-  UPGRADE_IDS,
+  WEAPON_UPGRADES,
+  playerStats,
   UPGRADES,
   WEAPONS,
   type GameSnapshot,
@@ -38,9 +39,6 @@ export function BattleHud({
             <span>
               {Math.ceil(player.hp)}
               <small> / {player.maxHp}</small>
-              {player.temporaryHp > 0 && (
-                <em> +{Math.ceil(player.temporaryHp)}</em>
-              )}
             </span>
           </div>
           <div className={styles.healthTrack}>
@@ -113,23 +111,31 @@ export function BattleHud({
         </div>
       )}
       <div className={styles.buildStrip} aria-label="현재 강화 현황">
-        {UPGRADE_IDS.filter((id) => player.upgrades[id] > 0).map((id) => (
-          <span key={id} title={`${UPGRADES[id].name} ${player.upgrades[id]}`}>
-            <UpgradeIcon id={id} />
-            <small>{UPGRADES[id].name}</small>
-            <b>{player.upgrades[id]}</b>
-          </span>
-        ))}
+        {/* 레벨 자동 성장과 총별 투자 현황을 분리해 보여 준다. */}
+        <span title="레벨업 자동 성장">
+          <small>
+            공격 +{Math.round((playerStats(state.level).damage - 1) * 100)}% ·
+            방어 {player.armor}
+          </small>
+        </span>
+        {WEAPON_UPGRADES[player.weapon]
+          .filter((id) => player.upgrades[id] > 0)
+          .map((id) => (
+            <span
+              key={id}
+              title={`${UPGRADES[id].name} ${player.upgrades[id]}`}
+            >
+              <UpgradeIcon id={id} />
+              <small>{UPGRADES[id].name}</small>
+              <b>{player.upgrades[id]}</b>
+            </span>
+          ))}
       </div>
       {state.phase === "loot" && !state.paused && (
         <div className={styles.clearBanner}>
           <span>STAGE CLEAR</span>
           <strong>{state.stage} 스테이지 클리어</strong>
-          <small>
-            {Math.ceil(state.deadline)}초 후{" "}
-            {state.stage % 5 === 0 ? "장비 정비" : "다음 전투"} · 아이템을
-            수거하세요
-          </small>
+          <small>다음 전투를 준비해요</small>
         </div>
       )}
       <div className={styles.hudBottom}>
@@ -137,7 +143,7 @@ export function BattleHud({
           <span>∞</span>
           <div>
             <b>{WEAPONS[player.weapon].name}</b>
-            <small>무제한 탄약</small>
+            <small>무제한 탄약 · 도전 중 변경 불가</small>
           </div>
         </div>
         <div className={styles.skillBar}>
@@ -149,29 +155,6 @@ export function BattleHud({
             disabled={!player.alive}
             onClick={() => runtime.action({ type: "dash" })}
           />
-          {([0, 1] as const).map((slot) => (
-            <ActionButton
-              key={slot}
-              label={
-                player.skills[slot]
-                  ? UPGRADES[player.skills[slot]].name
-                  : "빈 스킬"
-              }
-              hotkey={slot === 0 ? "Q" : "E"}
-              cooldown={
-                slot === 0 ? player.skillOneCooldown : player.skillTwoCooldown
-              }
-              icon={
-                player.skills[slot] === "guard"
-                  ? "shield"
-                  : player.skills[slot] === "shockwave"
-                    ? "sun"
-                    : "target"
-              }
-              disabled={!player.alive || !player.skills[slot]}
-              onClick={() => runtime.action({ type: "skill", slot })}
-            />
-          ))}
           <ActionButton
             label={`무적 ×${player.invuls}`}
             hotkey="V"

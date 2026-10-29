@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@colyseus/sdk": "0.18.8",
-    "@playground/shooting-shared": "file:../packages/shooting-shared",
+    "@playground/shooting-shared": "file:../../game/playground/packages/shooting-shared",
     "jose": "6.2.12",
     "next": "16.4.2",
     "phaser": "4.2.1",

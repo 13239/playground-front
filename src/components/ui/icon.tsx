@@ -164,6 +164,10 @@ const paths = {
     </>
   ),
   close: <path d="m6 6 12 12M6 18 18 6" />,
+  // 슈팅의 음소거·방장 표시도 공통 SVG 좌표계와 선 굵기를 사용한다.
+  volume: <><path d="m11 4-6 5H2v6h3l6 5V4Zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" /></>,
+  volumeOff: <><path d="m11 4-6 5H2v6h3l6 5V4Zm5 5 6 6m0-6-6 6" /></>,
+  crown: <path d="m3 6 4 4 5-6 5 6 4-4-2 12H5L3 6Zm2 15h14" />,
   refresh: (
     <>
       <path d="M21 12a9 9 0 0 1-15.4 6.4L3 16" />

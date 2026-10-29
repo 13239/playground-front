@@ -21,7 +21,7 @@ export { AuthRequestError } from "./error";
 // 대기실도 공통 쿠키 변경 잠금·브라우저 증명·토큰 갱신을 재사용하고 별도 인증 쿠키를 만들지 않는다.
 type FeaturePath = "/api/auth/profile" | "/api/auth/profile/nickname" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close"
   // 슈팅도 기존 인증 경계로 참가권·순위·방 목록을 요청하며 전투 기록을 브라우저에서 제출하지 않는다.
-  | "/api/shooting/ticket" | "/api/shooting/overview" | "/api/shooting/rooms"
+  | "/api/shooting/ticket" | "/api/shooting/overview" | "/api/shooting/rooms" | "/api/shooting/events"
   // 신규 게임 초대도 같은 인증 갱신·브라우저 증명을 사용한다.
   | `/api/game-invitations/${"send"|"accept"|"reject"|"cancel"}`
   // 카드 게임도 공통 브라우저 증명·세션 갱신을 사용한다.
