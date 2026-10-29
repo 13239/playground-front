@@ -8,8 +8,7 @@ import { getGamePopup, subscribeToGamePopup } from "@/features/games/client/game
 import { useSocial, useSocialStore } from "./context";
 import { SocialProfileButton } from "./social-profile-button";
 import { isRoom, type Page, type Person } from "./contracts";
-import { GomokuInvitationHost } from "@/features/gomoku/components/gomoku-invitation-prompt";
-import { MemoryInvitationHost } from "@/features/memory/components/memory-invitation-prompt";
+import { GameInvitationHost } from "@/features/game-invitations/game-invitation-host";
 import styles from "./social.module.css";
 
 const badge=(n:number)=>n>99?"99+":n.toLocaleString("ko-KR");
@@ -308,8 +307,8 @@ export function SocialOverlayHost(){
   if(!owner||!s.sessionId||!s.authorized)return null;
   const target=owner.fullscreenElement??owner.body;
   return <>
-    <GomokuInvitationHost owner={owner}/>
-    <MemoryInvitationHost owner={owner}/>
+    {/* 홈·게임·전체 화면 모두 같은 수신 큐의 팝업 한 벌만 표시한다. */}
+    <GameInvitationHost owner={owner}/>
     {createPortal(<>
       {(s.surface==="friends"||s.surface==="notifications")&&<DialogShell key={s.surface} owner={owner} kind={s.surface}>{s.surface==="friends"?<FriendsPanel/>:<Notifications/>}<SocialToast/></DialogShell>}
       {s.surface==="minimized"&&<button type="button" className={`${styles.root} ${styles.minimized}`} data-social-ui onClick={()=>store.openFriends(owner)}><Icon name="chat"/><span>{s.room?.name??"친구"}</span><Icon name="chevronUp"/></button>}

@@ -2,8 +2,8 @@ import { connectChat, type AuthenticatedChatConnection } from "@/features/chat/c
 import { requestAuthenticatedApi, AuthRequestError } from "@/features/auth/client/api";
 import { notifyAuthChanged } from "@/features/auth/client/session-events";
 import { createUuidV4 } from "@/lib/client/uuid";
-import { respondGomokuInvitation } from "@/features/gomoku/client/invitations";
-import { respondMemoryInvitation } from "@/features/memory/client/api";
+import {respondGameInvitation} from "@/features/game-invitations/registry";
+import type {InvitationGame} from "@/features/game-invitations/contracts";
 import { object, isSnapshot, isRoom, isPerson, isResponse, isSummary, isMessage, isHistory, type Snapshot, type Room, type Person, type Summary, type SocialMessage, type Operation, type History, type Notification } from "./contracts";
 
 type Pending = Readonly<{ id: string; roomId: string; content: string; state: "queued"|"uncertain" }>;
@@ -290,15 +290,15 @@ export class SocialStore {
   }
   dismissProfile=()=>{this.profileVersion++;this.set({profile:null});};
   /** 서버의 확정 수락만 방 이동에 사용하고, 수락·거절 경합과 늦은 계정 응답을 차단한다. */
-  async answerGameInvitation(id:string,action:"accept"|"reject"|"cancel",game:"gomoku"|"memory"="gomoku"):Promise<number|null>{
+  async answerGameInvitation(id:string,action:"accept"|"reject"|"cancel",game:InvitationGame="gomoku"):Promise<number|string|null>{
     const session=this.state.sessionId;const version=this.version;
     if(!session||!this.state.authorized||this.state.gameInvitationBusy)return null;
     this.set({gameInvitationBusy:id,gameInvitationError:null});
     try{
-      const result=await (game==="memory"?respondMemoryInvitation:respondGomokuInvitation)(session,action,id,this.controller?.signal);
+      const result=await respondGameInvitation(game,session,action,id,this.controller?.signal);
       if(version!==this.version||session!==this.state.sessionId)return null;
       const data=this.state.data;
-      if(data)this.set({data:{...data,...(game==="memory"?{memoryInvitations:data.memoryInvitations?.filter(invite=>invite.id!==id)}:{gomokuInvitations:data.gomokuInvitations?.filter(invite=>invite.id!==id)})}});
+      if(data)this.set({data:{...data,...(game==="memory"?{memoryInvitations:data.memoryInvitations?.filter(invite=>invite.id!==id)}:game==="gomoku"?{gomokuInvitations:data.gomokuInvitations?.filter(invite=>invite.id!==id)}:{gameInvitations:data.gameInvitations?.filter(invite=>invite.id!==id)})}});
       void this.refresh(false);
       if(action==="accept"&&result.state==="ACCEPTED"){
         this.close();return result.roomId;

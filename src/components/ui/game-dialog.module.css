@@ -1,0 +1,81 @@
+/* 게임 초대·랭킹·기존 방 관리가 같은 네이티브 모달·최소 터치 영역·1px 포커스를 사용한다. */
+.dialog {
+  position: fixed;
+  inset: 0;
+  width: min(92vw, 33.125rem);
+  height: fit-content;
+  max-height: min(90svh, 53.125rem);
+  margin: auto;
+  padding: 1.7em;
+  overflow: auto;
+  border: 1px solid #e8dfff;
+  border-radius: 1.5em;
+  color: #57517c;
+  background: #fdfbff;
+  box-shadow: 0 20px 100px #38225138;
+  font-family: var(--font-noto-sans-kr), sans-serif;
+  font-size: var(--app-font-size, 1rem);
+}
+.dialog:focus,
+.dialog:focus-visible {
+  outline: none;
+}
+.dialog::backdrop {
+  background: #34325470;
+  backdrop-filter: blur(4px);
+}
+.dialog button {
+  font: inherit;
+  touch-action: manipulation;
+}
+.dialog button:focus-visible {
+  outline: var(--control-focus-width, 1px) solid
+    var(--control-focus-color, #a78bfa);
+  outline-offset: var(--control-focus-offset, -1px);
+}
+.dialog p {
+  line-height: 1.8;
+}
+.dialog svg {
+  flex: 0 0 auto;
+  width: 1.3em;
+  height: 1.3em;
+}
+.dialogHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+}
+.dialogHeading h2 {
+  margin: 0;
+  font-size: 1.4em;
+  font-weight: 850;
+  color: #30205f;
+}
+.iconButton {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.5rem;
+  border: 1px solid #ded4f5;
+  border-radius: 0.75rem;
+  color: #8069a5;
+  background: #fff;
+  cursor: pointer;
+}
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (max-width: 40rem) {
+  .dialog {
+    padding: 1.1rem;
+    border-radius: 1rem;
+  }
+  .dialogHeading h2 {
+    font-size: 1.15rem;
+  }
+}

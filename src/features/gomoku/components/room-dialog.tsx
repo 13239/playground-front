@@ -1,69 +1,18 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ComponentProps } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LobbyIcon } from "@/app/_components/lobby/lobby-icon";
 import { AuthRequestError } from "@/features/auth/client/api";
 import { revalidateAuthSession } from "@/features/auth/client/session-store";
-import { showModalWithoutCloseFocus } from "@/lib/client/show-modal";
+import {RoomDialog as SharedRoomDialog} from "@/components/ui/game-dialog";
 import { closeRoom } from "../client/api";
 import type { HostedRoom } from "../contracts";
 import styles from "./gomoku.module.css";
 
-/** 브라우저 기본 dialog로 포커스·Escape·배경 비활성화를 처리하고 요청 중에는 중복 닫기를 막는다. */
-export function RoomDialog({
-  title,
-  children,
-  onClose,
-  busy = false,
-  showClose = true,
-  className,
-  illustration,
-}: {
-  title: string;
-  children: ReactNode;
-  onClose: () => void;
-  busy?: boolean;
-  showClose?: boolean;
-  // 새 팝업이 공통 동작을 유지하면서 자신에게 필요한 반응형 배치만 보완할 수 있다.
-  className?: string;
-  // 캐릭터 안내가 필요한 팝업도 기존 모달의 접근성·Escape·요청 중 닫기 방지를 그대로 공유한다.
-  illustration?: ReactNode;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-  useEffect(() => showModalWithoutCloseFocus(ref.current), []);
-  return (
-    <dialog
-      ref={ref}
-      className={[styles.dialog, className].filter(Boolean).join(" ")}
-      aria-labelledby={titleId}
-      aria-busy={busy}
-      onClose={onClose}
-      onCancel={(event) => {
-        if (busy) event.preventDefault();
-      }}
-    >
-      <div className={styles.dialogHeading}>
-        {illustration && <div data-dialog-illustration>{illustration}</div>}
-        <h2 id={titleId}>{title}</h2>
-        {showClose && (
-          <button
-            type="button"
-            className={styles.iconButton}
-            aria-label="닫기"
-            disabled={busy}
-            onClick={onClose}
-          >
-            <LobbyIcon name="close" />
-          </button>
-        )}
-      </div>
-      {children}
-    </dialog>
-  );
-}
+// 기존 게임의 사용 경로를 유지하면서 모달 동작은 공통 UI로 연결한다.
+export function RoomDialog(props:ComponentProps<typeof SharedRoomDialog>){return <SharedRoomDialog {...props} className={[styles.dialog,props.className].filter(Boolean).join(" ")}/>;}
 
 /** 초대 코드는 본인 방에서만 표시한다. 클립보드를 쓸 수 없는 HTTP 환경에는 직접 복사할 수 있는 입력을 제공한다. */
 export function HostedRoomDialog({

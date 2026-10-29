@@ -54,6 +54,8 @@ export function publicSocialResponse(value: unknown): object {
     unreadNotifications: value.unreadNotifications, notificationBoundary: value.notificationBoundary,
     gomokuInvitations: value.gomokuInvitations?.map(publicGomokuInvitation) ?? [],
     memoryInvitations: value.memoryInvitations?.map(publicMemoryInvitation) ?? [],
+    // 신규 게임 초대도 내부 신원·임의 URL을 제외한 공통 공개 필드만 전달한다.
+    gameInvitations: value.gameInvitations?.map(i=>({id:i.id,game:i.game,roomId:i.roomId,roomTitle:i.roomTitle,inviter:person(i.inviter),target:person(i.target),expiresAt:i.expiresAt})) ?? [],
     ...(value.serverTime ? {serverTime:value.serverTime} : {}),
   };
   if (isPerson(value)) return person(value);

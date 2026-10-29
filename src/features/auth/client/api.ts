@@ -20,6 +20,10 @@ export { AuthRequestError } from "./error";
 // 채팅의 일회용 접속 증명도 같은 로그인·토큰 갱신 경계를 통과한다.
 // 대기실도 공통 쿠키 변경 잠금·브라우저 증명·토큰 갱신을 재사용하고 별도 인증 쿠키를 만들지 않는다.
 type FeaturePath = "/api/auth/profile" | "/api/auth/profile/nickname" | "/api/gomoku/rooms" | "/api/gomoku/rooms/search" | "/api/gomoku/rooms/close"
+  // 슈팅도 기존 인증 경계로 참가권·순위·방 목록을 요청하며 전투 기록을 브라우저에서 제출하지 않는다.
+  | "/api/shooting/ticket" | "/api/shooting/overview" | "/api/shooting/rooms"
+  // 신규 게임 초대도 같은 인증 갱신·브라우저 증명을 사용한다.
+  | `/api/game-invitations/${"send"|"accept"|"reject"|"cancel"}`
   // 카드 게임도 공통 브라우저 증명·세션 갱신을 사용한다.
   | `/api/memory/${"overview"|"start"|"create"|"join"|"state"|"events"|"ready"|"flip"|"leave"|"rematch"}`
   | `/api/memory/invitations/${"send"|"accept"|"reject"|"cancel"}`

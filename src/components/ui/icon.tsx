@@ -10,6 +10,13 @@ export const gearIcon = (
 );
 
 const paths = {
+  // 슈팅의 조준·생존·일시정지도 같은 SVG 좌표와 선 굵기로 표시한다.
+  target: <><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 1v5m0 12v5M1 12h5m12 0h5"/></>,
+  pause: <><path d="M7 4h3v16H7zM15 4h3v16h-3z"/></>,
+  sun: <><circle cx="12" cy="12" r="4"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4 4l2 2m12 12 2 2M4 20l2-2M18 6l2-2"/></>,
+  heart: <path d="m12 21-8-8a5.6 5.6 0 0 1 8-8 5.6 5.6 0 0 1 8 8l-8 8Z"/>,
+  move: <path d="M12 2v20M2 12h20M8 6l4-4 4 4M8 18l4 4 4-4M6 8l-4 4 4 4m12-8 4 4-4 4"/>,
+  arrowRight: <path d="M4 12h16m-7-7 7 7-7 7"/>,
   // 게임 로비의 참여코드·카드·랭킹도 기존 공통 SVG 좌표계와 선 굵기로 표시한다.
   ticket: <><path d="M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4V6Z"/><path d="M15 7v2m0 2v2m0 2v2"/></>,
   cards: <><rect x="7" y="4" width="13" height="17" rx="2"/><path d="m4 17-2-11a2 2 0 0 1 1.6-2.3L12 2M11 9h5m-5 4h5"/></>,

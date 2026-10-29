@@ -1,0 +1,228 @@
+/* 친구 선택과 수신 팝업은 기존 폰트·1px 포커스·해상도 상한을 공유한다. */
+.dialog {
+  width: min(29rem, calc(100vw - 1.5rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+}
+.hint {
+  margin: 0.4rem 0 1rem;
+  color: #756b99;
+  font-size: 0.85em;
+  line-height: 1.6;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.6rem 0;
+}
+.friend {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 4.2rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #e7e3f7;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  overflow: hidden;
+  border: 1px solid #e0dafa;
+  border-radius: 50%;
+  background: #f4f0ff;
+}
+.avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.identity {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15em;
+}
+.identity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.identity small {
+  color: #8a829f;
+  font-size: 0.75em;
+}
+.identity small[data-online="true"] {
+  color: #159b75;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #d9c7fa;
+  border-radius: 0.75rem;
+  color: #7850bd;
+  background: #fff;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.button svg {
+  width: 1.15em;
+  height: 1.15em;
+  flex-shrink: 0;
+}
+.button:focus-visible {
+  outline: var(--control-focus-width, 1px) solid
+    var(--control-focus-color, #a78bfa);
+  outline-offset: var(--control-focus-offset, -1px);
+}
+.primary {
+  color: #fff;
+  border-color: #9553ef;
+  background: linear-gradient(135deg, #a45df3, #7832e1);
+}
+.error {
+  margin: 0.6rem 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.7rem;
+  color: #9a4359;
+  background: #fff0f3;
+  font-size: 0.8em;
+  overflow-wrap: anywhere;
+}
+.pending {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.65rem 0;
+  padding: 0.7rem;
+  border: 1px solid #dfd1fb;
+  border-radius: 0.85rem;
+  color: #67449a;
+  background: #f3edff;
+  font-size: 0.83em;
+}
+.pending span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.empty {
+  padding: 1rem 0.2rem;
+  color: #867e9e;
+  text-align: center;
+  font-size: 0.85em;
+}
+/* 수신 초대는 내용을 가리지 않는 우측 하단 상한 크기로 표시하고 모바일 안전 여백을 지킨다. */
+.prompt {
+  position: fixed;
+  z-index: 1010;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #d7c5fa;
+  border-radius: 1.1rem;
+  background: linear-gradient(145deg, #fff, #f5f0ff);
+  box-shadow: 0 0.65rem 2rem #35205e29;
+  color: #25164e;
+  font:
+    var(--app-font-size, 1rem)/1.5 var(--font-noto-sans-kr),
+    sans-serif;
+  box-sizing: border-box;
+}
+.prompt * {
+  box-sizing: border-box;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 1em;
+  font-weight: 800;
+}
+.heading svg {
+  width: 1.25em;
+  height: 1.25em;
+  color: #8747dc;
+}
+.countdown {
+  flex-shrink: 0;
+  color: #8354bb;
+  font-size: 0.75em;
+  font-variant-numeric: tabular-nums;
+}
+.inviter {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.roomTitle {
+  margin: 0.65rem 0 0.25rem;
+  font-size: 0.9em;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+.rules {
+  margin: 0 0 0.65rem;
+  color: #827193;
+  font-size: 0.72em;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.track {
+  height: 0.25rem;
+  margin: 0.8rem 0;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #e9e1f5;
+}
+.track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #a16ae9;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.prompt .hint {
+  margin: 0.7rem 0 0;
+  font-size: 0.7em;
+}
+@media (max-width: 24rem) {
+  .prompt {
+    right: 0.65rem;
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
+    width: calc(100vw - 1.3rem);
+    padding: 0.85rem;
+  }
+}

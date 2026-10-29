@@ -90,7 +90,8 @@ async function signBoundRequest(path: string, method: string, body: string | und
 /** 요청마다 새로운 증명을 만든다. nonce 갱신은 서버가 실행 전에 거절한 경우에만 한 번 재시도한다. */
 // 채팅 증명 발급의 실제 경로·메서드·세션 본문도 기존 로그인 키로 서명한다.
 // 테트리스의 고정 기능 경로에도 같은 본문 서명과 세션 갱신 정책을 적용한다.
-export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomoku/${string}` | `/api/memory/${string}` | `/api/tetris/${string}` | `/api/games/${string}/modes/${string}/admission` | `/api/admin/${string}` | `/api/social/${string}` | "/api/chat/tickets", input?: object, nonceRetry = true, signal?: AbortSignal,
+// 슈팅의 참가권·순위·방 목록과 공통 초대 요청도 같은 브라우저 키와 경로별 nonce로 서명한다.
+export async function signedAuthRequest(path: `/api/auth/${string}` | `/api/gomoku/${string}` | `/api/memory/${string}` | `/api/tetris/${string}` | `/api/shooting/${string}` | `/api/games/${string}/modes/${string}/admission` | `/api/admin/${string}` | `/api/social/${string}` | `/api/game-invitations/${"send"|"accept"|"reject"|"cancel"}` | "/api/chat/tickets", input?: object, nonceRetry = true, signal?: AbortSignal,
   admin?: Readonly<{ method: "GET" | "POST" | "PUT" | "DELETE"; sessionId: string }>): Promise<Response> {
   // 대국 접속 확인은 5초 안에 실패를 감지해 5회 재접속 예산을 지킨다. 스트림은 서버가 20초마다 정상 종료한다.
   // 호출자의 취소와 인증/스트림 연결 단계의 제한 시간을 합쳐 요청 전체를 중단할 수 있게 한다.

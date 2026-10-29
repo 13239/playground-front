@@ -5,6 +5,17 @@ import { parseOperationalNotice } from "@/lib/operational-notice";
 
 // 백엔드 원문 오류 대신 허용한 상태·메시지만 브라우저에 제공한다.
 const errors = {
+  // 게임 서버의 인증 원문이나 내부 주소는 노출하지 않고 고정된 안내만 전달한다.
+  // 공통 게임 초대는 인증 만료와 구분해 현재 창에서 재시도한다.
+  GAME_INVITATION_EXPIRED: [409, "초대가 만료되었거나 방 상태가 변경되었습니다. 다시 초대해 주세요."],
+  GAME_INVITATION_BUSY: [409, "이미 응답을 기다리는 초대가 있습니다."],
+  GAME_INVITATION_TARGET_UNAVAILABLE: [409, "지금은 이 친구를 초대할 수 없습니다. 접속·참가 상태를 확인해 주세요."],
+  GAME_INVITATION_RATE_LIMIT: [429, "초대 요청이 많습니다. 잠시 후 다시 시도해 주세요."],
+  SHOOTING_UNAVAILABLE: [503, "슈팅 게임 서버를 일시적으로 이용할 수 없습니다."],
+  SHOOTING_TICKET_INVALID: [409, "게임 접속 증명이 만료되었습니다. 다시 입장해 주세요."],
+  SHOOTING_ALREADY_PLAYING: [409, "이미 다른 화면에서 슈팅 게임을 이용하고 있습니다."],
+  SHOOTING_RATE_LIMIT: [429, "게임 요청이 많습니다. 잠시 후 다시 시도해 주세요."],
+  SHOOTING_RECORD_INVALID: [409, "게임 기록을 확인하지 못했습니다."],
   // 친구/그룹 오류는 인증 만료와 구분하고 공개된 짧은 안내만 전달한다.
   SOCIAL_NOT_FOUND: [404, "친구 또는 요청 정보를 찾을 수 없습니다."],
   SOCIAL_CONFLICT: [409, "상태가 변경되었습니다. 새로 확인한 뒤 다시 시도해 주세요."],

@@ -37,7 +37,8 @@ export function isMemoryOverview(v:unknown):v is MemoryOverview {
     &&Array.isArray(v.rankings)&&v.rankings.length<=10&&v.rankings.every(r=>object(r)&&integer(r.rank,1)&&text(r.nickname,50)&&integer(r.millis)&&integer(r.attempts,15)&&date(r.achievedAt)&&typeof r.self==="boolean")
     &&Array.isArray(v.rooms)&&v.rooms.length<=10&&v.rooms.every(r=>object(r)&&integer(r.roomId,1)&&text(r.title,30)&&typeof r.privateRoom==="boolean"&&integer(r.players,1,2));
 }
-export function isDecision(v:unknown):v is {state:string;roomId:number|null}{return object(v)&&["ACCEPTED","REJECTED","CANCELLED","EXPIRED"].includes(v.state as string)&&(v.roomId===null||integer(v.roomId,1));}
+/** 공통 초대 응답도 검증한 상태 리터럴만 사용하고 임의 문자열을 방 이동 근거로 사용하지 않는다. */
+export function isDecision(v:unknown):v is {state:"ACCEPTED"|"REJECTED"|"CANCELLED"|"EXPIRED";roomId:number|null}{return object(v)&&["ACCEPTED","REJECTED","CANCELLED","EXPIRED"].includes(v.state as string)&&(v.roomId===null||integer(v.roomId,1));}
 const pickPlayer=(v:Player):Player=>({nickname:v.nickname,avatarId:v.avatarId,self:v.self,ready:v.ready,rematch:v.rematch,wins:v.wins,losses:v.losses});
 export function publicMemoryState(v:MemoryState):MemoryState{return {
   roomId:v.roomId,title:v.title,code:v.code,solo:v.solo,privateRoom:v.privateRoom,closed:v.closed,revision:v.revision,matchId:v.matchId,

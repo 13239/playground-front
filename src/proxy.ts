@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getAppOrigin, getChatWebSocketOrigin } from "@/lib/server/env";
+import { getShootingSocketOrigin } from "@/features/shooting/server/config";
 
 /** HTML마다 새로운 nonce를 생성한다. 외부 x-nonce/CSP 헤더는 덮어쓰며 인증 판별은 API에서 수행한다. */
 export function proxy(request: NextRequest) {
@@ -8,7 +9,9 @@ export function proxy(request: NextRequest) {
   // dev도 최적화 빌드의 엄격한 CSP를 쓴다. HTTPS 강제 헤더만 공개 Origin의 실제 프로토콜에 맞춘다.
   const https = getAppOrigin().startsWith("https://");
   // HMR·같은 호스트의 운영 WSS·로컬 chat 포트만 허용하고 임의의 ws:/wss: 서버 전체는 열지 않는다.
-  const socketSources = [...new Set([getAppOrigin().replace(/^http/, "ws"), getChatWebSocketOrigin()])].join(" ");
+  // 슈팅도 설정에서 검증한 정확한 WebSocket Origin 한 곳만 추가한다.
+  // 로컬 Colyseus 참가 예약은 같은 게임 서버의 HTTP로 보내며 그 정확한 Origin도 함께 허용한다.
+  const socketSources = [...new Set([getAppOrigin().replace(/^http/, "ws"), getChatWebSocketOrigin(), getShootingSocketOrigin(), getShootingSocketOrigin().replace(/^ws/, "http")])].join(" ");
   const csp = [
     "default-src 'self'", `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${development ? " 'unsafe-eval'" : ""}`,
     "script-src-attr 'none'", development ? "style-src 'self' 'unsafe-inline'" : `style-src 'self' 'nonce-${nonce}'`,

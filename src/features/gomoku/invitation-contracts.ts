@@ -11,8 +11,4 @@ export function isGomokuInvitationDecision(value: unknown): value is GomokuInvit
 }
 
 /** 서버 시각과 경과 시간만 사용해 사용자 PC 시계 변경이나 백그라운드 타이머 정지로 기한이 늘어나지 않게 한다. */
-export function invitationRemaining(expiresAt: string, serverTime: string|undefined, snapshotAt: number, now: number): number {
-  if(!serverTime)return 0;
-  const remaining=Date.parse(expiresAt)-Date.parse(serverTime)-Math.max(0,now-snapshotAt);
-  return Number.isFinite(remaining)?Math.max(0,remaining):0;
-}
+export {invitationRemaining} from "@/features/game-invitations/contracts";
