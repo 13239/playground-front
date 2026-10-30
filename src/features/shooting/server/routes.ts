@@ -25,13 +25,16 @@ export async function handleShooting(
       operation === "rooms"
         ? ["sessionId", "page", "search", "friendsOnly"]
         : operation === "ticket"
-          ? ["sessionId", "mode"]
+          ? ["sessionId", "mode", "invitedRoomCode"]
           : ["sessionId", "mode", "page"];
     if (
       !isSessionId(value.sessionId) ||
       (operation !== "rooms" &&
         !["SINGLE", "COOP"].includes(String(value.mode))) ||
       Object.keys(value).some((key) => !allowed.includes(key)) ||
+      // 코드·초대 입장은 서버가 특정 협동 방에 묶인 티켓으로 검증한다.
+      (operation === "ticket" && value.invitedRoomCode !== undefined &&
+        (value.mode !== "COOP" || typeof value.invitedRoomCode !== "string" || !/^[A-Z2-9]{8}$/.test(value.invitedRoomCode))) ||
       (operation === "overview" &&
         (!Number.isSafeInteger(value.page) ||
           Number(value.page) < 1 ||

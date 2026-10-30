@@ -41,7 +41,7 @@ export function useChatConnection(destination: ChatDestination, enabled = true) 
     ...EMPTY_CHAT, state: "expired" as const,
     error: auth.status === "error" ? "로그인 확인이 필요해요. 화면의 다시 확인 버튼을 이용해 주세요." : undefined,
   };
-  return { ...visible, sendMessage: store.sendMessage, loadOlder: store.loadOlder, loadPresence: store.loadPresence,
+  return { ...visible, sendMessage: store.sendMessage, loadOlder: store.loadOlder, loadPresence: store.loadPresence, cancelPresence: store.cancelPresence,
     returnToLatest: store.returnToLatest, retryHistory: store.retryHistory, retryMessage: store.retryMessage, retry: store.retry };
 }
 

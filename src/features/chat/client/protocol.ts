@@ -4,7 +4,10 @@ import { isProfileAvatarId, type ProfileAvatarId } from "@/features/profile/cata
 export type ChatDestination = Readonly<{ scope: "GLOBAL" }> | Readonly<{ scope: "GAME_ROOM"; gameType: "GOMOKU"; roomId: number }> | Readonly<{scope: "SOCIAL"}>;
 
 /** 채팅 서버는 저장 완료 메시지·이력·접속자 정보만 공개하며 내부 사용자 식별자는 받지 않는다. */
-export type PublicChatUser = Readonly<{ nickname: string; avatarId: ProfileAvatarId }>;
+// 접속자도 기존 미니 프로필을 열 수 있도록 내부 회원 번호 대신 공개 UUID만 전달한다.
+export type PublicChatUser = Readonly<{ nickname: string; avatarId: ProfileAvatarId; publicUserId?: string }>;
+// 본인 표시는 인증된 서버의 접속자 응답에만 포함하며 작성자·메시지 계약과 분리한다.
+export type PublicOnlineChatUser = PublicChatUser & Readonly<{ self?: boolean }>;
 // 공개 작성자 키는 닉네임 중복·변경과 관계없이 같은 작성자의 표시를 갱신하는 용도로만 사용한다.
 export type PublicChatProfile = PublicChatUser & Readonly<{ authorKey: string; revision: number; publicUserId?: string }>;
 export type PublicChatMessage = Readonly<{
@@ -28,7 +31,7 @@ export type ChatEvent =
   | Readonly<{ type: "CHAT_HISTORY_ITEM"; requestId: string; message: PublicChatMessage }>
   | Readonly<{ type: "CHAT_HISTORY_END"; requestId: string; hasMore: boolean; nextCursor: string | null }>
   | Readonly<{ type: "PRESENCE_CHANGED"; onlineCount: number }>
-  | Readonly<{ type: "PRESENCE_SNAPSHOT"; requestId: string; onlineCount: number; onlineUsers: PublicChatUser[]; hasMore: boolean; nextOnlineCursor: string | null }>
+  | Readonly<{ type: "PRESENCE_SNAPSHOT"; requestId: string; onlineCount: number; onlineUsers: PublicOnlineChatUser[]; hasMore: boolean; nextOnlineCursor: string | null }>
   | Readonly<{ type: "CHAT_STATUS_RESULT"; clientMessageId: string; stored: boolean; message?: PublicChatMessage }>
   | Readonly<{ type: "CHAT_ERROR"; operation: string; code: string; retryAfterMillis: number; clientMessageId?: string; requestId?: string }>
   | Readonly<{ type: "PONG" }>;
@@ -43,7 +46,13 @@ function object(value: unknown): value is Record<string, unknown> {
 
 function user(value: unknown): value is PublicChatUser {
   return object(value) && typeof value.nickname === "string" && value.nickname.trim().length > 0
-    && [...value.nickname].length <= 50 && isProfileAvatarId(value.avatarId);
+    && [...value.nickname].length <= 50 && isProfileAvatarId(value.avatarId)
+    && (value.publicUserId == null || typeof value.publicUserId === "string" && uuidPattern.test(value.publicUserId));
+}
+
+function onlineUser(value: unknown): value is PublicOnlineChatUser {
+  // 구버전 응답은 허용하되 문자열 등 잘못된 본인 표시는 화면에 반영하지 않는다.
+  return user(value) && (!Object.hasOwn(value, "self") || typeof (value as PublicOnlineChatUser).self === "boolean");
 }
 
 function message(value: unknown, destination: ChatDestination): value is PublicChatMessage {
@@ -95,7 +104,7 @@ export function parseChatEvent(data: unknown, destination: ChatDestination = { s
     case "PRESENCE_SNAPSHOT":
       return typeof value.requestId === "string" && uuidPattern.test(value.requestId)
         && validCount(value.onlineCount) && Array.isArray(value.onlineUsers) && value.onlineUsers.length <= 100
-        && value.onlineUsers.every(user) && typeof value.hasMore === "boolean"
+        && value.onlineUsers.every(onlineUser) && typeof value.hasMore === "boolean"
         && (value.nextOnlineCursor == null || typeof value.nextOnlineCursor === "string" && uuidPattern.test(value.nextOnlineCursor))
         && (!value.hasMore || typeof value.nextOnlineCursor === "string")
         ? { type: "PRESENCE_SNAPSHOT", requestId: value.requestId, onlineCount: value.onlineCount, onlineUsers: value.onlineUsers,

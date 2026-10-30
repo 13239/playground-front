@@ -36,10 +36,12 @@ export async function issueTicket(
   sessionId: string,
   mode: Mode,
   signal?: AbortSignal,
+  invitedRoomCode?: string,
 ): Promise<ShootingTicket> {
   const response = await requestAuthenticatedApi(
     "/api/shooting/ticket",
-    { sessionId, mode },
+    // 비밀번호 예외는 브라우저의 접속 옵션 대신 인증된 일회용 티켓에 기록한다.
+    { sessionId, mode, ...(invitedRoomCode && { invitedRoomCode }) },
     signal,
   );
   const value: unknown = await response.json();

@@ -59,6 +59,8 @@ export function GameInvitationHost({ owner }: { owner: Document }) {
     (item) => item.target.publicId === state.data?.self.publicId,
   );
   const active = (item: GameInvitation) =>
+    // 응답을 처리 중이면 카드의 15초가 지나도 완료·오류를 확인할 때까지 유지한다.
+    item.id === state.gameInvitationBusy ||
     invitationRemaining(
       item.expiresAt,
       state.data?.serverTime,
@@ -108,12 +110,12 @@ export function GameInvitationHost({ owner }: { owner: Document }) {
   const invitation = collectGameInvitations(state.data).find(
     (item) =>
       item.target.publicId === state.data?.self.publicId &&
-      invitationRemaining(
+      (item.id === state.gameInvitationBusy || invitationRemaining(
         item.expiresAt,
         state.data?.serverTime,
         state.snapshotAt,
         now,
-      ) > 0,
+      ) > 0),
   );
   if (!state.authorized || !invitation) return null;
   const target =
@@ -163,7 +165,7 @@ function InvitationPrompt({
     )
       router.push(game.destination(roomId));
   }
-  if (remaining <= 0) return null;
+  if (remaining <= 0 && state.gameInvitationBusy !== invitation.id) return null;
   return (
     <section
       className={styles.prompt}
@@ -178,7 +180,7 @@ function InvitationPrompt({
           {game.name} 초대
         </h2>
         <span className={styles.countdown} aria-live="off">
-          남은 시간 {Math.min(15, Math.ceil(remaining / 1000))}초
+          {state.gameInvitationBusy === invitation.id ? "응답 처리 중…" : `남은 시간 ${Math.min(15, Math.ceil(remaining / 1000))}초`}
         </span>
       </div>
       <div className={styles.inviter}>

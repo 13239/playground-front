@@ -6,6 +6,8 @@ import {
 } from "@playground/shooting-shared";
 import type { ShootingRuntime } from "../client/runtime";
 import { drawEnemy } from "./enemy-art";
+import { drawPickup } from "./pickup-art";
+import { drawWeapon } from "./weapon-art";
 import {
   drawEffect,
   drawEnemyWarning,
@@ -25,6 +27,7 @@ export function createArena(
     private actors!: Phaser.GameObjects.Graphics;
     private overlays!: Phaser.GameObjects.Graphics;
     private labels = new Map<string, Phaser.GameObjects.Text>();
+    private protectionLabel!: Phaser.GameObjects.Text;
     private positions = new Map<string, { x: number; y: number }>();
     private stage = -1;
     private elapsed = 0;
@@ -37,6 +40,12 @@ export function createArena(
       this.props = this.add.graphics();
       this.actors = this.add.graphics();
       this.overlays = this.add.graphics();
+      // 보호 시간 표시는 한 번 만든 텍스트를 재사용하고 캐릭터 주변에 0.1초 단위로 갱신한다.
+      this.protectionLabel = this.add.text(0, 0, "", {
+        fontFamily: "system-ui, sans-serif", fontSize: "18px", fontStyle: "bold",
+        color: "#fff5c9", backgroundColor: "#34215cee", stroke: "#150c29", strokeThickness: 3,
+        padding: { x: 7, y: 4 },
+      }).setOrigin(0.5).setDepth(20).setVisible(false);
       this.buildFloor();
       const aim = (pointer: Phaser.Input.Pointer) => {
         if (pointer.wasTouch) return;
@@ -163,45 +172,11 @@ export function createArena(
       }
       const g = this.actors.clear(),
         fx = this.overlays.clear();
+      this.protectionLabel.setVisible(false);
       const seen = new Set<string>();
       for (const hazard of Object.values(state.hazards))
         drawHazard(g, hazard, this.elapsed);
-      for (const pickup of Object.values(state.pickups)) {
-        const colors = {
-          xp: 0x6aafff,
-          heal: 0x5ce8a5,
-          revive: 0xf7cc6a,
-          invul: 0xb38aff,
-        };
-        const color = colors[pickup.kind],
-          x = pickup.x,
-          y = pickup.y;
-        g.fillStyle(color, 0.1).fillCircle(x, y, pickup.kind === "xp" ? 9 : 20);
-        if (pickup.kind === "xp") {
-          g.fillStyle(color).fillTriangle(x, y - 5, x + 4, y + 3, x - 4, y + 3);
-          continue;
-        }
-        g.fillStyle(0x0b1720).fillRoundedRect(x - 11, y - 11, 22, 22, 5);
-        g.lineStyle(1.5, color).strokeRoundedRect(x - 11, y - 11, 22, 22, 5);
-        if (pickup.kind === "heal")
-          g.fillStyle(color)
-            .fillRect(x - 2, y - 6, 4, 12)
-            .fillRect(x - 6, y - 2, 12, 4);
-        else if (pickup.kind === "revive")
-          g.lineStyle(2, color)
-            .strokeCircle(x, y, 5)
-            .lineBetween(x, y - 8, x, y + 8)
-            .lineBetween(x - 8, y, x + 8, y);
-        else
-          g.lineStyle(2, color).strokeTriangle(
-            x,
-            y - 7,
-            x + 7,
-            y + 5,
-            x - 7,
-            y + 5,
-          );
-      }
+      for (const pickup of Object.values(state.pickups)) drawPickup(g, pickup);
       for (const enemy of Object.values(state.enemies)) {
         const position = this.smooth(enemy.id, enemy.x, enemy.y, delta, seen),
           { x, y } = position,
@@ -222,7 +197,7 @@ export function createArena(
           );
           continue;
         }
-        drawEnemyWarning(g, enemy, x, y);
+        drawEnemyWarning(g, enemy, x, y, this.elapsed);
         drawEnemy(g, enemy, x, y, this.elapsed);
         if (enemy.hp < enemy.maxHp && !enemy.boss) {
           g.fillStyle(0x090e16).fillRect(x - r, y - r - 9, r * 2, 3);
@@ -265,7 +240,19 @@ export function createArena(
           delta,
           seen,
         );
-        this.drawPlayer(g, player, x, y, own ? runtime.aim : player.aim, own);
+        const protection = Math.max(0, player.protection - runtime.snapshotAgeSeconds);
+        this.drawPlayer(g, player, x, y, own ? runtime.aim : player.aim, own, protection);
+        if (own && player.alive && protection > 0) {
+          // 작은 화면에서도 읽을 수 있는 크기를 유지하고 화면 아래에서는 캐릭터 위로 재배치한다.
+          const scale = Math.max(1, 0.8 / zoom);
+          const text = `무적 ${(Math.ceil(protection * 10 - 1e-6) / 10).toFixed(1)}초`;
+          if (this.protectionLabel.text !== text) this.protectionLabel.setText(text);
+          const half = this.protectionLabel.width * scale / 2 + 8 / zoom;
+          const textY = y + 58 + 22 / zoom < camera.worldView.bottom ? y + 58 : y - 68;
+          this.protectionLabel.setScale(scale).setPosition(
+            Phaser.Math.Clamp(x, camera.worldView.left + half, camera.worldView.right - half), textY,
+          ).setVisible(true);
+        }
         let label = this.labels.get(player.id);
         if (!label) {
           label = this.add
@@ -295,7 +282,7 @@ export function createArena(
           this.labels.delete(id);
         }
       // 처치·폭발·회복·부활·무적·클리어는 의미별 전용 모션을 사용한다.
-      for (const effect of Object.values(state.effects)) drawEffect(fx, effect);
+      for (const effect of Object.values(state.effects)) drawEffect(fx, effect, runtime.snapshotAgeSeconds);
       if (
         matchMedia("(pointer: fine)").matches &&
         state.phase === "combat" &&
@@ -338,8 +325,9 @@ export function createArena(
       y: number,
       angle: number,
       own: boolean,
+      protection: number,
     ): void {
-      const color = own ? 0x66c7fa : 0x69e3b5;
+      const color = protection > 0 ? 0xd9c1ff : own ? 0x66c7fa : 0x69e3b5;
       if (!player.alive) {
         g.lineStyle(3, 0xfac679, 0.8)
           .strokeRoundedRect(x - 17, y - 17, 34, 34, 4)
@@ -348,9 +336,9 @@ export function createArena(
         return;
       }
       g.fillStyle(0x03070c, 0.5).fillEllipse(x + 2, y + 17, 48, 20);
-      // 보호 상태는 육각 장갑, 일반 캐릭터는 실루엣만 보여 중첩 원을 줄인다.
-      if (player.protection > 0)
-        drawShield(g, x, y, 29, 0.65 + Math.sin(this.elapsed * 7) * 0.1);
+      // 보호 상태는 밝은 육각 장갑·보라색 몸체, 일반 캐릭터는 기존 실루엣으로 구분한다.
+      if (protection > 0)
+        drawShield(g, x, y, 34 + Math.sin(this.elapsed * 6) * 1.5, 0.9);
       if (player.dashRemaining > 0) {
         g.lineStyle(5, color, 0.35).lineBetween(
           x - player.vx * 0.04,
@@ -366,27 +354,7 @@ export function createArena(
       g.fillStyle(0x89a7b9)
         .fillRoundedRect(x - 20, y - 5, 8, 16, 3)
         .fillRoundedRect(x + 12, y - 5, 8, 16, 3);
-      const length =
-        player.weapon === "sniper"
-          ? 39
-          : player.weapon === "launcher"
-            ? 29
-            : 30;
-      g.lineStyle(
-        player.weapon === "launcher" ? 12 : player.weapon === "shotgun" ? 9 : 7,
-        0x0a131c,
-      ).lineBetween(
-        x,
-        y + 2,
-        x + Math.cos(angle) * length,
-        y + Math.sin(angle) * length,
-      );
-      g.lineStyle(3, 0x809aaa).lineBetween(
-        x + Math.cos(angle) * 15,
-        y + Math.sin(angle) * 15,
-        x + Math.cos(angle) * length,
-        y + Math.sin(angle) * length,
-      );
+      drawWeapon(g, player.weapon, x, y, angle);
       g.fillStyle(0x090e16).fillRect(x - 20, y + 29, 40, 4);
       g.fillStyle(color).fillRect(
         x - 20,

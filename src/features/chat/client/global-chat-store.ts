@@ -7,7 +7,7 @@ import { chatRecovery } from "./recovery";
 import { reportConnectionIssue } from "@/lib/client/connection-diagnostics";
 import { mergeMessages, compareChatTime } from "./message-window";
 import { parseChatEvent, sendChatFrame, validatedChatContent,
-  type ChatEvent, type PublicChatMessage, type PublicChatUser, type PublicChatProfile, type ChatDestination } from "./protocol";
+  type ChatEvent, type PublicChatMessage, type PublicOnlineChatUser, type PublicChatProfile, type ChatDestination } from "./protocol";
 
 const HISTORY_LIMIT = 30;
 const PRESENCE_LIMIT = 50;
@@ -42,9 +42,11 @@ export type ChatSnapshot = Readonly<{
   viewingOlder: boolean;
   hasNewMessages: boolean;
   onlineCount: number | null;
-  onlineUsers: PublicChatUser[];
+  onlineUsers: PublicOnlineChatUser[];
   onlineNextCursor: string | null;
   onlineLoading: boolean;
+  // 접속자 이어 읽기 실패는 메시지 전송 오류와 분리하고 자동 반복 조회를 중단한다.
+  onlineError?: string;
 }>;
 
 function emptySnapshot(): ChatSnapshot {
@@ -139,7 +141,7 @@ export class GlobalChatStore {
       retryAt: exhausted ? this.retryDeadline() : undefined,
       history: "idle", viewingOlder: false, hasNewMessages: false,
       pending: this.snapshot.pending.map((item) => ({ ...item, state: "unconfirmed" })),
-      onlineCount: null, onlineUsers: [], onlineNextCursor: null, onlineLoading: false });
+      onlineCount: null, onlineUsers: [], onlineNextCursor: null, onlineLoading: false, onlineError: undefined });
     if (!exhausted && generation === this.generation && !controller.signal.aborted) void this.establish(generation, sessionId, controller.signal);
     // 이전 화면의 늦은 정리가 새 세션의 연결을 닫지 않도록 해당 연결 수명만 정리한다.
     return () => { if (this.abort === controller) this.disconnect(); };
@@ -315,7 +317,7 @@ export class GlobalChatStore {
 
   private setDisconnected(state: ChatConnectionState, error?: string): void {
     this.update({ state, error, retryAt: this.retryDeadline(), onlineCount: null, onlineUsers: [], onlineNextCursor: null,
-      onlineLoading: false, pending: this.snapshot.pending.map((item) => ({ ...item, state: "unconfirmed" })) });
+      onlineLoading: false, onlineError: undefined, pending: this.snapshot.pending.map((item) => ({ ...item, state: "unconfirmed" })) });
   }
 
   /** 내부 재접속 시계는 유지하고 화면에는 브라우저 복귀 후에도 계산할 수 있는 공개 종료 시각만 제공한다. */
@@ -373,21 +375,39 @@ export class GlobalChatStore {
   loadPresence = (cursor: string | null = null): boolean => {
     // 방 인원은 MySQL 참가 상태에서 표시하며 공용 채팅 접속자 목록과 섞지 않는다.
     if (this.destination.scope !== "GLOBAL") return false;
-    const now = performance.now();
-    // 서버는 접속자 목록 요청 간격이 1초 미만이면 연결을 종료하므로 클라이언트에서도 제한한다.
-    if (this.presenceRequest || now - this.lastPresenceAt < 1200 || now < this.blockedUntil) return false;
+    if (this.presenceRequest || this.snapshot.state !== "connected") return false;
     const id = createUuidV4();
-    if (!sendChatFrame(this.socket, { type: "PRESENCE_GET", requestId: id, onlineLimit: PRESENCE_LIMIT,
-      ...(cursor ? { onlineCursor: cursor } : {}) })) return false;
-    this.lastPresenceAt = now;
-    this.presenceRequest = { id, cursor };
-    this.presenceTimer = setTimeout(() => {
-      if (this.presenceRequest?.id !== id) return;
+    const request = { id, cursor };
+    this.presenceRequest = request;
+    this.update({ onlineLoading: true, onlineError: undefined });
+    const failed = () => {
+      if (this.presenceRequest !== request) return;
       this.presenceRequest = undefined;
-      this.update({ onlineLoading: false });
-    }, 10_000);
-    this.update({ onlineLoading: true });
+      this.presenceTimer = undefined;
+      this.update({ onlineLoading: false, onlineError: "접속자 목록을 불러오지 못했어요. 위 새로고침 버튼으로 다시 확인해 주세요." });
+    };
+    const transmit = () => {
+      if (this.presenceRequest !== request) return;
+      // 무한 스크롤도 1.2초 간격과 서버 대기 시간을 지킨다. 대기 중인 조회는 한 건만 유지한다.
+      const now = performance.now();
+      const wait = Math.max(0, this.lastPresenceAt + 1200 - now, this.blockedUntil - now);
+      if (wait > 0) { this.presenceTimer = setTimeout(transmit, wait); return; }
+      if (!sendChatFrame(this.socket, { type: "PRESENCE_GET", requestId: id, onlineLimit: PRESENCE_LIMIT,
+        ...(cursor ? { onlineCursor: cursor } : {}) })) { failed(); return; }
+      this.lastPresenceAt = now;
+      this.presenceTimer = setTimeout(failed, 10_000);
+    };
+    transmit();
     return true;
+  };
+
+  /** 목록을 닫으면 대기 중인 이어 읽기와 늦은 응답을 해제하고 채팅 연결은 유지한다. */
+  cancelPresence = (): void => {
+    if (!this.presenceRequest) return;
+    if (this.presenceTimer) clearTimeout(this.presenceTimer);
+    this.presenceTimer = undefined;
+    this.presenceRequest = undefined;
+    this.update({ onlineLoading: false });
   };
 
   sendMessage = (input: string): ChatActionResult => {
@@ -507,7 +527,7 @@ export class GlobalChatStore {
         // 이전 페이지의 요청 시각은 보존하여 연달아 조회할 때 서버 제한을 지킨다.
         this.update({ onlineCount: frame.onlineCount, onlineUsers: request.cursor
           ? [...this.snapshot.onlineUsers, ...frame.onlineUsers] : frame.onlineUsers,
-        onlineNextCursor: frame.nextOnlineCursor, onlineLoading: false });
+        onlineNextCursor: frame.nextOnlineCursor, onlineLoading: false, onlineError: undefined });
         break;
       }
       case "CHAT_STATUS_RESULT": {
@@ -544,7 +564,7 @@ export class GlobalChatStore {
         if (frame.operation === "PRESENCE_GET" && this.presenceRequest && frame.requestId === this.presenceRequest.id) {
           this.presenceRequest = undefined;
           if (this.presenceTimer) clearTimeout(this.presenceTimer);
-          this.update({ onlineLoading: false });
+          this.update({ onlineLoading: false, onlineError: "접속자 조회가 잠시 제한됐어요. 위 새로고침 버튼으로 다시 확인해 주세요." });
         }
         if (frame.operation === "CHAT_STATUS" && this.statusRequest && frame.clientMessageId === this.statusRequest.clientMessageId) {
           this.statusRequest = undefined;

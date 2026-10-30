@@ -73,8 +73,8 @@ export function Battlefield({ runtime }: { runtime: ShootingRuntime }) {
       if (!pressed || event.repeat) return;
       const actions = {
         Space: { type: "dash" },
-        // 전투 입력은 이동·대시와 소모 아이템만 제공한다.
-        KeyV: { type: "invul" },
+        // 전투 입력은 이동·대시와 소모 아이템만 제공하며 무적은 HUD와 같은 E 키를 사용한다.
+        KeyE: { type: "invul" },
         KeyR: { type: "revive", target: "self" },
         KeyF: { type: "revive", target: "ally" },
         Escape: { type: "pause" },

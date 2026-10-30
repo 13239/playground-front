@@ -28,6 +28,8 @@ export interface RoomOptions {
   title?: string;
   privateRoom?: boolean;
   password?: string;
+  // 방 코드·링크·친구 초대만 특정 방용 참가권을 요청한다.
+  entry?: "code";
 }
 const base64url = (buffer: ArrayBuffer) =>
   btoa(String.fromCharCode(...new Uint8Array(buffer)))
@@ -55,6 +57,7 @@ export class ShootingRuntime {
   private sequence = 0;
   private lastEmit = 0;
   private lastPing = 0;
+  private snapshotReceivedAt = 0;
   private pending: { frame: InputFrame; dt: number }[] = [];
   private controls = { moveX: 0, moveY: 0, aim: 0, firing: false };
   private predicted?: { x: number; y: number };
@@ -68,6 +71,12 @@ export class ShootingRuntime {
   readonly getView = () => this.view;
   get snapshot(): GameSnapshot | undefined {
     return this.view.state;
+  }
+  /** 서버 패치 사이의 표시만 짧게 보간한다. 정지·연결 복구 중에는 보호 시간과 효과를 진행하지 않는다. */
+  get snapshotAgeSeconds(): number {
+    const state = this.view.state;
+    return state && this.view.connection === "connected" && !state.paused && ["combat", "loot"].includes(state.phase)
+      ? Math.min(0.15, Math.max(0, (performance.now() - this.snapshotReceivedAt) / 1000)) : 0;
   }
   get playerId(): string {
     return this.view.id;
@@ -104,7 +113,7 @@ export class ShootingRuntime {
       if (generation !== this.generation) return;
       // 선택한 모드를 확인한다. 1인 모드가 점검 중이어도 허용된 2인 모드는 이용할 수 있다.
       await admitGame("SHOOTING", mode, sessionId, controller.signal);
-      const ticket = await issueTicket(sessionId, mode, controller.signal);
+      const ticket = await issueTicket(sessionId, mode, controller.signal, settings.entry === "code" ? code : undefined);
       const target = code || "create";
       let proof: { key?: JsonWebKey; signature?: string } = {};
       if (ticket.proofRequired) {
@@ -173,6 +182,7 @@ export class ShootingRuntime {
         if (generation !== this.generation) return;
         const previous = this.view.state;
         const snapshot = state.toJSON();
+        this.snapshotReceivedAt = performance.now();
         this.audio.update(previous, snapshot, room.sessionId);
         // 같은 소켓의 재도전도 새 입력 시퀀스로 시작해 이전 전투의 예측 이동을 재생하지 않는다.
         if (previous?.phase === "over" && snapshot.phase === "lobby")

@@ -20,7 +20,8 @@ export type SocialState = Readonly<{
   room: Room|null; messages: readonly SocialMessage[]; pending: readonly Pending[]; drafts: Readonly<Record<string,string>>;
   summaries: Readonly<Record<string,Summary>>; history: Pick<History,"page"|"pageSize"|"total"|"writable">;
   busy: string|null; error: string; loading: boolean; profile: {person: Person; anchor: HTMLElement}|null;
-  highlight: string|null; toast: {id: string; message: string}|null; document: Document|null; peerReadAt: number;
+  // 실시간 안내는 원본 알림을 보관해 확인 시 해당 요청의 수락 화면으로 연결한다.
+  highlight: string|null; toast: {id: string; message: string; notification?: Notification}|null; document: Document|null; peerReadAt: number;
   pages: {friendPage: number; requestPage: number; sentPage: number; roomPage: number; notificationPage: number; search: string};
 }>;
 const initial: SocialState={sessionId:null,authorized:false,status:"login",data:null,surface:"closed",tab:"friends",homeTab:"all",readingNotifications:false,snapshotAt:0,gameInvitationBusy:null,gameInvitationError:null,view:"list",room:null,messages:[],pending:[],drafts:{},summaries:{},peerReadAt:0,
@@ -153,7 +154,7 @@ export class SocialStore {
       const newest=data.notifications.items[0];
       // 빈 수신함에 처음 도착한 알림도 안내한다. 목록 페이지 이동을 새 알림으로 오인하지 않는다.
       if(toast&&this.state.surface!=="notifications"&&this.notificationInitialized&&data.notificationBoundary!==this.lastNotification&&data.unreadNotifications>0)
-        this.showToast(newest?.id===data.notificationBoundary?this.notificationText(newest):"새 친구 활동 알림이 도착했어요.");
+        this.showToast(newest?.id===data.notificationBoundary?this.notificationText(newest):"새 친구 활동 알림이 도착했어요.",newest?.id===data.notificationBoundary?newest:undefined);
       this.lastNotification=data.notificationBoundary;this.notificationInitialized=true;
       let room=this.state.room;
       const updated=room&&data.rooms.items.find(r=>r.id===room?.id);
@@ -304,7 +305,7 @@ export class SocialStore {
         this.close();return result.roomId;
       }
       if(action==="accept")this.showToast("초대 시간이 지났거나 방 상태가 변경되었어요.");
-    }catch(error){if(version===this.version)this.set({gameInvitationError:{id,message:this.message(error)}});}
+    }catch(error){if(version===this.version){const message=this.message(error);this.set({gameInvitationError:{id,message}});this.showToast(message);}}
     finally{if(version===this.version)this.set({gameInvitationBusy:null});}
     return null;
   }
@@ -342,6 +343,12 @@ export class SocialStore {
     else{this.set({surface:"friends",tab:"conversations",view:"list",highlight:n.targetId,profile:null,error:""});this.emit({type:"SOCIAL_CLOSE"});if(!this.state.data?.invitations.some(i=>i.id===n.targetId))this.showToast("이미 처리되었거나 만료된 그룹 초대예요.");}
   }
   dismissToast=(id?:string)=>{if(id&&this.state.toast?.id!==id)return;clearTimeout(this.toastTimer);this.set({toast:null});};
-  showToast(message: string){clearTimeout(this.toastTimer);const id=createUuidV4();this.set({toast:{id,message}});this.toastTimer=setTimeout(()=>this.dismissToast(id),5000);}
+  /** 알림 안내의 확인은 기존 알림 이동·읽음 처리를 재사용하고 일반 안내는 닫기만 한다. */
+  async confirmToast(id:string,document:Document){
+    const toast=this.state.toast;if(toast?.id!==id)return;
+    if(toast.notification){this.set({document});await this.openNotification(toast.notification);}
+    else this.dismissToast(id);
+  }
+  showToast(message: string,notification?:Notification){clearTimeout(this.toastTimer);const id=createUuidV4();this.set({toast:{id,message,notification}});this.toastTimer=setTimeout(()=>this.dismissToast(id),5000);}
 }
 

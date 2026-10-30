@@ -75,7 +75,6 @@ function ShootingGame({
   const [rankingMode, setRankingMode] = useState<Mode>("SINGLE");
   const [help, setHelp] = useState(false);
   const [sound, setSound] = useState(true);
-  const [inviteCode, setInviteCode] = useState<string>();
   const arena = useRef<HTMLElement>(null);
   const details = useGameDetails();
   const state = view.state,
@@ -106,21 +105,19 @@ function ShootingGame({
   }, [runtime]);
   useEffect(() => {
     // 초대 링크·공통 팝업 수락 모두 같은 인증된 참가 흐름으로 들어온다. Strict Mode의 폐기된 효과는 접속하지 않는다.
-    if (!roomCode || attemptedRoom.current === roomCode) return;
+    // URL을 소비한 뒤 같은 방의 새 초대를 다시 수락해도 한 번 더 처리할 수 있게 한다.
+    if (!roomCode) { attemptedRoom.current = undefined; return; }
+    if (attemptedRoom.current === roomCode) return;
     let cancelled = false;
     queueMicrotask(() => {
-      if (
-        cancelled ||
-        ["connecting", "connected", "reconnecting"].includes(
-          runtime.getView().connection,
-        )
-      )
-        return;
+      if (cancelled) return;
       attemptedRoom.current = roomCode;
       setMode("COOP");
       router.replace("/games/shooting", { scroll: false });
-      // 초대 링크에도 비밀방 비밀번호가 필요하다. URL에는 비밀번호를 담지 않는다.
-      setInviteCode(roomCode);
+      // 초대 수락과 링크는 바로 입장한다. 다른 방의 연결·사용권 반환은 runtime이 순서대로 처리한다.
+      const current = runtime.getView();
+      if (current.code !== roomCode || !["connecting", "connected", "reconnecting"].includes(current.connection))
+        void runtime.connect(sessionId, "COOP", roomCode, { entry: "code" });
     });
     return () => {
       cancelled = true;
@@ -236,8 +233,6 @@ function ShootingGame({
             setMode={setMode}
             message={view.message}
             dismissMessage={() => runtime.dismissMessage()}
-            initialRoomCode={inviteCode}
-            clearInitialRoom={() => setInviteCode(undefined)}
             connect={(selected, code, settings) =>
               void runtime.connect(sessionId, selected, code, settings)
             }
@@ -283,8 +278,9 @@ function ShootingGame({
               <b>마우스 · 왼쪽 버튼 길게</b>
               <span>대시</span>
               <b>Space</b>
+              {/* 도움말도 실제 전투 입력·HUD와 같은 E 키를 안내한다. */}
               <span>무적 아이템</span>
-              <b>V</b>
+              <b>E</b>
               <span>자기 / 아군 부활</span>
               <b>R / F</b>
               <span>일시정지</span>

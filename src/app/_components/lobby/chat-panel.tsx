@@ -39,11 +39,13 @@ export function ChatPanel({
   const [presenceSpinTick, setPresenceSpinTick] = useState(0);
   const bodyRef = useRef<HTMLDivElement>(null);
   const onlineRef = useRef<HTMLDivElement>(null);
+  const onlineListRef = useRef<HTMLUListElement>(null);
+  const onlineEndRef = useRef<HTMLLIElement>(null);
   const nearBottom = useRef(true);
   const preserveScroll = useRef<{ id: string; offset: number } | null>(null);
   const previousMessageCount = useRef(0);
   const connected = chat.state === "connected";
-  const { loadPresence } = chat;
+  const { loadPresence, cancelPresence } = chat;
   const onlineLabel =
     chat.onlineCount === null
       // 중단된 채팅을 계속 확인 중으로 표시하지 않고 로그인·연결 오류를 구분한다.
@@ -52,8 +54,26 @@ export function ChatPanel({
       : `${chat.onlineCount.toLocaleString("ko-KR")}명 접속 중`;
 
   useEffect(() => {
-    if (onlineOpen && connected && active) loadPresence();
-  }, [onlineOpen, connected, active, loadPresence]);
+    if (!onlineOpen || !connected || !active) return;
+    loadPresence();
+    // 닫힌 목록에서 대기 중인 다음 묶음을 뒤늦게 요청하거나 이전 응답을 표시하지 않는다.
+    return cancelPresence;
+  }, [onlineOpen, connected, active, loadPresence, cancelPresence]);
+
+  useEffect(() => {
+    const root = onlineListRef.current;
+    const end = onlineEndRef.current;
+    const cursor = chat.onlineNextCursor;
+    if (!onlineOpen || !active || !connected || chat.onlineLoading || chat.onlineError || !cursor || !root || !end) return;
+    // 목록 내부의 끝이 가까워질 때만 다음 묶음을 조회하고 닫힘·실패·마지막 항목에서 멈춘다.
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      observer.disconnect();
+      loadPresence(cursor);
+    }, { root, rootMargin: "0px 0px 48px 0px" });
+    observer.observe(end);
+    return () => observer.disconnect();
+  }, [onlineOpen, active, connected, chat.onlineLoading, chat.onlineError, chat.onlineNextCursor, loadPresence]);
 
   useEffect(() => {
     if (!presenceSpinning) return;
@@ -68,6 +88,8 @@ export function ChatPanel({
     const dismiss = (event: PointerEvent) => {
       if (
         event.target instanceof Node &&
+        // 미니 프로필은 portal로 표시되므로 그 안을 누르는 동안 원래 접속자 행을 유지한다.
+        !(event.target instanceof Element && event.target.closest("[data-social-profile]")) &&
         !onlineRef.current?.contains(event.target)
       )
         setOnlineOpen(false);
@@ -193,36 +215,31 @@ export function ChatPanel({
                     <LobbyIcon name="refresh" />
                   </button>
                 </div>
-                <ul className={styles.onlineList}>
+                <ul className={styles.onlineList} ref={onlineListRef} aria-busy={chat.onlineLoading}>
+                  {/* 접속자 행 전체에서 채팅 작성자와 같은 공개 프로필 팝업을 연다. */}
                   {chat.onlineUsers.map((user, index) => (
-                    <li key={`${index}-${user.nickname}`}>
-                      <span className={styles.onlineAvatar}>
-                        <ProfileAvatar avatarId={user.avatarId} size={28} />
-                      </span>
-                      <span>{user.nickname}</span>
+                    <li key={user.publicUserId ?? `${index}-${user.nickname}`}>
+                      <SocialProfileButton publicId={user.publicUserId} nickname={user.nickname} className={styles.onlineProfile}>
+                        <span className={styles.onlineAvatar}>
+                          <ProfileAvatar avatarId={user.avatarId} size={28} />
+                        </span>
+                        {/* 서버가 인증한 본인은 첫 행에 표시하고 닉네임에 본인 표시를 덧붙인다. */}
+                        <span>{user.nickname}{user.self && " (나)"}</span>
+                      </SocialProfileButton>
                     </li>
                   ))}
+                  {chat.onlineLoading && chat.onlineUsers.length > 0 && <li className={styles.onlineLoading} role="status">불러오는 중…</li>}
+                  {chat.onlineNextCursor !== null && !chat.onlineError && <li ref={onlineEndRef} className={styles.onlineSentinel} role="presentation" aria-hidden="true" />}
                 </ul>
-                {chat.onlineUsers.length === 0 && (
+                {chat.onlineUsers.length === 0 && !chat.onlineError && (
                   <p className={styles.onlineEmpty}>
                     {chat.onlineLoading
                       ? "목록을 불러오고 있어요…"
                       : "표시할 접속자가 없어요."}
                   </p>
                 )}
-                {chat.onlineNextCursor !== null && (
-                  <div className={styles.onlineActions}>
-                    <button
-                      type="button"
-                      disabled={chat.onlineLoading}
-                      onClick={() =>
-                        chat.loadPresence(chat.onlineNextCursor)
-                      }
-                    >
-                      더 보기
-                    </button>
-                  </div>
-                )}
+                {/* 이어 읽기는 스크롤로 처리하고 실패 시 기존 새로고침 버튼으로만 복구한다. */}
+                {chat.onlineError && <p className={styles.onlineEmpty} role="status">{chat.onlineError}</p>}
               </div>
             )}
           </div>

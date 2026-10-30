@@ -155,9 +155,11 @@ export function BattleHud({
             disabled={!player.alive}
             onClick={() => runtime.action({ type: "dash" })}
           />
+          {/* 소모 아이템은 바닥 드롭과 같은 방패·하트 색을 사용하고 무적 단축키는 E로 표시한다. */}
           <ActionButton
             label={`무적 ×${player.invuls}`}
-            hotkey="V"
+            hotkey="E"
+            item="invul"
             cooldown={player.invulCooldown}
             icon="shield"
             disabled={!player.alive || !player.invuls}
@@ -166,6 +168,7 @@ export function BattleHud({
           <ActionButton
             label={`부활 ×${player.revives}`}
             hotkey="R"
+            item="revive"
             cooldown={0}
             icon="heart"
             disabled={player.alive || !player.revives}
@@ -224,6 +227,7 @@ function ActionButton({
   icon,
   disabled,
   onClick,
+  item,
 }: {
   label: string;
   hotkey: string;
@@ -231,10 +235,13 @@ function ActionButton({
   icon: Parameters<typeof Icon>[0]["name"];
   disabled: boolean;
   onClick(): void;
+  /** 공통 버튼 구조는 유지하고 소모 아이템의 SVG 색만 구분한다. */
+  item?: "invul" | "revive";
 }) {
   return (
     <button
       className={styles.skillButton}
+      data-item={item}
       onClick={onClick}
       disabled={disabled || cooldown > 0}
       aria-label={`${label}${cooldown > 0 ? ` · ${cooldown.toFixed(1)}초` : ""}`}

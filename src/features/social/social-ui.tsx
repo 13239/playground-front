@@ -257,6 +257,21 @@ function Notifications(){
 }
 function DialogShell({children,kind,owner}:{children:ReactNode;kind:"friends"|"notifications";owner:Document}){
   const ref=useRef<HTMLDialogElement>(null);const store=useSocialStore();
+  useEffect(()=>{
+    if(kind!=="notifications")return;
+    // 데스크톱 바깥 클릭과 모바일 backdrop 클릭을 같은 경계로 처리한다.
+    // 헤더 버튼은 자신의 토글 동작을 유지하고, 팝업 안에서 누른 알림·안내는 닫지 않는다.
+    const dismiss=(event:PointerEvent)=>{
+      const dialog=ref.current;const target=event.target as Element|null;if(!dialog||!target)return;
+      if(target.closest?.("[data-social-header-actions]"))return;
+      if(dialog.contains(target)&&target!==dialog)return;
+      const bounds=dialog.getBoundingClientRect();
+      if(target===dialog&&event.clientX>=bounds.left&&event.clientX<=bounds.right&&event.clientY>=bounds.top&&event.clientY<=bounds.bottom)return;
+      store.close();
+    };
+    owner.addEventListener("pointerdown",dismiss,true);
+    return()=>owner.removeEventListener("pointerdown",dismiss,true);
+  },[kind,owner,store]);
   useLayoutEffect(()=>{
     const dialog=ref.current;const view=owner.defaultView;if(!dialog||!view)return;
     const media=view.matchMedia("(max-width: 44rem)");let last:boolean|undefined;
@@ -266,10 +281,10 @@ function DialogShell({children,kind,owner}:{children:ReactNode;kind:"friends"|"n
   return <dialog ref={ref} className={`${styles.root} ${styles.panel}`} data-kind={kind} data-social-ui aria-label={kind==="friends"?"친구 및 대화":"알림"}
     onCancel={event=>{event.preventDefault();event.stopPropagation();store.close();}} onKeyDown={event=>{if(event.key==="Escape"){event.preventDefault();event.stopPropagation();store.close();}}}>{children}</dialog>;
 }
-/** 확인은 안내만 닫는다. 모달이 열린 경우 그 안에 배치해 모바일에서도 클릭할 수 있게 한다. */
+/** 알림 안내의 확인은 해당 목록으로 연결한다. 모달 안에서도 버튼을 누를 수 있게 배치한다. */
 function SocialToast(){
   const s=useSocial();const store=useSocialStore();const toast=s.toast;
-  return toast?<div className={`${styles.root} ${styles.toast}`} role="status" data-social-ui><span>{toast.message}</span><button type="button" className={styles.quiet} onClick={()=>store.dismissToast(toast.id)}>확인</button></div>:null;
+  return toast?<div className={`${styles.root} ${styles.toast}`} role="status" data-social-ui><span>{toast.message}</span><button type="button" className={styles.quiet} disabled={!!s.busy} onClick={event=>void store.confirmToast(toast.id,event.currentTarget.ownerDocument)}>확인</button></div>:null;
 }
 /** 작은 프로필 카드의 구성은 이미지/닉네임/한 개의 주 동작으로 제한한다. */
 function ProfilePopup(){
@@ -292,7 +307,8 @@ function ProfilePopup(){
     if(person.relation==="FRIEND"||person.relation==="RECEIVED"){const source=profile.anchor.closest("dialog");if(source&&!source.hasAttribute("data-social-ui"))source.close();}
     if(person.relation==="FRIEND")void store.openDirect(person);else if(person.relation==="RECEIVED")store.requests(person.requestId);else if(person.relation==="BLOCKED")void store.command("unblock",{targetId:person.publicId}).then(()=>store.showProfile(person.publicId,profile.anchor));else void store.command("friend-request",{targetId:person.publicId},person.publicId);
   };
-  return <div className={`${styles.root} ${styles.profilePopup}`} ref={ref} role="dialog" aria-label={`${person.nickname} 프로필`} data-social-ui><Avatar person={person} size={80}/><strong>{person.nickname}</strong><button type="button" className={styles.fullPrimary} onClick={action} disabled={!!s.busy||["SENT","SELF","UNAVAILABLE"].includes(person.relation)}>{label}</button></div>;
+  // 친구 요청 제한·일시 오류는 미니 프로필 안에서도 확인할 수 있게 한다.
+  return <div className={`${styles.root} ${styles.profilePopup}`} ref={ref} role="dialog" aria-label={`${person.nickname} 프로필`} data-social-ui data-social-profile><Avatar person={person} size={80}/><strong>{person.nickname}</strong>{s.error&&<p className={styles.profileError} role="alert">{s.error}</p>}<button type="button" className={styles.fullPrimary} onClick={action} disabled={!!s.busy||["SENT","SELF","UNAVAILABLE"].includes(person.relation)}>{label}</button></div>;
 }
 /** 표시 문서만 인계한다. 게임 팝업에도 같은 provider/연결을 portal로 공유하며 전체 화면 안에서 표시한다. */
 export function SocialOverlayHost(){

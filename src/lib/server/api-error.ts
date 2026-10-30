@@ -21,6 +21,12 @@ const errors = {
   SOCIAL_CONFLICT: [409, "상태가 변경되었습니다. 새로 확인한 뒤 다시 시도해 주세요."],
   SOCIAL_ACCESS_DENIED: [403, "현재 친구 또는 그룹 참가 권한이 없습니다."],
   SOCIAL_LIMIT_EXCEEDED: [429, "친구 요청 또는 그룹 인원 한도에 도달했습니다. 잠시 후 다시 시도해 주세요."],
+  // 친구 요청 폭주·거절 후 보호·관계 한도는 검증된 개별 안내로 전달한다.
+  SOCIAL_RATE_LIMIT_EXCEEDED: [429, "요청이 많습니다. 잠시 후 다시 시도해 주세요."],
+  SOCIAL_FRIEND_REQUEST_COOLDOWN: [409, "같은 상대에게 친구 요청을 연속 5번 거절당했어요. 마지막 거절 후 24시간이 지나면 다시 보낼 수 있어요."],
+  SOCIAL_FRIEND_REQUEST_DAILY_LIMIT: [429, "최근 24시간 동안 친구 요청을 50회 보냈어요. 이전 요청을 보낸 지 24시간이 지나면 다시 시도해 주세요."],
+  SOCIAL_FRIEND_CAPACITY: [409, "친구는 최대 200명까지 추가할 수 있어요. 친구 목록을 정리한 뒤 다시 시도해 주세요."],
+  SOCIAL_FRIEND_REQUEST_INBOX_FULL: [409, "상대의 받은 친구 요청이 가득 찼어요. 상대가 요청을 정리한 뒤 다시 시도해 주세요."],
   SOCIAL_UNAVAILABLE: [503, "친구 기능을 일시적으로 이용할 수 없습니다. 다시 시도해 주세요."],
   // 본인 탈퇴의 비밀번호 대입 제한은 세션 만료와 구분하고 서버가 정한 재시도 간격을 유지한다.
   ACCOUNT_WITHDRAWAL_RATE_LIMIT_EXCEEDED: [429, "회원탈퇴 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],

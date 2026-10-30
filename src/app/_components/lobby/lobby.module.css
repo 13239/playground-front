@@ -1668,10 +1668,16 @@
   list-style: none;
 }
 .onlineList li { display: flex; align-items: center; gap: 0.6em; font-size: 0.84em; overflow-wrap: anywhere; }
+/* 접속자 이름·아바타를 하나의 클릭 영역으로 묶고, 왼쪽 정렬과 아바타에 맞춘 행 높이로 불필요한 여백을 줄인다. 긴 이름은 목록 폭 안에서 줄바꿈한다. */
+.onlineList .onlineProfile { display: flex; align-items: center; justify-content: flex-start; gap: 0.6em; width: 100%; min-width: 0; min-height: 2rem; padding: 0.1em 0.25em; border-radius: 0.55em; text-align: left; }
+.onlineProfile > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.onlineProfile:hover { background: #f0eaff; }
 .onlineAvatar, .chatMessageAvatar { display: grid; flex-shrink: 0; place-items: center; width: 2em; height: 2em; overflow: hidden; border-radius: 50%; }
 .onlineAvatar img, .chatMessageAvatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.onlineActions { display: flex; justify-content: flex-end; gap: 0.5em; margin-top: 0.7em; }
-.onlineActions button, .chatLoadMore, .chatRetry {
+/* 접속자 목록은 내부 스크롤의 끝을 감지하고 로딩 중에도 기존 행 높이를 유지한다. */
+.onlineSentinel { flex-shrink: 0; min-height: 1px; }
+.onlineList .onlineLoading { flex-shrink: 0; justify-content: center; padding-block: 0.3em; color: #77728c; font-size: 0.72em; }
+.chatLoadMore, .chatRetry {
   padding: 0.4em 0.7em;
   border: 1px solid #dbd3f1;
   border-radius: 0.65em;
@@ -1681,7 +1687,6 @@
   font-weight: 700;
   cursor: pointer;
 }
-.onlineActions button:disabled { opacity: 0.5; cursor: default; }
 .connectionOnline { color: #318568; }
 .connectionOnline > span { background: #36b88a; }
 .chatLoadMore { align-self: center; margin: 0.4em 0 0.8em; }

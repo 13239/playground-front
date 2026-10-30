@@ -23,8 +23,6 @@ export function ShootingLobby({
   connect,
   message,
   dismissMessage,
-  initialRoomCode,
-  clearInitialRoom,
 }: {
   sessionId: string;
   mode: Mode;
@@ -32,8 +30,6 @@ export function ShootingLobby({
   connect: (mode: Mode, code?: string, settings?: RoomOptions) => void;
   message: string;
   dismissMessage(): void;
-  initialRoomCode?: string;
-  clearInitialRoom(): void;
 }) {
   const [code, setCode] = useState("");
   const [showCode, setShowCode] = useState(false);
@@ -41,13 +37,7 @@ export function ShootingLobby({
   const [joining, setJoining] = useState<{
     code: string;
     title: string;
-    optional?: boolean;
   }>();
-  const selectedRoom =
-    joining ??
-    (initialRoomCode
-      ? { code: initialRoomCode, title: "초대받은 방 참가", optional: true }
-      : undefined);
   if (creating)
     return (
       <ShootingCreateRoom
@@ -122,7 +112,8 @@ export function ShootingLobby({
               onSubmit={(event) => {
                 event.preventDefault();
                 if (/^[A-Z2-9]{8}$/.test(code))
-                  setJoining({ code, title: "방 코드로 참가", optional: true });
+                  // 코드를 알고 참가하는 사용자는 비밀방도 비밀번호 입력 없이 입장한다.
+                  connect("COOP", code, { entry: "code" });
               }}
             >
               <label htmlFor="shooting-code">8자리 방 코드</label>
@@ -169,16 +160,14 @@ export function ShootingLobby({
           />
         )}
       </div>
-      {selectedRoom && (
+      {joining && (
         <JoinRoomDialog
-          {...selectedRoom}
+          {...joining}
           close={() => {
             setJoining(undefined);
-            clearInitialRoom();
           }}
           join={(password) => {
-            connect("COOP", selectedRoom.code, { password });
-            clearInitialRoom();
+            connect("COOP", joining.code, { password });
           }}
         />
       )}
