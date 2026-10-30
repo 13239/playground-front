@@ -19,6 +19,7 @@ type BackendRequest = Readonly<{
   signal?: AbortSignal;
   // BFF가 실제 요청에서 추출한 증명·본문 해시만 전달하며 브라우저 헤더 전체를 복사하지 않는다.
   proof?: BrowserRequestProof;
+  loginAttemptId?: string;
 }>;
 
 /** BFF의 서버 전용 Spring API 통신 경계다. 보호 데이터는 브라우저의 요청 증명과 함께 호출한다. */
@@ -48,6 +49,9 @@ export async function backendRequest(
   }
   // BFF 서버 자신의 User-Agent와 구분되도록 정제한 브라우저 값만 전용 헤더로 전달한다.
   if (options.userAgent) headers.set("X-Client-User-Agent", options.userAgent);
+  if (path === "/api/auth/login" && options.loginAttemptId && /^[a-f0-9-]{36}$/.test(options.loginAttemptId)) {
+    headers.set("X-Login-Attempt-Id", options.loginAttemptId);
+  }
   const body = options.body === undefined ? undefined : JSON.stringify(options.body);
   // SSE는 헤더 수신에만 제한 시간을 적용한다. 열린 스트림은 원본 요청 취소/연결 종료까지 유지한다.
   const timeoutController = new AbortController();
@@ -77,7 +81,13 @@ export async function backendRequest(
       if (response.ok) throw new ApiError("INVALID_BACKEND_RESPONSE");
     }
     if (!response.ok) {
-      throw parseBackendError(response.status, data, response.headers.get("Retry-After"));
+      let failure = parseBackendError(response.status, data, response.headers.get("Retry-After"));
+      // 새 백엔드가 실제 자격 증명 불일치로 확인한 경우만 공개 불일치 안내를 허용한다.
+      if (path === "/api/auth/login" && failure.code === "INVALID_CREDENTIALS"
+          && response.headers.get("X-Login-Credentials-Mismatch") !== "1") failure = new ApiError("LOGIN_SERVER_ERROR");
+      failure.loginAuditRecorded = path === "/api/auth/login" && !!options.loginAttemptId
+        && response.headers.get("X-Login-Attempt-Id") === options.loginAttemptId;
+      throw failure;
     }
     return data;
   } catch (error) {

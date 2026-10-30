@@ -17,7 +17,7 @@ function refreshRequestId(refreshToken: string): string {
 export async function loginWithBackend(
   input: LoginInput,
   proof: BrowserRequestProof,
-  client: Readonly<{ clientIp?: string; userAgent?: string }>,
+  client: Readonly<{ clientIp?: string; userAgent?: string; loginAttemptId?: string }>,
   previousRefreshToken?: string,
 ): Promise<AuthTokens> {
   return parseAuthTokens(await backendRequest("/api/auth/login", {

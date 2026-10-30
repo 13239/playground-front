@@ -136,6 +136,7 @@ const errors = {
   PASSWORD_UNCHANGED: [400, "새 비밀번호는 현재 비밀번호와 다르게 입력해 주세요."],
   PASSWORD_CHANGE_RATE_LIMIT_EXCEEDED: [429, "비밀번호 변경 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   INVALID_CREDENTIALS: [401, "아이디 또는 비밀번호가 올바르지 않습니다."],
+  LOGIN_SERVER_ERROR: [503, "서버 오류로 로그인하지 못했습니다. 잠시 후 다시 시도해 주세요."],
   // 접속 제한과 게임 점검 코드에만 검증된 관리자 안내를 허용하며 내부 예외 메시지의 허용 목록은 유지한다.
   ACCESS_RESTRICTED: [401, "서버 점검 중입니다. 잠시 후 다시 로그인해 주세요."],
   ACCESS_POLICY_UNAVAILABLE: [503, "접속 설정을 반영하고 있습니다. 잠시 후 다시 시도해 주세요."],
@@ -181,6 +182,8 @@ export class ApiError extends Error {
   readonly status: number;
   readonly fieldErrors?: Readonly<Record<string, string>>;
   readonly retryAfterSeconds?: number;
+  // 서버 내부 진단에만 사용한다. 공개 오류 JSON에는 포함하지 않는다.
+  loginAuditRecorded = false;
 
   constructor(code: keyof typeof errors, details: ErrorDetails = {}) {
     const [status, message] = errors[code];
@@ -225,7 +228,7 @@ export function parseBackendError(
         accessNotice: code === "ACCESS_RESTRICTED" && "detail" in body ? parseOperationalNotice(body.detail) : undefined,
         gameNotice: code === "GAME_UNAVAILABLE" && "detail" in body ? parseOperationalNotice(body.detail) : undefined,
         fieldErrors,
-        retryAfterSeconds: status === 429 && seconds && seconds <= 86_400 ? seconds : undefined,
+        retryAfterSeconds: (status === 429 || code === "LOGIN_SERVER_ERROR") && seconds && seconds <= 86_400 ? seconds : undefined,
       });
     }
   }

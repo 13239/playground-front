@@ -11,6 +11,7 @@ import { notifyAuthChanged } from "./session-events";
 import { isSessionId } from "../session-id";
 import { clearAccessNotice } from "./access-notice";
 import { reportConnectionIssue } from "@/lib/client/connection-diagnostics";
+import { reportLoginPreparationFailure } from "./login-audit";
 export { AuthRequestError } from "./error";
 
 /** BFF가 공개한 오류만 화면에 표시하고 네트워크 장애에는 고정 안내를 제공한다. */
@@ -97,16 +98,24 @@ export function refreshSession(signal?: AbortSignal): Promise<void> {
 
 export async function login(input: LoginInput): Promise<void> {
   let changed = false;
-  await withAuthLock(async context => {
+  let submitted = false;
+  try { await withAuthLock(async context => {
     // 오래 열린 로그인 폼도 잠금을 얻은 뒤 현재 세션을 확인해 다른 탭의 정상 로그인을 덮어쓰지 않는다.
     try { await readSession(context, true, true); return; }
     catch (error) { if (!(error instanceof AuthRequestError && error.status === 401 && !requiresRefresh(error))) throw error; }
+    submitted = true;
     await authMutation("/api/auth/login", context, input);
     // 새 인증 성공은 이전에 종료된 세션의 운영 안내를 해제한다.
     clearAccessNotice();
     clearProofNonces();
     changed = true;
-  });
+  }); } catch (error) {
+    if (!submitted || error instanceof AuthRequestError && (error.status === 0
+      || ["BROWSER_KEY_REQUIRED", "AUTH_STORAGE_UNAVAILABLE", "AUTH_LOCK_WAIT_TIMEOUT", "AUTH_REQUEST_TIMEOUT"].includes(error.code ?? ""))) {
+      reportLoginPreparationFailure(input.username, error);
+    }
+    throw error;
+  }
   // 병렬 세션 조회가 로그인 폼을 이동시키기 전에 쿠키 변경 잠금의 해제를 끝낸다.
   if (changed) notifyAuthChanged();
 }

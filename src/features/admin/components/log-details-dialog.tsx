@@ -10,6 +10,7 @@ import { LogPersonLabel } from "./log-person";
 import { displayDate } from "./user-display";
 import admin from "./admin.module.css";
 import styles from "./logs.module.css";
+import { LoginLogDiagnosticsView } from "./login-log-diagnostics";
 
 /** 선택한 한 기록만 읽고 닫을 때 초점·스크롤과 상세 메모리를 원래 상태로 돌린다. */
 export function LogDetailsDialog({ kind, id, close }: { kind: LogKind; id: number; close: () => void }) {
@@ -46,7 +47,7 @@ export function LogDetailsDialog({ kind, id, close }: { kind: LogKind; id: numbe
 /** 브라우저 문자열·오류 문구·입력 당시 식별자도 HTML로 해석하지 않고 텍스트로 표시한다. */
 function ActivityDetails({ value }: { value: ActivityLogDetails }) {
   const { entry } = value;
-  return <dl className={`${admin.userFacts} ${styles.detailsFacts}`}>
+  return <><dl className={`${admin.userFacts} ${styles.detailsFacts}`}>
     <div><dt>발생 시각</dt><dd>{displayDate(entry.occurredAt)}</dd></div>
     <div><dt>회원</dt><dd><LogPersonLabel person={entry.member} /></dd></div>
     <div><dt>활동</dt><dd>{entry.typeName}</dd></div>
@@ -56,7 +57,10 @@ function ActivityDetails({ value }: { value: ActivityLogDetails }) {
     {entry.failureCode && <div className={styles.wideFact}><dt>실패 코드</dt><dd>{entry.failureCode}</dd></div>}
     <div className={styles.wideFact}><dt>브라우저 정보</dt><dd>{value.userAgent || "—"}</dd></div>
     {value.attributes.map(attribute => <div key={attribute.label}><dt>{attribute.label}</dt><dd>{attribute.value}</dd></div>)}
-  </dl>;
+  </dl>
+    {value.loginDiagnostics ? <LoginLogDiagnosticsView value={value.loginDiagnostics} />
+      : entry.type === "LOGIN" && <p className={admin.hint}>이전 기록에는 로그인 단계별 진단 정보가 저장되지 않았습니다.</p>}
+  </>;
 }
 
 /** 저장된 스냅샷을 비교한다. 현재 데이터로 과거 변경을 추정하거나 수정 입력을 제공하지 않는다. */

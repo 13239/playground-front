@@ -10,7 +10,9 @@ export type AuditLog = Readonly<{ id: number; occurredAt: string; actor: LogPers
   action: string; actionName: string; targetType: string; targetId: string; targetName: string; reason: string | null }>;
 export type LogAttribute = Readonly<{ label: string; value: string }>;
 export type LogChange = Readonly<{ label: string; before: string | null; after: string | null }>;
-export type ActivityLogDetails = Readonly<{ entry: ActivityLog; userAgent: string | null; attributes: readonly LogAttribute[] }>;
+export type LoginLogDiagnostics = Readonly<{ attemptId: string; source: string; stage: string; stageName: string; reason: string; reasonName: string;
+  context: readonly LogAttribute[]; steps: readonly Readonly<{ stage: string; stageName: string; outcome: "SUCCESS" | "FAILURE"; durationMillis: number }>[] }>;
+export type ActivityLogDetails = Readonly<{ entry: ActivityLog; userAgent: string | null; attributes: readonly LogAttribute[]; loginDiagnostics: LoginLogDiagnostics | null }>;
 export type AuditLogDetails = Readonly<{ entry: AuditLog; changes: readonly LogChange[]; attributes: readonly LogAttribute[] }>;
 export type LogDetails = ActivityLogDetails | AuditLogDetails;
 export type LogOption = Readonly<{ code: string; label: string }>;
@@ -46,7 +48,20 @@ function attributes(value: unknown): readonly LogAttribute[] {
 }
 export function parseActivityLogDetails(value: unknown): ActivityLogDetails {
   assert(object(value) && nullable(value.userAgent, 255));
-  return { entry: parseActivityLog(value.entry), userAgent: value.userAgent, attributes: attributes(value.attributes) };
+  return { entry: parseActivityLog(value.entry), userAgent: value.userAgent, attributes: attributes(value.attributes), loginDiagnostics: loginDiagnostics(value.loginDiagnostics) };
+}
+function loginDiagnostics(value: unknown): LoginLogDiagnostics | null {
+  if (value === null || value === undefined) return null;
+  assert(object(value) && text(value.attemptId, 36) && /^[a-f0-9-]{36}$/.test(value.attemptId) && text(value.source, 100)
+    && text(value.stage, 80) && text(value.stageName, 100) && text(value.reason, 80) && text(value.reasonName, 1000)
+    && Array.isArray(value.steps) && value.steps.length <= 32);
+  const steps = value.steps.map(step => {
+    assert(object(step) && text(step.stage, 80) && text(step.stageName, 100) && (step.outcome === "SUCCESS" || step.outcome === "FAILURE")
+      && typeof step.durationMillis === "number" && Number.isSafeInteger(step.durationMillis) && step.durationMillis >= 0 && step.durationMillis <= 86400000);
+    return { stage: step.stage, stageName: step.stageName, outcome: step.outcome, durationMillis: step.durationMillis } as const;
+  });
+  return { attemptId: value.attemptId, source: value.source, stage: value.stage, stageName: value.stageName, reason: value.reason,
+    reasonName: value.reasonName, context: attributes(value.context), steps };
 }
 export function parseAuditLogDetails(value: unknown): AuditLogDetails {
   assert(object(value) && Array.isArray(value.changes) && value.changes.length <= 32);

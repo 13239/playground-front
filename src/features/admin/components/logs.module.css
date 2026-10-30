@@ -1,4 +1,17 @@
 /* 기존 관리자 색상·표·공통 1px 포커스를 이어가고 개수 선택 칸은 공통 rem 폭으로 확대한다. */
+.loginDiagnostics { min-width: 0; margin-top: 1rem; }
+.loginDiagnostics dd { min-width: 0; overflow-wrap: anywhere; }
+.loginDiagnostics h3, .loginDiagnostics h4 { margin: 0 0 .75rem; color: #30234c; }
+.diagnosticReason { margin: 0 0 1rem; line-height: 1.65; overflow-wrap: anywhere; }
+.diagnosticCode { display: block; margin-top: .25rem; font-family: ui-monospace, monospace; font-size: .8em; line-height: 1.5; overflow-wrap: anywhere; }
+.loginSteps { display: grid; gap: .5rem; margin: 0 0 1rem; padding: 0; list-style: none; }
+.loginSteps li { display: grid; grid-template-columns: 1.8rem minmax(0, 1fr) auto auto; align-items: center; gap: .65rem; padding: .65rem; border: 1px solid #eee8fa; border-radius: .6rem; background: #fff; }
+.loginSteps li[data-outcome="FAILURE"] { border-color: #e8c7d5; background: #fff8fb; }
+.stepNumber { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: #f3eeff; color: #72559b; font-size: .75rem; }
+.stepName { min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
+.stepName small { display: block; color: #8c77aa; font-size: .72em; overflow-wrap: anywhere; }
+.stepDuration { color: #817292; font-size: .75rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) { .loginSteps li { grid-template-columns: 1.8rem minmax(0, 1fr) auto; } .stepDuration { grid-column: 2 / -1; } }
 .panel { padding: clamp(14px, 1.7vw, 28px); }
 .heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid #eae3f6; }
 .heading .tabs { min-width: 0; margin-bottom: 0; border-bottom: 0; }

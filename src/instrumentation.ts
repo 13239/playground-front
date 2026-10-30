@@ -3,5 +3,7 @@ export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { getTrustedClientIpHeaderName } = await import("./lib/server/env");
     getTrustedClientIpHeaderName();
+    const { startLoginAuditDelivery } = await import("./features/auth/server/login-audit");
+    startLoginAuditDelivery();
   }
 }
