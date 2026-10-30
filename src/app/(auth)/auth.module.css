@@ -466,6 +466,7 @@
 .restrictionMessage {
   white-space: pre-wrap;
 }
+.dialog .dialogRetry { margin-top: .75rem; font-size: .875rem; color: #63538b; }
 
 /* 로그인 교체는 두 선택을 명확히 보여 주고 좁은 화면·큰 글자에서는 버튼을 자연스럽게 줄바꿈한다. */
 .dialogActions {

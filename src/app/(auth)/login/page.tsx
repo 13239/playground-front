@@ -24,14 +24,8 @@ export default async function LoginPage({
         <span className={styles.srOnly}>로그인</span>
       </h1>
 
-      {registered && (
-        <p role="status" className={styles.formStatus}>
-          가입이 완료됐어요. 새 계정으로 로그인해 주세요.
-        </p>
-      )}
-
       {/* 이미 로그인한 사용자는 브라우저 증명을 확인한 뒤 홈으로 이동한다. */}
-      <LoginGate />
+      <LoginGate registered={registered} />
 
       <footer className={styles.cardFooter}>
         <span>아직 계정이 없으신가요?</span>

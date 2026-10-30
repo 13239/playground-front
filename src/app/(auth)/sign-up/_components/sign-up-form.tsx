@@ -8,6 +8,7 @@ import type { SignUpField, SignUpFieldErrors } from "@/features/auth/types";
 import { Icon } from "../../_components/icon";
 import styles from "../../auth.module.css";
 import signUpStyles from "../sign-up.module.css";
+import { AuthNoticeDialog } from "../../_components/auth-notice-dialog";
 
 const fields = ["nickname", "username", "password"] as const;
 const subscribe = () => () => {};
@@ -26,10 +27,12 @@ export function SignUpForm({ ready }: { ready: boolean }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [errors, setErrors] = useState<SignUpFieldErrors>({});
   const [status, setStatus] = useState("");
+  const [restrictionMessage, setRestrictionMessage] = useState<string>();
   const [pending, setPending] = useState(false);
   const [retryUntil, setRetryUntil] = useState(0);
   const [retryRemaining, setRetryRemaining] = useState(0);
   const submitting = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // 제한 시간은 실제 시각으로 계산하므로 백그라운드 탭의 타이머 지연에도 과도하게 기다리지 않는다.
   useEffect(() => {
@@ -60,12 +63,14 @@ export function SignUpForm({ ready }: { ready: boolean }) {
     setPending(true);
     setErrors({});
     setStatus("");
+    setRestrictionMessage(undefined);
     try {
       await signUp(result.input);
       form.reset();
       // 아이디·비밀번호를 URL이나 저장소에 남기지 않고 공개 완료 표시만 전달한다.
       window.location.replace("/login?registered=1");
     } catch (error) {
+      const restricted = error instanceof AuthRequestError && error.code === "SIGN_UP_RESTRICTED";
       const fieldErrors: Partial<Record<SignUpField, string>> = {};
       if (error instanceof AuthRequestError) {
         for (const field of fields) {
@@ -78,19 +83,25 @@ export function SignUpForm({ ready }: { ready: boolean }) {
         }
       }
       setErrors(fieldErrors);
-      setStatus(error instanceof AuthRequestError ? error.message : "가입하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      if (restricted) {
+        setRestrictionMessage(error.message);
+        setStatus("");
+      } else {
+        setStatus(error instanceof AuthRequestError ? error.message : "가입하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      }
       // 실패한 비밀번호만 지우고 닉네임과 아이디는 재입력을 위해 보존한다.
       const password = form.elements.namedItem("password");
       if (password instanceof HTMLInputElement) password.value = "";
       submitting.current = false;
       setPending(false);
       // pending 동안 비활성화된 입력이 다시 활성화된 다음 포커스를 이동한다.
-      window.requestAnimationFrame(() => focusField(form, fields.find((field) => fieldErrors[field]) ?? "password"));
+      if (!restricted) window.requestAnimationFrame(() => focusField(form, fields.find((field) => fieldErrors[field]) ?? "password"));
     }
   }
 
   return (
-    <form
+    <><form
+      ref={formRef}
       className={styles.form}
       method="post"
       noValidate
@@ -158,5 +169,10 @@ export function SignUpForm({ ready }: { ready: boolean }) {
       </button>
       <p id="sign-up-status" role="status" className={styles.formStatus}>{status}</p>
     </form>
+      {restrictionMessage !== undefined && <AuthNoticeDialog title="회원가입 제한" message={restrictionMessage} ready={ready} onClose={() => {
+        setRestrictionMessage(undefined);
+        window.requestAnimationFrame(() => { if (formRef.current) focusField(formRef.current, "password"); });
+      }} />}
+    </>
   );
 }

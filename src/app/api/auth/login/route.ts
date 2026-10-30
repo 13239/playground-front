@@ -43,7 +43,7 @@ export async function POST(request: Request): Promise<Response> {
     if (!(error instanceof ApiError && error.loginAuditRecorded)) {
       await queueLoginFailure(newLoginReport({ attemptId, started, stage, error, username, clientIp, userAgent: getClientUserAgent(request) }));
     }
-    if (error instanceof ApiError && ["INVALID_CREDENTIALS", "LOGIN_CONFIRMATION_REQUIRED"].includes(error.code)) return apiErrorResponse(error);
+    if (error instanceof ApiError && ["INVALID_CREDENTIALS", "LOGIN_CONFIRMATION_REQUIRED", "ACCESS_RESTRICTED"].includes(error.code)) return apiErrorResponse(error);
     return apiErrorResponse(new ApiError("LOGIN_SERVER_ERROR", { retryAfterSeconds: error instanceof ApiError ? error.retryAfterSeconds : undefined }));
   }
 }
