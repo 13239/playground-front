@@ -1,0 +1,10 @@
+<!-- 32px 정중앙이 실제 조준점이다. 밝고 어두운 지형 모두에서 보이도록 이중 선을 사용한다. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <g stroke="#302050" stroke-width="4" stroke-linecap="round">
+    <circle cx="16" cy="16" r="9"/><path d="M16 2v7m0 14v7M2 16h7m14 0h7"/>
+  </g>
+  <g stroke="#e7d9ff" stroke-width="2" stroke-linecap="round">
+    <circle cx="16" cy="16" r="9"/><path d="M16 2v7m0 14v7M2 16h7m14 0h7"/>
+  </g>
+  <circle cx="16" cy="16" r="2" fill="#66f1ff" stroke="#302050"/>
+</svg>

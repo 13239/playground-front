@@ -1,4 +1,6 @@
 import {
+  ALL_MAPS,
+  STAGE_MAP_IDS,
   isStageMap,
   type Mode,
   type StageMapId,
@@ -55,13 +57,13 @@ export function isProgress(value: unknown): value is ShootingProgress {
   return (
     object(value) &&
     integer(value.totalStars) &&
-    value.totalStars <= 9 &&
+    value.totalStars <= STAGE_MAP_IDS.length * 3 &&
     integer(value.unlockedMaps, 1) &&
-    value.unlockedMaps <= 7 &&
+    value.unlockedMaps <= ALL_MAPS &&
     Array.isArray(value.maps) &&
-    value.maps.length === 3 &&
+    value.maps.length === STAGE_MAP_IDS.length &&
     new Set(value.maps.map((row) => (object(row) ? row.mapId : ""))).size ===
-      3 &&
+      STAGE_MAP_IDS.length &&
     value.maps.every(
       (row) =>
         object(row) &&

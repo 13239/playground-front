@@ -16,11 +16,26 @@
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d2c4ed;
+  border-radius: 1.1rem;
+  background: #fffcffb8;
+  box-shadow: 0 0.3rem 1rem #a58bce10;
 }
 .titleRow h1 {
   font-size: clamp(1.3rem, 1.15rem + 0.7vw, 2.1rem);
-  margin: 0.25rem 0 0;
+  margin: 0;
   letter-spacing: -0.04em;
+}
+/* 중복된 세로 제목 행을 접어 사이트 헤더가 있는 FHD에서도 주요 게임 동작을 한 화면에 둔다. */
+.titleRow > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+.titleRow > div:first-child > .eyebrow {
+  color: #8958bd;
 }
 .eyebrow {
   font-size: clamp(0.65rem, 0.58rem + 0.15vw, 0.85rem);
@@ -1343,9 +1358,9 @@
   box-shadow: 0 0.7rem 2rem #9f82ba16;
 }
 .arena[data-lobby="true"] {
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  border: 1px solid #d2c4ed;
+  background: linear-gradient(125deg, #fcf9ffcf, #edf5ffb0);
+  box-shadow: 0 0.5rem 1.5rem #a58bce0c;
 }
 .canvas {
   inset: 8rem 0 5.5rem;
@@ -1702,6 +1717,276 @@
   background: #8c4dea;
   border-color: #8c4dea;
   color: #fff;
+}
+/* 전투 시안: 고정 진행도와 하단 동작 사이의 가용 영역에만 전장을 맞춘다.
+   이전 HUD의 절대 좌표보다 명시적으로 우선하여 창 크기·터치 환경에서도 겹침을 막는다. */
+.stageProgress {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 6;
+  min-height: 4.2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #cfc0e5;
+  background: #fbf7fff5;
+}
+.stageProgress > strong {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+.stageProgress > strong > span {
+  color: #9279aa;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+.stageProgress > b {
+  font-size: 0.85rem;
+  color: #71508f;
+  white-space: nowrap;
+}
+.stageProgress ol {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+.stageProgress li {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+.stageProgress li:not(:last-child)::after {
+  content: "";
+  flex: 1;
+  height: 0.2rem;
+  background: #ddd1ef;
+}
+.stageProgress li:last-child {
+  flex: 0 0 auto;
+}
+.stageProgress li > span {
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: clamp(1.5rem, 2vw, 2.1rem);
+  height: clamp(1.5rem, 2vw, 2.1rem);
+  flex-shrink: 0;
+  border: 1px solid #c9b6e7;
+  border-radius: 50%;
+  background: #fffaff;
+  color: #8c70a8;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.stageProgress li[data-boss="true"] > span::before {
+  content: "★";
+  position: absolute;
+  top: -0.7rem;
+  font-size: 0.7rem;
+  color: #8d59c5;
+}
+.stageProgress li[data-current="true"] > span {
+  background: #8b43e5;
+  color: #fff;
+  border-color: #a67de0;
+  box-shadow: 0 0 0 3px #e8d9fc;
+}
+.stageProgress li[data-cleared="true"] > span {
+  background: #aa75e8;
+  color: #fff;
+  border-color: #aa75e8;
+}
+.stageProgress li[data-cleared="true"]::after {
+  background: #aa75e8;
+}
+.arena[data-battle="true"] .canvas {
+  inset: 4.2rem 0 5.2rem;
+}
+.arena[data-battle="true"] .canvas canvas {
+  cursor: url("/images/shooting/aim-cursor.svg") 16 16, crosshair;
+}
+.arena[data-battle="true"] .hudTop {
+  top: 4.9rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.arena[data-battle="true"] .stage {
+  position: static;
+  transform: none;
+  min-width: 0;
+}
+.arena[data-battle="true"] .vitals {
+  font-size: clamp(0.8rem, 0.75rem + 0.1vw, 1rem);
+}
+.arena[data-battle="true"] .stage > small, .arena[data-battle="true"] .stage > span {
+  font-size: 0.75rem;
+}
+.arena[data-battle="true"] .timerTarget {
+  font-size: 0.75rem;
+}
+.arena[data-battle="true"] .stage strong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.stage strong > svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.arena[data-battle="true"] .boss {
+  top: 10rem;
+}
+.arena[data-battle="true"] .buildStrip {
+  top: 11rem;
+}
+.arena[data-battle="true"] .hudBottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  min-height: 5.2rem;
+  padding: 0.5rem 0.8rem;
+  background: #faf6fff5;
+  border-top: 1px solid #d8c9eb;
+  align-items: center;
+}
+.battleObjective {
+  font-size: 0.75rem;
+  color: #83699c;
+  text-align: right;
+}
+/* 무적 아이템만 별도 배지로 표시해 짧은 피격 보호와 구분한다. 시간은 항상 소수점 한 자리와 s를 사용한다. */
+.activeShieldBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid #61dbea;
+  border-radius: 0.5rem;
+  background: #15304d;
+  color: #c9fcff;
+  font: 700 0.8rem ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.activeShieldBadge > svg { width: 1rem; height: 1rem; }
+.missionBadge { display: none; }
+.battleObjective[data-urgent="true"], .missionBadge[data-urgent="true"] {
+  color: #a63049;
+  background: #fff0dc;
+  border: 1px solid #e4a47e;
+  border-radius: 0.5rem;
+  padding: 0.4rem;
+}
+@media (max-width: 700px) {
+  .missionBadge {
+    position: absolute;
+    z-index: 8;
+    bottom: 7rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: max-content;
+    max-width: calc(100% - 1.5rem);
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #dcc9ee;
+    border-radius: 0.6rem;
+    background: #fcf6ffed;
+    color: #735084;
+    font-size: 0.75rem;
+    pointer-events: none;
+  }
+  .missionBadge svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+}
+@media (max-width: 700px) {
+  .stageProgress {
+    gap: 0.6rem;
+    padding: 0.5rem;
+    flex-wrap: wrap;
+    min-height: 5.4rem;
+  }
+  .stageProgress > strong {
+    flex-direction: row;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+  .stageProgress > b {
+    margin-left: auto;
+    font-size: 0.7rem;
+  }
+  .stageProgress ol {
+    order: 3;
+    flex-basis: 100%;
+    padding-top: 0.25rem;
+  }
+  .stageProgress li > span {
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 0.7rem;
+  }
+  .arena[data-battle="true"] .canvas {
+    inset: 5.7rem 0 6.5rem;
+  }
+  .arena[data-battle="true"] .hudTop {
+    top: 6rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+  }
+  .arena[data-battle="true"] .hudActions {
+    margin: 0;
+  }
+  .arena[data-battle="true"] .hudBottom {
+    min-height: 6.5rem;
+    gap: 0.25rem;
+  }
+  .arena[data-battle="true"] .boss {
+    top: 13rem;
+  }
+  .battleObjective, .arena[data-battle="true"] .buildStrip {
+    display: none;
+  }
+}
+/* 가로 터치 화면은 진행도를 한 줄로 줄이고 스틱 공간은 원래 크기로 유지한다. */
+@media (pointer: coarse) and (max-height: 600px) and (orientation: landscape) {
+  .stageProgress {
+    min-height: 2.8rem;
+    padding: 0.35rem 0.6rem;
+    flex-wrap: nowrap;
+  }
+  .stageProgress > strong > span {
+    display: none;
+  }
+  .stageProgress ol {
+    order: 0;
+    flex-basis: auto;
+    padding: 0;
+  }
+  .arena[data-battle="true"] .canvas {
+    inset: 2.8rem 0 4.5rem;
+  }
+  .arena[data-battle="true"] .hudTop {
+    top: 3.1rem;
+  }
+  .arena[data-battle="true"] .hudBottom {
+    min-height: 4.5rem;
+    padding-block: 0.2rem;
+  }
+  .arena[data-battle="true"] .boss {
+    top: 7rem;
+  }
 }
 @media (max-width: 40rem) {
   .titleRow {

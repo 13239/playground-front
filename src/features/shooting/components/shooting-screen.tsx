@@ -5,7 +5,6 @@ import { RoomDialog } from "@/components/ui/game-dialog";
 import { StageHub, type HubPage } from "./stage-hub";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
-  STAGE_MAPS,
   type Mode,
   type StageMapId,
 } from "@playground/shooting-shared";
@@ -16,6 +15,7 @@ import {
   revalidateAuthSession,
 } from "@/features/auth/client/session-store";
 import { ShootingRuntime } from "../client/runtime";
+import { useArenaViewport } from "../client/use-arena-viewport";
 import { Battlefield, preloadBattlefield } from "./battlefield";
 import { BattleHud } from "./battle-hud";
 import { BattleMenus } from "./battle-menus";
@@ -83,6 +83,7 @@ function ShootingGame({
   const [help, setHelp] = useState(false);
   const [sound, setSound] = useState(true);
   const arena = useRef<HTMLElement>(null);
+  useArenaViewport(arena);
   const state = view.state,
     player = state?.players[view.id];
   const connected = ["connecting", "connected", "reconnecting"].includes(
@@ -138,50 +139,17 @@ function ShootingGame({
       cancelled = true;
     };
   }, [roomCode, sessionId, runtime, router]);
-  useEffect(() => {
-    // 실제 헤더·제목 높이를 뺀 가용 영역을 사용한다. 글꼴 확대·창 높이 변경에도 주요 조작이 화면에 남는다.
-    const resize = () => {
-      const element = arena.current;
-      if (element) {
-        // 푸터와 본문 하단 여백도 실제 크기로 제외해 FHD에서 주요 조작 아래에 불필요한 스크롤이 생기지 않게 한다.
-        const main = element.closest("main");
-        const footer = main?.parentElement?.querySelector("footer");
-        const bottom = main
-          ? Number.parseFloat(getComputedStyle(main).paddingBottom) || 0
-          : 18;
-        const frame = getComputedStyle(element);
-        const borders =
-          (Number.parseFloat(frame.borderTopWidth) || 0) +
-          (Number.parseFloat(frame.borderBottomWidth) || 0);
-        element.style.setProperty(
-          "--arena-available-height",
-          `${Math.max(300, Math.floor(window.innerHeight - element.getBoundingClientRect().top - (footer?.getBoundingClientRect().height ?? 0) - bottom - borders))}px`,
-        );
-      }
-    };
-    const observer = new ResizeObserver(resize);
-    if (arena.current?.parentElement)
-      observer.observe(arena.current.parentElement);
-    window.addEventListener("resize", resize);
-    resize();
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
   return (
     <>
       <div className={styles.titleRow}>
         <div>
-          <span className={styles.eyebrow}>PLAYGROUND · STAGE CHALLENGE</span>
-          <h1>
-            {connected && state
-              ? `${STAGE_MAPS[state.mapId].name} · ${state.mode === "SINGLE" ? "1인 도전" : "2인 협동"}`
-              : "슈팅게임"}
-          </h1>
+          {/* 제목은 내부 모드·대기실·전투 전환과 관계없이 유지해 하나의 게임 클라이언트로 보이게 한다. */}
+          <span className={styles.eyebrow}>PLAYGROUND</span>
+          <h1>슈팅게임</h1>
         </div>
         <div className={styles.topActions}>
           <button
+            aria-label={sound ? "소리 끄기" : "소리 켜기"}
             aria-pressed={sound}
             onClick={() => {
               const enabled = !sound;
@@ -193,6 +161,7 @@ function ShootingGame({
             소리 {sound ? "켜짐" : "꺼짐"}
           </button>
           <button
+            aria-label="조작 안내"
             onClick={() => {
               if (
                 state &&
@@ -209,6 +178,7 @@ function ShootingGame({
           </button>
           {/* 랭킹은 요청할 때만 조회하고 조작 안내 오른쪽에서 열어 전투 영역을 넓게 유지한다. */}
           <button
+            aria-label="랭킹"
             onClick={() => {
               if (
                 state &&
@@ -224,13 +194,15 @@ function ShootingGame({
             <Icon name="trophy" />
             랭킹
           </button>
+          <Link href="/" aria-label="홈으로" title="홈으로"><Icon name="home" /></Link>
         </div>
       </div>
       <section
         ref={arena}
         className={styles.arena}
-        aria-label="슈팅 스테이지 전장"
+        aria-label="슈팅게임"
         data-active={connected}
+        data-battle={connected && !!state && !["lobby", "over"].includes(state.phase)}
         data-lobby={
           !connected || state?.phase === "lobby" || state?.phase === "over"
         }

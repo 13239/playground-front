@@ -2,7 +2,10 @@ import Phaser from "phaser";
 import {
   WORLD,
   STAGE_MAPS,
+  STAGE_PALETTES,
   SHOOTING_CHARACTERS,
+  encounterFor,
+  formatShieldTime,
   type GameSnapshot,
   type PlayerView,
 } from "@playground/shooting-shared";
@@ -10,6 +13,7 @@ import type { ShootingRuntime } from "../client/runtime";
 import { SpriteArt } from "./sprite-art";
 import { drawPickup } from "./pickup-art";
 import { drawWeapon } from "./weapon-art";
+import { drawActiveShield, drawHostileProjectile, drawSupportDrone } from "./combat-visuals";
 import {
   drawEffect,
   drawEnemyWarning,
@@ -29,6 +33,9 @@ export function createArena(
     private actors!: Phaser.GameObjects.Graphics;
     private overlays!: Phaser.GameObjects.Graphics;
     private gear!: Phaser.GameObjects.Graphics;
+    private danger!: Phaser.GameObjects.Graphics;
+    private shields!: Phaser.GameObjects.Graphics;
+    private readonly reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
     private art!: SpriteArt;
     private wallCount = -1;
     private labels = new Map<string, Phaser.GameObjects.Text>();
@@ -43,6 +50,8 @@ export function createArena(
       SpriteArt.preload(this, runtime.snapshot?.mapId ?? "CAVE");
     }
     create(): void {
+      // 네이티브 커서의 핫스폿과 월드 조준점은 같은 중심을 사용하며 렌더 지연을 추가하지 않는다.
+      this.input.setDefaultCursor('url("/images/shooting/aim-cursor.svg") 16 16, crosshair');
       // 월드 비율을 유지하며 생기는 여백도 파스텔 셸과 같은 계열로 채운다.
       this.cameras.main.setBackgroundColor("#e7e0f2");
       this.floor = this.add.graphics();
@@ -51,22 +60,25 @@ export function createArena(
       this.overlays = this.add.graphics();
       this.gear = this.add.graphics().setDepth(20);
       this.overlays.setDepth(30);
+      // 공격·실드를 캐릭터 스프라이트보다 위에 두어 큰 원화나 지형에 가려지지 않게 한다.
+      this.danger = this.add.graphics().setDepth(25);
+      this.shields = this.add.graphics().setDepth(40);
       this.art = new SpriteArt(this);
       this.art.prepare(runtime.snapshot?.mapId ?? "CAVE");
       // 보호 시간 표시는 한 번 만든 텍스트를 재사용하고 캐릭터 주변에 0.1초 단위로 갱신한다.
       this.protectionLabel = this.add
         .text(0, 0, "", {
-          fontFamily: "system-ui, sans-serif",
+          fontFamily: "ui-monospace, monospace",
           fontSize: "18px",
           fontStyle: "bold",
-          color: "#fff5c9",
-          backgroundColor: "#34215cee",
+          color: "#d9fdff",
+          backgroundColor: "#112d4aee",
           stroke: "#150c29",
           strokeThickness: 3,
           padding: { x: 7, y: 4 },
         })
         .setOrigin(0.5)
-        .setDepth(20)
+        .setDepth(42)
         .setVisible(false);
       this.buildFloor();
       const aim = (pointer: Phaser.Input.Pointer) => {
@@ -100,8 +112,8 @@ export function createArena(
     private buildFloor(): void {
       const g = this.floor;
       const map = runtime.snapshot?.mapId ?? "CAVE";
-      const floor =
-        map === "CAVE" ? 0x9086b2 : map === "FACTORY" ? 0xb4a2b5 : 0x9dbda5;
+      const palette = STAGE_PALETTES[map];
+      const floor = palette.floor;
       g.clear();
       // 출입구와 안전선은 장식이며 실제 충돌은 공유 월드 경계·엄폐물만 사용한다.
       // 맵별 바닥의 색·줄눈·장식은 달라도 실제 벽과 플레이어 좌표는 공유 월드에 맞춘다.
@@ -120,7 +132,7 @@ export function createArena(
             map === "FACTORY" ? 3 : 12,
           );
         }
-      g.lineStyle(10, map === "GARDEN" ? 0x537b63 : 0x64567e).strokeRect(
+      g.lineStyle(10, palette.edge).strokeRect(
         35,
         35,
         WORLD.width - 70,
@@ -136,10 +148,8 @@ export function createArena(
       for (const wall of state.walls) {
         const { x, y, width: w, height: h } = wall;
         // 새 맵 재질만 한 번 그려 이전 금속 레이어를 중복 렌더링하지 않는다.
-        const cave = state.mapId === "CAVE",
-          factory = state.mapId === "FACTORY";
-        const border = cave ? 0x62567e : factory ? 0x7e617d : 0x4d7b60;
-        const top = cave ? 0xb2a2ce : factory ? 0xe5c797 : 0x9cc485;
+        const factory = state.mapId === "FACTORY";
+        const { edge: border, wall: top } = STAGE_PALETTES[state.mapId];
         g.fillStyle(border, 0.4).fillRoundedRect(x + 5, y + 9, w, h, 16);
         g.fillStyle(top).fillRoundedRect(x, y, w, h, factory ? 7 : 17);
         g.lineStyle(3, border).strokeRoundedRect(x, y, w, h, factory ? 7 : 17);
@@ -212,10 +222,29 @@ export function createArena(
       const g = this.actors.clear(),
         fx = this.overlays.clear();
       this.gear.clear();
+      this.danger.clear();
+      this.shields.clear();
       this.art.begin();
       // 장치가 파괴되면 같은 틱의 서버 상태와 함께 이미지·충돌 벽도 사라진다.
       for (const device of Object.values(state.devices)) {
         if (device.hp <= 0 || device.kind === "pillar") continue;
+        const goal = encounterFor(state.stage).goal;
+        if (goal === "devices" || goal === "disrupt") {
+          this.danger.lineStyle(3, 0xffdc78, 0.85).strokeCircle(device.x, device.y, device.radius + 14);
+          this.danger.lineStyle(2, 0x372b43).strokeCircle(device.x, device.y, device.radius + 18);
+        }
+        // 바닥 효과의 외곽은 서버 둔화 반경과 일치한다. 장치가 파괴되면 같은 패치에서 사라진다.
+        if (device.kind === "sand-totem" || device.kind === "frost-core") {
+          const frost = device.kind === "frost-core", radius = frost ? 165 : 145;
+          g.fillStyle(frost ? 0xa7e8ff : 0xffd077, 0.18).fillCircle(device.x, device.y, radius);
+          g.lineStyle(2, frost ? 0xc5f6ff : 0xffdf9a, 0.65).strokeCircle(device.x, device.y, radius);
+          for (let index = 0; index < 8; index++) {
+            const angle = index * Math.PI / 4;
+            const x = device.x + Math.cos(angle) * radius * 0.7, y = device.y + Math.sin(angle) * radius * 0.7;
+            g.lineStyle(2, frost ? 0xe0faff : 0xffe7ad, 0.6).lineBetween(x - 5, y, x + 5, y);
+            if (frost) g.lineBetween(x, y - 5, x, y + 5);
+          }
+        }
         this.art.draw(
           device.id,
           STAGE_MAPS[state.mapId].theme,
@@ -247,7 +276,7 @@ export function createArena(
       this.protectionLabel.setVisible(false);
       const seen = new Set<string>();
       for (const hazard of Object.values(state.hazards))
-        drawHazard(g, hazard, this.elapsed);
+        drawHazard(this.danger, hazard, this.elapsed);
       for (const pickup of Object.values(state.pickups)) drawPickup(g, pickup);
       for (const enemy of Object.values(state.enemies)) {
         const position = this.smooth(enemy.id, enemy.x, enemy.y, delta, seen),
@@ -269,14 +298,15 @@ export function createArena(
           );
           continue;
         }
-        drawEnemyWarning(g, enemy, x, y, this.elapsed);
+        drawEnemyWarning(this.danger, enemy, x, y, this.elapsed);
         const roster = STAGE_MAPS[state.mapId].ordinary as readonly string[];
         const frame = enemy.boss
           ? state.stage === 5
             ? 3
             : 4
-          : Math.max(0, roster.indexOf(enemy.kind));
-        this.art.draw(
+          : enemy.kind === "sniper" ? 2 : Math.max(0, roster.indexOf(enemy.kind));
+        if (enemy.kind === "support") drawSupportDrone(g, x, y, this.elapsed);
+        else this.art.draw(
           enemy.id,
           STAGE_MAPS[state.mapId].theme,
           frame,
@@ -289,6 +319,10 @@ export function createArena(
           true,
           enemy.exposed > 0,
         );
+        if (enemy.elite) {
+          this.danger.lineStyle(2.5, 0xffd267).strokeCircle(x, y + r * 0.25, r + 10);
+          this.danger.fillStyle(0xffda7a).fillTriangle(x - 7, y - r * 2, x + 7, y - r * 2, x, y - r * 2 - 9);
+        }
         if (enemy.exposed > 0)
           g.lineStyle(2.5, 0xffd16c, 0.85).strokeEllipse(
             x,
@@ -307,6 +341,10 @@ export function createArena(
         }
       }
       for (const bullet of Object.values(state.bullets)) {
+        if (bullet.hostile) {
+          drawHostileProjectile(this.danger, bullet, zoom, runtime.snapshotAgeSeconds);
+          continue;
+        }
         const color = bullet.hostile
           ? 0xff7772
           : bullet.weapon === "launcher"
@@ -350,10 +388,13 @@ export function createArena(
           own,
           protection,
         );
-        if (own && player.alive && protection > 0) {
+        const shield = Math.max(0, (player.shieldRemaining ?? 0) - runtime.snapshotAgeSeconds);
+        if (player.alive && shield > 0)
+          drawActiveShield(this.shields, x, y, shield, this.elapsed, this.reducedMotion);
+        if (own && player.alive && shield > 0) {
           // 작은 화면에서도 읽을 수 있는 크기를 유지하고 화면 아래에서는 캐릭터 위로 재배치한다.
           const scale = Math.max(1, 0.8 / zoom);
-          const text = `무적 ${(Math.ceil(protection * 10 - 1e-6) / 10).toFixed(1)}초`;
+          const text = formatShieldTime(shield);
           if (this.protectionLabel.text !== text)
             this.protectionLabel.setText(text);
           const half = (this.protectionLabel.width * scale) / 2 + 8 / zoom;
@@ -468,9 +509,9 @@ export function createArena(
         return;
       }
       g.fillStyle(0x03070c, 0.5).fillEllipse(x + 2, y + 17, 48, 20);
-      // 보호 상태는 밝은 육각 장갑으로 구분하고 선택한 프로필 캐릭터의 외형은 유지한다.
-      if (protection > 0)
-        drawShield(g, x, y, 34 + Math.sin(this.elapsed * 6) * 1.5, 0.9);
+      // 피격·부활 보호는 얇은 육각 장갑, 아이템 무적은 최상단의 큰 시안 실드로 구분한다.
+      if (protection > 0 && !(player.shieldRemaining > 0))
+        drawShield(this.shields, x, y, 34, 0.35);
       if (player.dashRemaining > 0) {
         g.lineStyle(5, color, 0.35).lineBetween(
           x - player.vx * 0.04,
@@ -500,8 +541,9 @@ export function createArena(
       drawWeapon(
         this.gear,
         player.weapon,
-        x + Math.cos(angle) * 12,
-        y + Math.sin(angle) * 8,
+        // 공룡의 위쪽 조준은 총을 머리 옆으로 옮겨 총열이 헤드폰·뿔처럼 겹쳐 보이지 않게 한다.
+        x + Math.cos(angle) * 12 - Math.sin(angle) * (player.character === "HEADPHONE_DINO" ? 34 : 0),
+        y + Math.sin(angle) * 8 + (player.character === "HEADPHONE_DINO" ? 10 : 0),
         angle,
       );
       g.fillStyle(0x090e16).fillRect(x - 20, y + 29, 40, 4);

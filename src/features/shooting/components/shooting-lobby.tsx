@@ -16,7 +16,7 @@ import type { RoomOptions } from "../client/runtime";
 import { ShootingCreateRoom } from "./shooting-create-room";
 import { JoinRoomDialog } from "./join-room-dialog";
 import { ShootingNotice } from "./shooting-notice";
-import { ShootingCover } from "./shooting-cover";
+import { MapPreview } from "./stage-art";
 import styles from "./lobby.module.css";
 
 /** 방 탐색은 전투 전 화면에만 표시한다. 작은 화면에서는 단일 열로 재배치하고 읽을 수 있는 크기를 지킨다. */
@@ -80,7 +80,8 @@ export function ShootingLobby({
       <div className={styles.content} data-solo={mode === "SINGLE"}>
         <aside className={styles.introduction}>
           <div className={styles.cover}>
-            <ShootingCover />
+            {/* 방 탐색에서도 선택한 실제 맵을 보여 주며 동굴 표지를 다른 맵에 재사용하지 않는다. */}
+            <MapPreview mapId={mapId} />
           </div>
           <h2>{STAGE_MAPS[mapId].name}</h2>
           <p>

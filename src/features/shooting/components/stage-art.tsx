@@ -1,10 +1,28 @@
 import { useId } from "react";
 import {
   STAGE_MAPS,
+  STAGE_PALETTES,
   stageLayout,
   type StageMapId,
 } from "@playground/shooting-shared";
 import styles from "./stage-mode.module.css";
+
+/** 여섯 전경은 한 장의 원화를 재사용한다. 정사각 셀의 중앙만 잘라 다른 맵 그림이 섞이지 않게 한다. */
+export function MapCover({ mapId }: { mapId: StageMapId }) {
+  const map = STAGE_MAPS[mapId];
+  // 전경 원화를 아직 추가하지 않은 후속 맵은 실제 지형을 보여 주어 카탈로그 확장을 막지 않는다.
+  if (map.order >= 6) return <MapPreview mapId={mapId} />;
+  return (
+    <span className={styles.mapCover} role="img" aria-label={`${map.name} 전경`}>
+      <span
+        className={styles.mapCoverSheet}
+        style={{
+          backgroundPosition: `${(map.order % 3) * 50}% ${Math.floor(map.order / 3) * 100}%`,
+        }}
+      />
+    </span>
+  );
+}
 
 /** 카드와 전장이 같은 몬스터 원화를 사용한다. 한 번 받은 아틀라스를 셀별로 재사용한다. */
 export function AtlasArt({
@@ -33,15 +51,13 @@ export function MapPreview({ mapId }: { mapId: StageMapId }) {
   const pattern = useId(),
     map = STAGE_MAPS[mapId],
     layout = stageLayout(mapId, 1);
-  const colors =
-    mapId === "CAVE"
-      ? ["#8d82b7", "#b7a9d6", "#675b8a"]
-      : mapId === "FACTORY"
-        ? ["#b5a5b9", "#ead1a2", "#8a758f"]
-        : ["#a2c8b2", "#c7e0b6", "#63967f"];
+  // 6개 맵의 재질을 실제 전장과 공유해 신규 맵이 정원 색으로 표시되지 않게 한다.
+  const palette = STAGE_PALETTES[mapId];
+  const colors = [palette.floor, palette.wall, palette.edge].map((color) => `#${color.toString(16).padStart(6, "0")}`);
   return (
     <svg
       viewBox="0 0 1600 960"
+      preserveAspectRatio="xMidYMid slice"
       role="img"
       aria-label={`${map.name} 지형과 몬스터`}
       className={styles.mapPreview}

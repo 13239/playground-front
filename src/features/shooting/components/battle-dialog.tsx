@@ -35,6 +35,13 @@ export function BattleDialog({
         aria-label={title}
         className={`${styles.dialog} ${wide ? styles.dialogWide : ""}`}
         onKeyDown={(event) => {
+          // 도움말은 Escape로 닫되 같은 키가 전장의 일시정지 입력으로 다시 전달되지 않게 한다.
+          if (event.key === "Escape" && close) {
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+            return;
+          }
           if (event.key !== "Tab") return;
           const controls = Array.from(
             event.currentTarget.querySelectorAll<HTMLElement>(

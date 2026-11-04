@@ -30,7 +30,7 @@ export function ShootingCreateRoom({
       <aside className={styles.createArtwork}>
         <div>
           {/* 맵 완주·별 목표를 방 생성 안내에도 동일하게 제공한다. */}
-          <h2>슈팅 스테이지 도전</h2>
+          <h2>슈팅게임 · 모험 모드</h2>
           <p>온라인 2인 협동</p>
           <small>
             친구와 함께 적들을 물리치고

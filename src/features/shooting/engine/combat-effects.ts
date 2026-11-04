@@ -2,6 +2,7 @@ import type Phaser from "phaser";
 import {
   WORLD,
   BOSS_COMBAT,
+  ATTACK_READABILITY,
   type EffectView,
   type EnemyView,
   type HazardView,
@@ -21,6 +22,20 @@ export function drawEffect(
   const p = Math.max(0, Math.min(1, 1 - life / effect.duration)),
     fade = 1 - p;
   const { x, y, radius: r, kind } = effect;
+  // 무적 사용·위협 발사·보스 단계 전환은 피격 스파크와 구분되는 국소 효과로 표시한다.
+  if (kind === "invul") {
+    g.lineStyle(6 * fade + 1, 0x8cf4ff, fade).strokeCircle(x, y - 8, r * (0.6 + p));
+    g.fillStyle(0x85efff, fade * 0.13).fillCircle(x, y - 8, r * (0.8 + p * 0.4));
+    return;
+  }
+  if (kind === "enemy-shot") {
+    g.fillStyle(0xffedb5, fade).fillCircle(x + Math.cos(effect.value) * r, y + Math.sin(effect.value) * r, 7 * fade + 2);
+    return;
+  }
+  if (kind === "boss-phase") {
+    g.lineStyle(5, 0xffba67, fade).strokeCircle(x, y, r * (0.7 + p));
+    return;
+  }
   const seed = parseInt(effect.id, 36) || 1;
   // 장치 파괴·약점 노출은 금색 확산과 별 모양 파편으로 표시해 일반 피격과 구분한다.
   if (kind === "device-break" || kind === "armor-break") {
@@ -230,9 +245,12 @@ export function drawHazard(
 ): void {
   if (hazard.warning <= 0) return;
   const { x, y, radius: r } = hazard,
-    progress = 1 - hazard.warning / 0.9;
+    // 용암 예고 1.2초와 포격 예고 0.9초가 각자의 실제 판정 시간에 도달할 때만 가득 찬다.
+    progress = Math.max(0, Math.min(1, 1 - hazard.warning / (hazard.kind === "lava" ? 1.2 : hazard.kind === "crossfire" ? 1.1 : 0.9)));
   const alpha = 0.5 + Math.sin(time * 14) * 0.15;
-  g.lineStyle(2, 0xff806e, alpha);
+  g.fillStyle(0xff6c45, 0.1 + progress * 0.13).fillCircle(x, y, r);
+  g.lineStyle(5, 0x332135, 0.7).strokeCircle(x, y, r);
+  g.lineStyle(2.5, 0xffba7b, alpha);
   for (let i = 0; i < 16; i++) {
     const a = (i * Math.PI) / 8;
     g.beginPath()
@@ -266,8 +284,18 @@ export function drawEnemyWarning(
     dy = enemy.targetY - y,
     a = Math.atan2(dy, dx);
   const attack = enemy.attack;
+  if (attack === "shot" || attack === "snipe") {
+    const locked = enemy.warning <= ATTACK_READABILITY.lockSeconds;
+    const length = attack === "snipe" ? 1100 : 780;
+    const ex = x + Math.cos(a) * length, ey = y + Math.sin(a) * length;
+    g.lineStyle(locked ? 7 : 4, 0x2b1837, 0.75).lineBetween(x, y, ex, ey);
+    g.lineStyle(locked ? 3 : 1.5, locked ? 0xfff0a0 : 0xff9b62, locked ? 0.95 : 0.65).lineBetween(x, y, ex, ey);
+    g.lineStyle(2.5, locked ? 0xffecad : 0xff8f65, 0.9).strokeCircle(enemy.targetX, enemy.targetY, attack === "snipe" ? 23 : 14);
+    return;
+  }
   if (enemy.boss && attack && attack !== "boss-charge") {
-    const enraged = enemy.hp <= enemy.maxHp * 0.5;
+    // 체력 구간별 예고 탄 수는 서버의 실제 광폭화 판정과 동일하게 계산한다.
+    const enraged = enemy.hp <= enemy.maxHp * BOSS_COMBAT.finalPhaseHealth;
     g.lineStyle(2, 0xff967c, 0.65);
     if (attack === "boss-cleave") {
       const { cleaveRadius: r, cleaveHalfAngle: arc } = BOSS_COMBAT;

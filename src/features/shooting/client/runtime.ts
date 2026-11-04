@@ -2,6 +2,7 @@ import type { Room } from "@colyseus/sdk";
 import {
   connectionMessage,
   movement,
+  terrainSpeed,
   playerStats,
   WORLD,
   type GameAction,
@@ -92,6 +93,12 @@ export class ShootingRuntime {
     return this.view.id;
   }
   get position(): { x: number; y: number } | undefined {
+    // 짧아진 대시도 서버 패치 사이의 실제 속도로 보간한다. 벽·거리·무적 판정은 서버 값을 그대로 따른다.
+    const state = this.snapshot, player = state?.players[this.playerId];
+    if (state && player && player.dashRemaining > 0) {
+      const age = Math.min(this.snapshotAgeSeconds, player.dashRemaining);
+      return movement(player.x, player.y, player.vx * age, player.vy * age, WORLD.playerRadius, state.walls);
+    }
     return this.predicted;
   }
   get aim(): number {
@@ -366,7 +373,11 @@ export class ShootingRuntime {
     this.emit();
   }
   action(action: GameAction): void {
-    if (this.view.connection === "connected") this.room?.send("action", action);
+    if (this.view.connection === "connected") {
+      // 방향 전환 직후의 대시가 이전 입력 방향으로 나가지 않도록 같은 소켓에 최신 입력부터 보낸다.
+      if (action.type === "dash") this.sendInput();
+      this.room?.send("action", action);
+    }
   }
   key(code: string, pressed: boolean): void {
     if (pressed) this.keys.add(code);
@@ -435,8 +446,10 @@ export class ShootingRuntime {
       player.dashRemaining <= 0 &&
       ["combat", "loot"].includes(state.phase)
     ) {
-      const speed = playerStats(state.level).speed;
-      for (const { frame, dt } of this.pending)
+      // 서버와 같은 위치별 지형 배율을 미확정 프레임마다 다시 계산한다.
+      const devices = Object.values(state.devices);
+      for (const { frame, dt } of this.pending) {
+        const speed = playerStats(state.level).speed * terrainSpeed(position.x, position.y, devices);
         position = movement(
           position.x,
           position.y,
@@ -445,6 +458,7 @@ export class ShootingRuntime {
           WORLD.playerRadius,
           state.walls,
         );
+      }
     }
     this.predicted = position;
   }

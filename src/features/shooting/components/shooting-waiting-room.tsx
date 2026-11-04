@@ -66,7 +66,7 @@ export function ShootingWaitingRoom({
               비밀방
             </span>
           )}
-          <small>온라인 2인 협동 · 스테이지 도전 · {members.length} / 2</small>
+          <small>온라인 2인 협동 · 모험 모드 · {members.length} / 2</small>
         </div>
         <div className={styles.headerActions}>
           <div className={styles.code}>

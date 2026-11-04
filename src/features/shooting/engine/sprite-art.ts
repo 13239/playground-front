@@ -1,5 +1,6 @@
 import Phaser from "phaser";
-import { STAGE_MAPS, type StageMapId } from "@playground/shooting-shared";
+import type { StageMapId } from "@playground/shooting-shared";
+import { stageTextures } from "../client/stage-assets";
 
 interface ActorSprite {
   image: Phaser.GameObjects.Image;
@@ -17,15 +18,14 @@ export class SpriteArt {
   constructor(private readonly scene: Phaser.Scene) {}
 
   static preload(scene: Phaser.Scene, mapId: StageMapId): void {
-    for (const name of ["players", STAGE_MAPS[mapId].theme])
-      if (!scene.textures.exists(name))
-        scene.load.image(name, `/images/shooting/stage-v3/${name}.png`);
+    for (const { key, url } of stageTextures(mapId))
+      if (!scene.textures.exists(key)) scene.load.image(key, url);
   }
 
   /** 셀의 투명 여백을 한 번 계산해 캐릭터별로 다른 원화 여백이 조작 크기를 바꾸지 않게 한다. */
   prepare(mapId: StageMapId): void {
-    for (const name of ["players", STAGE_MAPS[mapId].theme]) {
-      const texture = this.scene.textures.get(name);
+    for (const { key, columns, rows } of stageTextures(mapId)) {
+      const texture = this.scene.textures.get(key);
       if (!texture || texture.has("actor-0")) continue;
       const source = texture.getSourceImage() as HTMLImageElement;
       const canvas = document.createElement("canvas");
@@ -40,11 +40,11 @@ export class SpriteArt {
         canvas.width,
         canvas.height,
       ).data;
-      const width = Math.floor(canvas.width / 3),
-        height = Math.floor(canvas.height / 2);
-      for (let index = 0; index < 6; index++) {
-        const left = (index % 3) * width,
-          top = Math.floor(index / 3) * height;
+      const width = Math.floor(canvas.width / columns),
+        height = Math.floor(canvas.height / rows);
+      for (let index = 0; index < columns * rows; index++) {
+        const left = (index % columns) * width,
+          top = Math.floor(index / columns) * height;
         let x0 = width,
           y0 = height,
           x1 = 0,
@@ -89,6 +89,11 @@ export class SpriteArt {
     moving = false,
     exposed = false,
   ): void {
+    // 공용 아틀라스의 다른 캐릭터를 덮어쓰지 않고 공룡 슬롯만 수정 원화로 바꾼다.
+    if (atlas === "players" && frame === 2) {
+      atlas = "headphone-dino-v5";
+      frame = 0;
+    }
     if (!this.scene.textures.get(atlas)?.has(`actor-${frame}`)) return;
     this.visible.add(id);
     let actor = this.actors.get(id);

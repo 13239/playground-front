@@ -77,6 +77,7 @@ export function StageResults({
           {state.clearedStage} / 10스테이지 완료
         </p>
       </header>
+      {state.notice && <p role="status">{state.notice}</p>}
       <div className={styles.resultGrid}>
         <div className={styles.victoryArt}>
           <Image
@@ -105,7 +106,7 @@ export function StageResults({
                     : "완주 기록을 남겼어요"}
                 </>
               ) : (
-                "첫 클리어를 달성했어요!"
+                "첫 고난도 클리어를 달성했어요!"
               )}
             </p>
           )}
@@ -129,7 +130,7 @@ export function StageResults({
           <p role="status">
             {recordState === "saved"
               ? progress
-                ? `전체 최고 별 ${before ? `${before.totalStars} → ` : ""}${progress.totalStars} / 9`
+                ? `전체 최고 별 ${before ? `${before.totalStars} → ` : ""}${progress.totalStars} / ${STAGE_MAP_IDS.length * 3}`
                 : "기록을 저장했어요."
               : recordState === "error"
                 ? "기록을 저장하지 못했어요. 로그인과 연결을 확인해 주세요."

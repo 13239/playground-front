@@ -1,4 +1,4 @@
-import type { GameSnapshot, WeaponId } from "@playground/shooting-shared";
+import { ATTACK_READABILITY, type GameSnapshot, type WeaponId } from "@playground/shooting-shared";
 
 /** 외부 음원을 내려받지 않는 짧은 합성 효과음이다. 사용자 조작 후에만 AudioContext를 연다. */
 export class ShootingAudio {
@@ -7,6 +7,7 @@ export class ShootingAudio {
   private enabled = true;
   private lastShot = 0;
   private lastEffect = 0;
+  private lastWarning = 0;
 
   unlock(): void {
     if (!this.enabled || typeof window === "undefined") return;
@@ -52,6 +53,20 @@ export class ShootingAudio {
     }
     const self = state.players[ownId],
       prior = previous.players[ownId];
+    // 아이템 사용음은 일반 효과 제한과 분리해 다중 피격·폭발 중에도 무적 발동을 알아차리게 한다.
+    if (self && prior && self.invuls < prior.invuls && self.shieldRemaining > 0)
+      this.melody([784, 1175, 1568]);
+    if (self && prior && prior.shieldRemaining > 0 && self.shieldRemaining <= 0)
+      this.tone(660, 330, 0.12, "sine", 0.25);
+    // 조준 고정음도 공유된 예고 구간을 사용해 시각 표시와 발사 판정의 타이밍을 맞춘다.
+    if (self && now - this.lastWarning > 300 && Object.values(state.enemies).some((enemy) =>
+      enemy.kind === "sniper" && enemy.warning > 0 && enemy.warning <= ATTACK_READABILITY.lockSeconds &&
+      (previous.enemies[enemy.id]?.warning ?? 0) > ATTACK_READABILITY.lockSeconds &&
+      (enemy.x - self.x) ** 2 + (enemy.y - self.y) ** 2 < 1000 ** 2,
+    )) {
+      this.lastWarning = now;
+      this.tone(850, 1250, 0.08, "sine", 0.2);
+    }
     if (self && prior && self.hp < prior.hp)
       this.tone(150, 55, 0.15, "sawtooth", 0.32);
     if (state.phase !== previous.phase) {

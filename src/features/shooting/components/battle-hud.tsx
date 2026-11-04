@@ -4,6 +4,9 @@ import Image from "next/image";
 import {
   formatTime,
   STAGE_MAPS,
+  STAGES_PER_MAP,
+  encounterFor,
+  formatShieldTime,
   characterImage,
   WEAPON_UPGRADES,
   playerStats,
@@ -32,8 +35,35 @@ export function BattleHud({
     (value) => value.id !== player.id && !value.departed,
   );
   const boss = Object.values(state.enemies).find((enemy) => enemy.boss);
+  const plan = encounterFor(state.stage);
+  const devicesLeft = Object.values(state.devices).filter(
+    (device) => device.kind !== "pillar" && device.hp > 0,
+  ).length;
+  const remaining = Math.max(0, plan.limit - (state.stageMillis ?? 0) / 1000);
+  // 제한시간과 장치 수는 실제 서버 상태를 사용하며 조작 안내 대신 현재 임무만 보여 준다.
+  let objective = "모든 적을 처치하세요";
+  if (plan.goal === "devices" || plan.goal === "disrupt") {
+    objective = devicesLeft
+      ? `장치 ${devicesLeft}개 제압${plan.limit ? ` · ${remaining.toFixed(1)}s` : ""}`
+      : "장치 제압 완료 · 남은 적 처치";
+  } else if (state.bossName) objective = `${state.bossName} 처치`;
+  else if (plan.goal === "crossfire") objective = "교차 포격 회피 · 남은 적 처치";
   return (
     <>
+      {/* 진행도는 10개 노드로 고정하고 보스(5·10)와 현재·완료 상태를 색과 기호로 함께 구분한다. */}
+      <div className={styles.stageProgress} aria-label={`${STAGE_MAPS[state.mapId].name} · ${state.stage} / ${STAGES_PER_MAP} 스테이지`}>
+        <strong><span>{plan.title}</span>{STAGE_MAPS[state.mapId].name}</strong>
+        <ol>
+          {Array.from({ length: STAGES_PER_MAP }, (_, index) => index + 1).map((stage) => (
+            <li key={stage} data-cleared={stage <= state.clearedStage} data-current={stage === state.stage}
+              data-boss={stage % 5 === 0} aria-current={stage === state.stage ? "step" : undefined}
+              aria-label={`${stage} 스테이지${stage % 5 === 0 ? " · 보스" : ""}${stage <= state.clearedStage ? " · 완료" : ""}`}>
+              <span>{stage <= state.clearedStage ? "✓" : stage}</span>
+            </li>
+          ))}
+        </ol>
+        <b>STAGE {String(state.stage).padStart(2, "0")} / {STAGES_PER_MAP}</b>
+      </div>
       <div className={styles.hudTop}>
         <div className={styles.vitals}>
           <div>
@@ -77,17 +107,20 @@ export function BattleHud({
               <i style={{ width: `${(100 * state.xp) / state.nextXp}%` }} />
             </div>
           </div>
+          {player.shieldRemaining > 0 && (
+            <output className={styles.activeShieldBadge} aria-label="무적 아이템 활성화">
+              <Icon name="shield" /> SHIELD · {formatShieldTime(player.shieldRemaining)}
+            </output>
+          )}
         </div>
         <div className={styles.stage}>
           <small>{state.mode === "COOP" ? "2인 협동" : "1인 도전"}</small>
-          <strong>
-            <b>{String(state.stage).padStart(2, "0")}</b> / 10
-          </strong>
+          <strong><Icon name="clock" /> {formatTime(state.combatMillis)}</strong>
           <span>
             {state.phase === "loot"
               ? "전장 정리"
               : state.bossName || `WAVE ${state.wave} / ${state.waveCount}`}
-            <i /> {formatTime(state.combatMillis)}
+            <i /> 남은 적 {Math.max(0, state.enemyTotal - state.enemiesKilled)}
           </span>
         </div>
         <div className={styles.hudActions}>
@@ -118,7 +151,7 @@ export function BattleHud({
       {boss && (
         <div className={styles.boss}>
           <div>
-            <b>{state.bossName}</b>
+            <b>{state.bossName} · PHASE {boss.combatPhase ?? 1}</b>
             {boss.exposed > 0 && (
               <small>약점 노출 {boss.exposed.toFixed(1)}초</small>
             )}
@@ -204,7 +237,12 @@ export function BattleHud({
             />
           )}
         </div>
-        <span className={styles.keyHint}>WASD 이동 · 마우스 조준 / 사격</span>
+        {/* 조작 설명은 상단 도움말 팝업으로 모으고 하단에는 전투 목표만 표시한다. */}
+        <span className={styles.battleObjective} data-urgent={plan.limit > 0 && devicesLeft > 0 && remaining < 10}>{objective}</span>
+      </div>
+      {/* 작은 화면에서도 목표가 숨겨지지 않게 전투 영역 안에 짧은 임무 배지를 별도로 제공한다. */}
+      <div className={styles.missionBadge} data-urgent={plan.limit > 0 && devicesLeft > 0 && remaining < 10}>
+        <Icon name="target" />{objective}
       </div>
       {!player.alive && state.phase === "combat" && !state.paused && (
         <div className={styles.deathNotice}>

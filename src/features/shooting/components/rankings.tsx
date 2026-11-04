@@ -51,9 +51,9 @@ export function Rankings({
         <h2>
           <Icon name="trophy" />
           {STAGE_MAPS[mapId].name} · {mode === "SINGLE" ? "1인" : "2인 협동"}{" "}
-          TOP 100
+          고난도 TOP 100
         </h2>
-        <small>완료 스테이지 ↓ · 누적 전투 시간 ↑</small>
+        <small>현재 난이도 기록 · 완료 스테이지 ↓ · 누적 전투 시간 ↑</small>
       </div>
       {error ? (
         <p role="status">
