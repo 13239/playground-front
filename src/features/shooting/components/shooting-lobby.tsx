@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import type { Mode } from "@playground/shooting-shared";
+import {
+  STAGE_MAPS,
+  type Mode,
+  type StageMapId,
+} from "@playground/shooting-shared";
 import { Icon } from "@/components/ui/icon";
 import { SearchInput } from "@/components/ui/search-input";
 import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
@@ -18,6 +22,7 @@ import styles from "./lobby.module.css";
 /** 방 탐색은 전투 전 화면에만 표시한다. 작은 화면에서는 단일 열로 재배치하고 읽을 수 있는 크기를 지킨다. */
 export function ShootingLobby({
   sessionId,
+  mapId = "CAVE",
   mode,
   setMode,
   connect,
@@ -25,6 +30,7 @@ export function ShootingLobby({
   dismissMessage,
 }: {
   sessionId: string;
+  mapId?: StageMapId;
   mode: Mode;
   setMode: (mode: Mode) => void;
   connect: (mode: Mode, code?: string, settings?: RoomOptions) => void;
@@ -67,8 +73,8 @@ export function ShootingLobby({
       </div>
       <p className={styles.tagline}>
         {mode === "COOP"
-          ? "함께 더 높은 스테이지에 도전하세요."
-          : "정밀한 조준과 과감한 회피로 최고 기록에 도전하세요."}
+          ? "함께 맵을 완주하고 별 3개에 도전하세요."
+          : "정밀한 조준과 과감한 회피로 별 3개에 도전하세요."}
       </p>
       {message && <ShootingNotice message={message} dismiss={dismissMessage} />}
       <div className={styles.content} data-solo={mode === "SINGLE"}>
@@ -76,11 +82,11 @@ export function ShootingLobby({
           <div className={styles.cover}>
             <ShootingCover />
           </div>
-          <h2>{mode === "COOP" ? "둘이서, 더 멀리" : "끝까지 살아남아라"}</h2>
+          <h2>{STAGE_MAPS[mapId].name}</h2>
           <p>
             {mode === "COOP"
-              ? "공격과 방어를 나누고 서로를 지키며 더 높은 스테이지에 도전하세요."
-              : "네 가지 무기와 나만의 강화 조합으로 끝없는 전장에 도전하세요."}
+              ? "서로를 지키며 10스테이지의 장치와 보스를 함께 공략하세요."
+              : "네 가지 무기와 나만의 강화 조합으로 완주 시간을 줄여보세요."}
           </p>
           <div className={styles.facts}>
             <span>
@@ -150,6 +156,7 @@ export function ShootingLobby({
         </aside>
         {mode === "COOP" && (
           <RoomBrowser
+            mapId={mapId}
             sessionId={sessionId}
             create={() => setCreating(true)}
             join={(room) =>
@@ -178,10 +185,12 @@ export function ShootingLobby({
 /** 변경 알림으로 즉시 갱신한다. 유실 알림 복구를 위한 낮은 빈도의 조회는 보이는 탭에서만 수행한다. */
 function RoomBrowser({
   sessionId,
+  mapId,
   create,
   join,
 }: {
   sessionId: string;
+  mapId: StageMapId;
   create(): void;
   join(room: ShootingRoomSummary): void;
 }) {
@@ -195,7 +204,7 @@ function RoomBrowser({
     data?: ShootingRooms;
     error?: string;
   }>();
-  const key = `${sessionId}:${page}:${search}:${friendsOnly}`;
+  const key = `${sessionId}:${mapId}:${page}:${search}:${friendsOnly}`;
   useEffect(() => {
     const controller = new AbortController();
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
@@ -252,6 +261,7 @@ function RoomBrowser({
           search,
           friendsOnly,
           signal,
+          mapId,
         );
         if (!signal.aborted && !stopped) setResult({ key, data });
       } catch (error) {
@@ -283,7 +293,7 @@ function RoomBrowser({
       controller?.abort();
       document.removeEventListener("visibilitychange", visible);
     };
-  }, [sessionId, page, search, friendsOnly, key, epoch]);
+  }, [sessionId, mapId, page, search, friendsOnly, key, epoch]);
   const current = result?.key === key ? result : undefined;
   return (
     <section className={styles.browser} aria-label="참가 가능한 협동 방">

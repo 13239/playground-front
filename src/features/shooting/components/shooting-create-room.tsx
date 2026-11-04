@@ -29,18 +29,20 @@ export function ShootingCreateRoom({
     <div className={styles.creation}>
       <aside className={styles.createArtwork}>
         <div>
-          <h2>슈팅 서바이벌</h2>
+          {/* 맵 완주·별 목표를 방 생성 안내에도 동일하게 제공한다. */}
+          <h2>슈팅 스테이지 도전</h2>
           <p>온라인 2인 협동</p>
           <small>
             친구와 함께 적들을 물리치고
-            <br />더 오래 살아남으세요.
+            <br />
+            10스테이지를 완주하고 별 3개에 도전하세요.
           </small>
         </div>
       </aside>
       <form className={styles.createForm} onSubmit={submit}>
         <header>
           <h2>함께할 전장을 만들어보세요</h2>
-          <p>친구를 초대해 둘만의 생존전을 시작하세요.</p>
+          <p>친구를 초대해 맵마다 다른 공략을 함께 찾아보세요.</p>
         </header>
         <label className={styles.field}>
           방 이름

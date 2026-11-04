@@ -10,7 +10,11 @@ import {
 type Graphics = Phaser.GameObjects.Graphics;
 
 /** 오브젝트·타이머를 효과마다 생성하지 않고 서버 수명과 ID로 일정한 파편 궤적을 그린다. */
-export function drawEffect(g: Graphics, effect: EffectView, snapshotAge = 0): void {
+export function drawEffect(
+  g: Graphics,
+  effect: EffectView,
+  snapshotAge = 0,
+): void {
   // 50ms 서버 패치 사이도 이어 그려 빠르게 흩어지는 파편이 계단식으로 움직이지 않게 한다.
   const life = Math.max(0, effect.life - snapshotAge);
   if (life <= 0 || effect.duration <= 0) return;
@@ -18,6 +22,25 @@ export function drawEffect(g: Graphics, effect: EffectView, snapshotAge = 0): vo
     fade = 1 - p;
   const { x, y, radius: r, kind } = effect;
   const seed = parseInt(effect.id, 36) || 1;
+  // 장치 파괴·약점 노출은 금색 확산과 별 모양 파편으로 표시해 일반 피격과 구분한다.
+  if (kind === "device-break" || kind === "armor-break") {
+    g.lineStyle(kind === "armor-break" ? 5 : 3, 0xffd570, fade).strokeCircle(
+      x,
+      y,
+      r * (0.3 + p * 0.8),
+    );
+    for (let i = 0; i < 8; i++) {
+      const angle = (i * Math.PI) / 4,
+        distance = r * (0.3 + p);
+      const px = x + Math.cos(angle) * distance,
+        py = y + Math.sin(angle) * distance;
+      const size = 5 * fade;
+      g.lineStyle(2, i % 2 ? 0xc8a3ff : 0xffe7a3, fade)
+        .lineBetween(px - size, py, px + size, py)
+        .lineBetween(px, py - size, px, py + size);
+    }
+    return;
+  }
   if (kind === "death" || kind === "boss-death") {
     // A안: 금속·장갑 파편이 회전하며 흩어지고 아래로 가라앉아 사라진다.
     // 짧은 파열 섬광과 밝은 테두리·잔궤적으로 어두운 바닥에서도 처치 순간과 분해 방향을 읽게 한다.
@@ -28,8 +51,11 @@ export function drawEffect(g: Graphics, effect: EffectView, snapshotAge = 0): vo
     if (p < 0.2) {
       const flash = 1 - p / 0.2;
       g.fillStyle(0xffdab0, flash * 0.2).fillCircle(x, y, r * (0.35 + p));
-      g.lineStyle(boss ? 4 : 2.5, 0xffe8c0, flash)
-        .strokeCircle(x, y, r * (0.18 + p * 2));
+      g.lineStyle(boss ? 4 : 2.5, 0xffe8c0, flash).strokeCircle(
+        x,
+        y,
+        r * (0.18 + p * 2),
+      );
     }
     for (let i = 0; i < count; i++) {
       const a = i * 2.399 + seed * 0.37,
@@ -37,16 +63,26 @@ export function drawEffect(g: Graphics, effect: EffectView, snapshotAge = 0): vo
         px = x + Math.cos(a) * travel,
         py = y + Math.sin(a) * travel * 0.8 + p * p * 30,
         color = i % 3 === 0 ? 0xa7d4e4 : i % 3 === 1 ? 0xff9a83 : 0xc3afff;
-      g.lineStyle(boss ? 2.5 : 1.5, color, fragmentAlpha * 0.4)
-        .lineBetween(px, py, px - Math.cos(a) * (8 + 15 * (1 - p)), py - Math.sin(a) * (8 + 15 * (1 - p)));
+      g.lineStyle(boss ? 2.5 : 1.5, color, fragmentAlpha * 0.4).lineBetween(
+        px,
+        py,
+        px - Math.cos(a) * (8 + 15 * (1 - p)),
+        py - Math.sin(a) * (8 + 15 * (1 - p)),
+      );
       g.save()
         .translateCanvas(px, py)
         .rotateCanvas(a + p * (i % 2 ? 6 : -6));
       g.fillStyle(color, fragmentAlpha);
       const size = ((i % 4) + (boss ? 7 : 5)) * (1 - p * 0.35);
       g.fillTriangle(-size, -size * 0.4, size, -size * 0.65, 0, size);
-      g.lineStyle(1.2, 0xffedcf, fragmentAlpha * 0.85)
-        .strokeTriangle(-size, -size * 0.4, size, -size * 0.65, 0, size);
+      g.lineStyle(1.2, 0xffedcf, fragmentAlpha * 0.85).strokeTriangle(
+        -size,
+        -size * 0.4,
+        size,
+        -size * 0.65,
+        0,
+        size,
+      );
       g.restore();
     }
     return;
@@ -171,7 +207,9 @@ export function drawShield(
   radius: number,
   alpha: number,
 ): void {
-  g.fillStyle(0x9b78ff, alpha * 0.18).lineStyle(6, 0x9d75ff, alpha * 0.28).beginPath();
+  g.fillStyle(0x9b78ff, alpha * 0.18)
+    .lineStyle(6, 0x9d75ff, alpha * 0.28)
+    .beginPath();
   for (let i = 0; i < 6; i++) {
     const a = (i * Math.PI) / 3,
       px = x + Math.cos(a) * radius,
@@ -233,37 +271,61 @@ export function drawEnemyWarning(
     g.lineStyle(2, 0xff967c, 0.65);
     if (attack === "boss-cleave") {
       const { cleaveRadius: r, cleaveHalfAngle: arc } = BOSS_COMBAT;
-      g.fillStyle(0xff806e, 0.13).beginPath().moveTo(x, y)
-        .arc(x, y, r, a - arc, a + arc).closePath().fillPath().strokePath();
+      g.fillStyle(0xff806e, 0.13)
+        .beginPath()
+        .moveTo(x, y)
+        .arc(x, y, r, a - arc, a + arc)
+        .closePath()
+        .fillPath()
+        .strokePath();
     } else if (attack === "boss-mortar" || attack === "boss-crossfire") {
       // 포격 직전에는 중심·진행 방향, 발사 후에는 각 지점의 정확한 원형 범위를 표시한다.
-      const tx = enemy.targetX, ty = enemy.targetY;
+      const tx = enemy.targetX,
+        ty = enemy.targetY;
       g.strokeRect(tx - 20, ty - 20, 40, 40);
       if (attack === "boss-crossfire") {
-        g.save().translateCanvas(tx, ty).rotateCanvas(a)
-          .lineBetween(-200, 0, 200, 0).lineBetween(0, -200, 0, 200).restore();
+        g.save()
+          .translateCanvas(tx, ty)
+          .rotateCanvas(a)
+          .lineBetween(-200, 0, 200, 0)
+          .lineBetween(0, -200, 0, 200)
+          .restore();
       } else {
         for (let i = 0; i < 6; i++) {
-          const direction = a + i * Math.PI / 3;
-          g.strokeCircle(tx + Math.cos(direction) * 185, ty + Math.sin(direction) * 185, 8);
+          const direction = a + (i * Math.PI) / 3;
+          g.strokeCircle(
+            tx + Math.cos(direction) * 185,
+            ty + Math.sin(direction) * 185,
+            8,
+          );
         }
       }
     } else if (attack === "boss-ring" || attack === "boss-spiral") {
       const count = attack === "boss-ring" ? (enraged ? 16 : 12) : 8;
       g.strokeCircle(x, y, enemy.radius + 26);
       for (let i = 0; i < count; i++) {
-        const direction = a + (i + 0.5) * Math.PI * 2 / count + (attack === "boss-spiral" ? time * 1.6 : 0);
-        g.lineBetween(x + Math.cos(direction) * (enemy.radius + 10),
+        const direction =
+          a +
+          ((i + 0.5) * Math.PI * 2) / count +
+          (attack === "boss-spiral" ? time * 1.6 : 0);
+        g.lineBetween(
+          x + Math.cos(direction) * (enemy.radius + 10),
           y + Math.sin(direction) * (enemy.radius + 10),
-          x + Math.cos(direction) * (enemy.radius + 58), y + Math.sin(direction) * (enemy.radius + 58));
+          x + Math.cos(direction) * (enemy.radius + 58),
+          y + Math.sin(direction) * (enemy.radius + 58),
+        );
       }
     } else {
-      const count = attack === "boss-burst" ? 3 : (enraged ? 9 : 7);
+      const count = attack === "boss-burst" ? 3 : enraged ? 9 : 7;
       const arc = attack === "boss-burst" ? 0.32 : BOSS_COMBAT.fanArc;
       for (let i = 0; i < count; i++) {
         const direction = a + (i / (count - 1) - 0.5) * arc;
-        g.lineBetween(x + Math.cos(direction) * enemy.radius, y + Math.sin(direction) * enemy.radius,
-          x + Math.cos(direction) * 320, y + Math.sin(direction) * 320);
+        g.lineBetween(
+          x + Math.cos(direction) * enemy.radius,
+          y + Math.sin(direction) * enemy.radius,
+          x + Math.cos(direction) * 320,
+          y + Math.sin(direction) * 320,
+        );
       }
     }
   } else if (enemy.kind.includes("artillery")) {
@@ -272,8 +334,9 @@ export function drawEnemyWarning(
     g.lineStyle(2, 0xff9876, 0.6).strokeRect(tx - 16, ty - 16, 32, 32);
     g.lineBetween(tx - 8, ty, tx + 8, ty).lineBetween(tx, ty - 8, tx, ty + 8);
   } else if (enemy.kind.includes("charge")) {
-    const length = enemy.boss ? BOSS_COMBAT.chargeSpeed * BOSS_COMBAT.chargeSeconds
-      : Math.min(Math.hypot(dx, dy), 270),
+    const length = enemy.boss
+        ? BOSS_COMBAT.chargeSpeed * BOSS_COMBAT.chargeSeconds
+        : Math.min(Math.hypot(dx, dy), 270),
       width = enemy.radius;
     g.save().translateCanvas(x, y).rotateCanvas(a);
     g.lineStyle(2, 0xff8c71, 0.5)

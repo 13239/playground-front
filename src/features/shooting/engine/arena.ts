@@ -1,11 +1,13 @@
 import Phaser from "phaser";
 import {
   WORLD,
+  STAGE_MAPS,
+  SHOOTING_CHARACTERS,
   type GameSnapshot,
   type PlayerView,
 } from "@playground/shooting-shared";
 import type { ShootingRuntime } from "../client/runtime";
-import { drawEnemy } from "./enemy-art";
+import { SpriteArt } from "./sprite-art";
 import { drawPickup } from "./pickup-art";
 import { drawWeapon } from "./weapon-art";
 import {
@@ -26,6 +28,9 @@ export function createArena(
     private props!: Phaser.GameObjects.Graphics;
     private actors!: Phaser.GameObjects.Graphics;
     private overlays!: Phaser.GameObjects.Graphics;
+    private gear!: Phaser.GameObjects.Graphics;
+    private art!: SpriteArt;
+    private wallCount = -1;
     private labels = new Map<string, Phaser.GameObjects.Text>();
     private protectionLabel!: Phaser.GameObjects.Text;
     private positions = new Map<string, { x: number; y: number }>();
@@ -34,18 +39,35 @@ export function createArena(
     private aimX = WORLD.width / 2;
     private aimY = WORLD.height / 2;
     private mouseAiming = false;
+    preload(): void {
+      SpriteArt.preload(this, runtime.snapshot?.mapId ?? "CAVE");
+    }
     create(): void {
-      this.cameras.main.setBackgroundColor("#090f18");
+      // 월드 비율을 유지하며 생기는 여백도 파스텔 셸과 같은 계열로 채운다.
+      this.cameras.main.setBackgroundColor("#e7e0f2");
       this.floor = this.add.graphics();
       this.props = this.add.graphics();
       this.actors = this.add.graphics();
       this.overlays = this.add.graphics();
+      this.gear = this.add.graphics().setDepth(20);
+      this.overlays.setDepth(30);
+      this.art = new SpriteArt(this);
+      this.art.prepare(runtime.snapshot?.mapId ?? "CAVE");
       // 보호 시간 표시는 한 번 만든 텍스트를 재사용하고 캐릭터 주변에 0.1초 단위로 갱신한다.
-      this.protectionLabel = this.add.text(0, 0, "", {
-        fontFamily: "system-ui, sans-serif", fontSize: "18px", fontStyle: "bold",
-        color: "#fff5c9", backgroundColor: "#34215cee", stroke: "#150c29", strokeThickness: 3,
-        padding: { x: 7, y: 4 },
-      }).setOrigin(0.5).setDepth(20).setVisible(false);
+      this.protectionLabel = this.add
+        .text(0, 0, "", {
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "18px",
+          fontStyle: "bold",
+          color: "#fff5c9",
+          backgroundColor: "#34215cee",
+          stroke: "#150c29",
+          strokeThickness: 3,
+          padding: { x: 7, y: 4 },
+        })
+        .setOrigin(0.5)
+        .setDepth(20)
+        .setVisible(false);
       this.buildFloor();
       const aim = (pointer: Phaser.Input.Pointer) => {
         if (pointer.wasTouch) return;
@@ -77,37 +99,35 @@ export function createArena(
     }
     private buildFloor(): void {
       const g = this.floor;
-      g.fillStyle(0x141d28).fillRect(0, 0, WORLD.width, WORLD.height);
+      const map = runtime.snapshot?.mapId ?? "CAVE";
+      const floor =
+        map === "CAVE" ? 0x9086b2 : map === "FACTORY" ? 0xb4a2b5 : 0x9dbda5;
+      g.clear();
+      // 출입구와 안전선은 장식이며 실제 충돌은 공유 월드 경계·엄폐물만 사용한다.
+      // 맵별 바닥의 색·줄눈·장식은 달라도 실제 벽과 플레이어 좌표는 공유 월드에 맞춘다.
+      g.fillStyle(floor).fillRect(0, 0, WORLD.width, WORLD.height);
       for (let y = 40; y < WORLD.height - 40; y += 80)
         for (let x = 40; x < WORLD.width - 40; x += 80) {
-          const alternate = (x / 80 + y / 80) % 2;
-          g.fillStyle(alternate ? 0x1b2632 : 0x1d2936).fillRect(
-            x + 1,
-            y + 1,
-            78,
-            78,
+          g.fillStyle(
+            0xffffff,
+            (x / 80 + y / 80) % 2 ? 0.035 : 0.075,
+          ).fillRoundedRect(x + 2, y + 2, 76, 76, map === "FACTORY" ? 3 : 12);
+          g.lineStyle(1.5, 0x42325e, 0.14).strokeRoundedRect(
+            x + 2,
+            y + 2,
+            76,
+            76,
+            map === "FACTORY" ? 3 : 12,
           );
-          g.lineStyle(1, 0x344252, 0.25).strokeRect(x + 3, y + 3, 74, 74);
-          g.fillStyle(0x485565, 0.5)
-            .fillCircle(x + 8, y + 8, 1.5)
-            .fillCircle(x + 72, y + 72, 1.5);
         }
-      g.lineStyle(3, 0x7bc7df, 0.2).strokeRect(
-        42,
-        42,
-        WORLD.width - 84,
-        WORLD.height - 84,
+      g.lineStyle(10, map === "GARDEN" ? 0x537b63 : 0x64567e).strokeRect(
+        35,
+        35,
+        WORLD.width - 70,
+        WORLD.height - 70,
       );
-      // 출입구와 안전선은 장식이며 실제 충돌은 공유 월드 경계·엄폐물만 사용한다.
-      for (const x of [180, 680, 1180]) {
-        g.fillStyle(0x0d141e).fillRect(x, 0, 240, 36).fillRect(x, 924, 240, 36);
-        for (let i = 0; i < 12; i++)
-          g.fillStyle(i % 2 ? 0xa18a48 : 0x2d3032, 0.7)
-            .fillRect(x + i * 20, 32, 18, 6)
-            .fillRect(x + i * 20, 922, 18, 6);
-      }
       // 중앙 바닥 장식도 얇은 십자선으로 정리해 전투 효과와 혼동하지 않게 한다.
-      g.lineStyle(2, 0x80c3cf, 0.1)
+      g.lineStyle(2, 0xe1d3f2, 0.15)
         .lineBetween(765, 480, 835, 480)
         .lineBetween(800, 445, 800, 515);
     }
@@ -115,36 +135,54 @@ export function createArena(
       const g = this.props.clear();
       for (const wall of state.walls) {
         const { x, y, width: w, height: h } = wall;
-        g.fillStyle(0x060b11, 0.6).fillRoundedRect(x + 7, y + 10, w, h, 5);
-        g.fillStyle(0x3d4a58).fillRoundedRect(x, y, w, h, 5);
-        g.fillStyle(0x283440).fillRect(x + 5, y + 8, w - 10, h - 13);
-        g.lineStyle(2, 0x6b7c89).lineBetween(x + 7, y + 4, x + w - 7, y + 4);
-        g.lineStyle(1, 0x16202b).strokeRect(x + 12, y + 16, w - 24, h - 30);
-        for (let offset = 16; offset < w - 15; offset += 18)
-          g.fillStyle(0xc9a456, 0.65).fillRect(x + offset, y + h - 10, 9, 4);
+        // 새 맵 재질만 한 번 그려 이전 금속 레이어를 중복 렌더링하지 않는다.
+        const cave = state.mapId === "CAVE",
+          factory = state.mapId === "FACTORY";
+        const border = cave ? 0x62567e : factory ? 0x7e617d : 0x4d7b60;
+        const top = cave ? 0xb2a2ce : factory ? 0xe5c797 : 0x9cc485;
+        g.fillStyle(border, 0.4).fillRoundedRect(x + 5, y + 9, w, h, 16);
+        g.fillStyle(top).fillRoundedRect(x, y, w, h, factory ? 7 : 17);
+        g.lineStyle(3, border).strokeRoundedRect(x, y, w, h, factory ? 7 : 17);
+        g.lineStyle(2, 0xffffff, 0.3).lineBetween(
+          x + 12,
+          y + 7,
+          x + w - 12,
+          y + 7,
+        );
+        if (state.mapId === "GARDEN")
+          for (let leaf = x + 12; leaf < x + w; leaf += 35)
+            g.fillStyle(0x658f68).fillEllipse(leaf, y + 8, 30, 17);
       }
     }
     update(_time: number, delta: number): void {
       const state = runtime.snapshot;
       this.elapsed += delta / 1000;
       const camera = this.cameras.main;
-      // 세로 모바일에서는 캐릭터를 과도하게 축소하지 않고 카메라가 이동을 따라간다. 판정 좌표·이동 속도는 동일하다.
+      // 작은 화면에서는 캐릭터를 과도하게 축소하지 않고 카메라가 가로·세로 이동을 따라간다. 판정 좌표·이동 속도는 동일하다.
       const fit = Math.min(
         this.scale.width / WORLD.width,
         this.scale.height / WORLD.height,
       );
-      const portrait =
-        this.scale.width < 650 && this.scale.height > this.scale.width;
-      const zoom = portrait ? Math.max(fit, this.scale.width / 720) : fit;
+      const compact = this.scale.width < 1000 || this.scale.height < 480;
+      const zoom = compact
+        ? Math.max(fit, 0.38, Math.min(0.65, this.scale.width / 900))
+        : fit;
       const position = runtime.position;
       const halfWidth = this.scale.width / zoom / 2;
+      const halfHeight = this.scale.height / zoom / 2;
       camera
         .setZoom(zoom)
         .centerOn(
-          portrait && position
+          compact && position && halfWidth < WORLD.width / 2
             ? Phaser.Math.Clamp(position.x, halfWidth, WORLD.width - halfWidth)
             : WORLD.width / 2,
-          WORLD.height / 2,
+          compact && position && halfHeight < WORLD.height / 2
+            ? Phaser.Math.Clamp(
+                position.y,
+                halfHeight,
+                WORLD.height - halfHeight,
+              )
+            : WORLD.height / 2,
         );
       if (!state) return;
       if (
@@ -165,13 +203,47 @@ export function createArena(
           ),
         );
       }
-      if (state.stage !== this.stage) {
+      if (state.stage !== this.stage || state.walls.length !== this.wallCount) {
         this.stage = state.stage;
+        this.wallCount = state.walls.length;
         this.buildProps(state);
         this.positions.clear();
       }
       const g = this.actors.clear(),
         fx = this.overlays.clear();
+      this.gear.clear();
+      this.art.begin();
+      // 장치가 파괴되면 같은 틱의 서버 상태와 함께 이미지·충돌 벽도 사라진다.
+      for (const device of Object.values(state.devices)) {
+        if (device.hp <= 0 || device.kind === "pillar") continue;
+        this.art.draw(
+          device.id,
+          STAGE_MAPS[state.mapId].theme,
+          5,
+          device.x,
+          device.y,
+          90,
+          0,
+          device.hp,
+          this.elapsed,
+        );
+        if (device.hp < device.maxHp) {
+          g.fillStyle(0x49345e).fillRoundedRect(
+            device.x - 28,
+            device.y - 58,
+            56,
+            5,
+            2,
+          );
+          g.fillStyle(0xf5c574).fillRoundedRect(
+            device.x - 28,
+            device.y - 58,
+            (56 * device.hp) / device.maxHp,
+            5,
+            2,
+          );
+        }
+      }
       this.protectionLabel.setVisible(false);
       const seen = new Set<string>();
       for (const hazard of Object.values(state.hazards))
@@ -198,7 +270,32 @@ export function createArena(
           continue;
         }
         drawEnemyWarning(g, enemy, x, y, this.elapsed);
-        drawEnemy(g, enemy, x, y, this.elapsed);
+        const roster = STAGE_MAPS[state.mapId].ordinary as readonly string[];
+        const frame = enemy.boss
+          ? state.stage === 5
+            ? 3
+            : 4
+          : Math.max(0, roster.indexOf(enemy.kind));
+        this.art.draw(
+          enemy.id,
+          STAGE_MAPS[state.mapId].theme,
+          frame,
+          x,
+          y,
+          enemy.boss ? (state.stage === 5 ? 110 : 145) : r * 2.8,
+          enemy.angle,
+          enemy.hp,
+          this.elapsed,
+          true,
+          enemy.exposed > 0,
+        );
+        if (enemy.exposed > 0)
+          g.lineStyle(2.5, 0xffd16c, 0.85).strokeEllipse(
+            x,
+            y + r * 0.7,
+            r * 2.6,
+            r,
+          );
         if (enemy.hp < enemy.maxHp && !enemy.boss) {
           g.fillStyle(0x090e16).fillRect(x - r, y - r - 9, r * 2, 3);
           g.fillStyle(0xf08079).fillRect(
@@ -240,18 +337,39 @@ export function createArena(
           delta,
           seen,
         );
-        const protection = Math.max(0, player.protection - runtime.snapshotAgeSeconds);
-        this.drawPlayer(g, player, x, y, own ? runtime.aim : player.aim, own, protection);
+        const protection = Math.max(
+          0,
+          player.protection - runtime.snapshotAgeSeconds,
+        );
+        this.drawPlayer(
+          g,
+          player,
+          x,
+          y,
+          own ? runtime.aim : player.aim,
+          own,
+          protection,
+        );
         if (own && player.alive && protection > 0) {
           // 작은 화면에서도 읽을 수 있는 크기를 유지하고 화면 아래에서는 캐릭터 위로 재배치한다.
           const scale = Math.max(1, 0.8 / zoom);
           const text = `무적 ${(Math.ceil(protection * 10 - 1e-6) / 10).toFixed(1)}초`;
-          if (this.protectionLabel.text !== text) this.protectionLabel.setText(text);
-          const half = this.protectionLabel.width * scale / 2 + 8 / zoom;
-          const textY = y + 58 + 22 / zoom < camera.worldView.bottom ? y + 58 : y - 68;
-          this.protectionLabel.setScale(scale).setPosition(
-            Phaser.Math.Clamp(x, camera.worldView.left + half, camera.worldView.right - half), textY,
-          ).setVisible(true);
+          if (this.protectionLabel.text !== text)
+            this.protectionLabel.setText(text);
+          const half = (this.protectionLabel.width * scale) / 2 + 8 / zoom;
+          const textY =
+            y + 58 + 22 / zoom < camera.worldView.bottom ? y + 58 : y - 68;
+          this.protectionLabel
+            .setScale(scale)
+            .setPosition(
+              Phaser.Math.Clamp(
+                x,
+                camera.worldView.left + half,
+                camera.worldView.right - half,
+              ),
+              textY,
+            )
+            .setVisible(true);
         }
         let label = this.labels.get(player.id);
         if (!label) {
@@ -263,11 +381,12 @@ export function createArena(
               backgroundColor: "#101a26cc",
               padding: { x: 5, y: 3 },
             })
-            .setOrigin(0.5);
+            .setOrigin(0.5)
+            .setDepth(35);
           this.labels.set(player.id, label);
         }
         label
-          .setPosition(x, y - 40)
+          .setPosition(x, y - 55)
           .setText(
             // 내 표식은 닉네임·상태 문구 없이 '나'만 표시하고 구조 상태는 HUD에서 안내한다.
             own
@@ -282,7 +401,8 @@ export function createArena(
           this.labels.delete(id);
         }
       // 처치·폭발·회복·부활·무적·클리어는 의미별 전용 모션을 사용한다.
-      for (const effect of Object.values(state.effects)) drawEffect(fx, effect, runtime.snapshotAgeSeconds);
+      for (const effect of Object.values(state.effects))
+        drawEffect(fx, effect, runtime.snapshotAgeSeconds);
       if (
         matchMedia("(pointer: fine)").matches &&
         state.phase === "combat" &&
@@ -297,6 +417,7 @@ export function createArena(
       }
       for (const id of this.positions.keys())
         if (!seen.has(id)) this.positions.delete(id);
+      this.art.end();
     }
     private smooth(
       id: string,
@@ -329,6 +450,17 @@ export function createArena(
     ): void {
       const color = protection > 0 ? 0xd9c1ff : own ? 0x66c7fa : 0x69e3b5;
       if (!player.alive) {
+        this.art.draw(
+          player.id,
+          "players",
+          SHOOTING_CHARACTERS[player.character].frame,
+          x,
+          y,
+          76,
+          angle,
+          player.hp,
+          this.elapsed,
+        );
         g.lineStyle(3, 0xfac679, 0.8)
           .strokeRoundedRect(x - 17, y - 17, 34, 34, 4)
           .lineBetween(x - 7, y - 7, x + 7, y + 7)
@@ -336,7 +468,7 @@ export function createArena(
         return;
       }
       g.fillStyle(0x03070c, 0.5).fillEllipse(x + 2, y + 17, 48, 20);
-      // 보호 상태는 밝은 육각 장갑·보라색 몸체, 일반 캐릭터는 기존 실루엣으로 구분한다.
+      // 보호 상태는 밝은 육각 장갑으로 구분하고 선택한 프로필 캐릭터의 외형은 유지한다.
       if (protection > 0)
         drawShield(g, x, y, 34 + Math.sin(this.elapsed * 6) * 1.5, 0.9);
       if (player.dashRemaining > 0) {
@@ -347,14 +479,31 @@ export function createArena(
           y,
         );
       }
-      g.fillStyle(0x1b3448).fillRoundedRect(x - 16, y - 18, 32, 34, 8);
-      g.fillStyle(color).fillRoundedRect(x - 13, y - 17, 26, 26, 7);
-      g.fillStyle(0x203d50).fillRoundedRect(x - 10, y - 12, 20, 12, 4);
-      g.fillStyle(0xd0f5ff).fillRect(x - 6, y - 8, 12, 3);
-      g.fillStyle(0x89a7b9)
-        .fillRoundedRect(x - 20, y - 5, 8, 16, 3)
-        .fillRoundedRect(x + 12, y - 5, 8, 16, 3);
-      drawWeapon(g, player.weapon, x, y, angle);
+      this.art.draw(
+        player.id,
+        "players",
+        SHOOTING_CHARACTERS[player.character].frame,
+        x,
+        y,
+        76,
+        angle,
+        player.hp,
+        this.elapsed,
+        Math.hypot(player.vx, player.vy) > 1,
+      );
+      g.lineStyle(2.5, own ? 0x78e5ff : 0xd8a3ff, 0.85).strokeEllipse(
+        x,
+        y + 18,
+        48,
+        23,
+      );
+      drawWeapon(
+        this.gear,
+        player.weapon,
+        x + Math.cos(angle) * 12,
+        y + Math.sin(angle) * 8,
+        angle,
+      );
       g.fillStyle(0x090e16).fillRect(x - 20, y + 29, 40, 4);
       g.fillStyle(color).fillRect(
         x - 20,
@@ -369,7 +518,7 @@ export function createArena(
     parent: host,
     width: Math.max(1, host.clientWidth),
     height: Math.max(1, host.clientHeight),
-    backgroundColor: "#090f18",
+    backgroundColor: "#e7e0f2",
     transparent: false,
     antialias: true,
     powerPreference: "high-performance",

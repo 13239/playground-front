@@ -9,7 +9,8 @@ export async function POST(
   if (
     operation !== "ticket" &&
     operation !== "overview" &&
-    operation !== "rooms"
+    operation !== "rooms" &&
+    operation !== "progress"
   )
     return new Response(null, { status: 404 });
   return handleShooting(request, operation);

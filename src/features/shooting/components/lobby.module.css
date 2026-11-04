@@ -527,3 +527,53 @@
     max-height: 14rem;
   }
 }
+
+/* 방 검색·초대 기능은 유지하며 모드 선택 화면과 같은 밝은 파스텔 표면을 사용한다. */
+.lobby {
+  color: #3b2a59;
+  background: linear-gradient(135deg, #f8f2ff, #edf4ff);
+  border-radius: 1rem;
+}
+.tagline,
+.introduction p,
+.heading small {
+  color: #90779f;
+}
+.facts span,
+.browser {
+  background: #fdf9ffbd;
+  border-color: #d8c9e9;
+}
+.browser,
+.room {
+  color: #54376d;
+}
+.cover {
+  border-color: #d4c1e6;
+  background: #e9dff7;
+}
+.browser .room {
+  background: #fbf7ff;
+  border-color: #d9c7ec;
+}
+.browser .room:hover {
+  background: #eee4fb;
+}
+.codeForm input {
+  background: #fffaff;
+  color: #65497d;
+}
+.content {
+  grid-template-columns: minmax(13rem, 0.7fr) minmax(0, 2fr);
+}
+@media (max-width: 700px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+  .introduction .cover {
+    display: none;
+  }
+  .facts {
+    display: none;
+  }
+}

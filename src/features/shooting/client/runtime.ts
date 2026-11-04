@@ -8,6 +8,7 @@ import {
   type GameSnapshot,
   type InputFrame,
   type Mode,
+  type StageMapId,
 } from "@playground/shooting-shared";
 import { getBrowserKey } from "@/features/auth/client/browser-key";
 import { issueTicket } from "./api";
@@ -15,6 +16,7 @@ import { admitGame } from "@/features/games/client/admission";
 import { ShootingAudio } from "./audio";
 
 export interface RuntimeView {
+  recordState?: "saved" | "error";
   state?: GameSnapshot;
   id: string;
   code: string;
@@ -25,6 +27,7 @@ export interface RuntimeView {
 }
 type WireState = { toJSON(): GameSnapshot };
 export interface RoomOptions {
+  mapId?: StageMapId;
   title?: string;
   privateRoom?: boolean;
   password?: string;
@@ -75,8 +78,15 @@ export class ShootingRuntime {
   /** 서버 패치 사이의 표시만 짧게 보간한다. 정지·연결 복구 중에는 보호 시간과 효과를 진행하지 않는다. */
   get snapshotAgeSeconds(): number {
     const state = this.view.state;
-    return state && this.view.connection === "connected" && !state.paused && ["combat", "loot"].includes(state.phase)
-      ? Math.min(0.15, Math.max(0, (performance.now() - this.snapshotReceivedAt) / 1000)) : 0;
+    return state &&
+      this.view.connection === "connected" &&
+      !state.paused &&
+      ["combat", "loot"].includes(state.phase)
+      ? Math.min(
+          0.15,
+          Math.max(0, (performance.now() - this.snapshotReceivedAt) / 1000),
+        )
+      : 0;
   }
   get playerId(): string {
     return this.view.id;
@@ -113,7 +123,13 @@ export class ShootingRuntime {
       if (generation !== this.generation) return;
       // 선택한 모드를 확인한다. 1인 모드가 점검 중이어도 허용된 2인 모드는 이용할 수 있다.
       await admitGame("SHOOTING", mode, sessionId, controller.signal);
-      const ticket = await issueTicket(sessionId, mode, controller.signal, settings.entry === "code" ? code : undefined);
+      const ticket = await issueTicket(
+        sessionId,
+        mode,
+        controller.signal,
+        settings.entry === "code" ? code : undefined,
+        settings.mapId,
+      );
       const target = code || "create";
       let proof: { key?: JsonWebKey; signature?: string } = {};
       if (ticket.proofRequired) {
@@ -196,6 +212,9 @@ export class ShootingRuntime {
         this.view = {
           ...this.view,
           state: snapshot,
+          ...(previous?.phase === "over" && snapshot.phase === "lobby"
+            ? { recordState: undefined }
+            : {}),
           hosting: snapshot.hostId === room.sessionId,
           ...(previous?.pauseReason === "authorization" &&
           snapshot.pauseReason !== "authorization"
@@ -212,6 +231,21 @@ export class ShootingRuntime {
       });
       room.onMessage("welcome", () => {
         /* 참가자 식별자는 검증된 소켓의 sessionId를 사용한다. */
+      });
+      // 다음 맵·결과 보상은 서버가 기록 저장을 확인한 뒤 갱신한다.
+      room.onMessage("record-saved", (value: unknown) => {
+        if (
+          generation !== this.generation ||
+          !value ||
+          typeof value !== "object" ||
+          !("saved" in value)
+        )
+          return;
+        this.view = {
+          ...this.view,
+          recordState: value.saved === true ? "saved" : "error",
+        };
+        this.emit();
       });
       room.onMessage("notice", (message: unknown) => {
         if (generation !== this.generation) return;

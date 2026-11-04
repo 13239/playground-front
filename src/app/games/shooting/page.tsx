@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { ShootingScreen } from "@/features/shooting/components/shooting-screen";
 
 export const metadata: Metadata = {
-  title: "슈팅 서바이벌",
-  description: "직접 조준하고 함께 살아남는 1인·온라인 2인 슈팅 서바이벌.",
+  // 짧은 맵 완주와 별 정복을 페이지 검색 정보에도 동일하게 안내한다.
+  title: "슈팅 스테이지 도전",
+  description:
+    "서로 다른 3개 맵을 공략하고 별 3개에 도전하는 1인·온라인 2인 협동 슈팅.",
 };
 /** 브라우저 게임은 인증 확인 뒤 화면 내부에서만 초기화한다. */
 export default async function ShootingPage({

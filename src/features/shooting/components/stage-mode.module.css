@@ -1,0 +1,664 @@
+/* 스테이지의 모든 메뉴는 사이트의 파스텔·보라색 체계를 공유하며 실제 가용 폭에서 재배치한다. */
+.hub {
+  padding: clamp(0.8rem, 1.25vw, 1.5rem);
+  color: #252050;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+}
+.heading h2 {
+  margin: 0.25rem 0 0.35rem;
+  font-size: clamp(1.5rem, 1rem + 1.1vw, 2.6rem);
+  letter-spacing: -0.05em;
+}
+.heading p,
+.mapFootnote {
+  margin: 0.4rem 0;
+  color: #77709c;
+  line-height: 1.6;
+}
+.modeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+.hub .modeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.2rem;
+  border: 1px solid #cfc4ef;
+  border-radius: 1.25rem;
+  background: #fdfbffcc;
+  color: #282052;
+  text-align: left;
+  min-width: 0;
+}
+.modeCard > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  border-radius: 1rem;
+}
+.cardHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+.cardHeading strong {
+  font-size: clamp(1.4rem, 1rem + 0.8vw, 2.3rem);
+  letter-spacing: -0.04em;
+}
+.cardHeading small,
+.totalStars {
+  padding: 0.5rem 0.9rem;
+  border-radius: 2rem;
+  background: #e8e0fc;
+  color: #5b438e;
+  font-weight: 700;
+}
+.modeCard > span:not(.cardHeading) {
+  text-align: center;
+}
+.primary,
+.secondary,
+.hub .primary,
+.hub .secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 3rem;
+  border-radius: 0.8rem;
+  padding: 0.75rem 1.2rem;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+}
+.primary,
+.hub .primary,
+.loadout .primary,
+.results .primary {
+  background: linear-gradient(120deg, #923cf5, #6930e4);
+  color: #fff;
+  border: 1px solid #8252eb;
+}
+.primary:hover:not(:disabled),
+.hub .primary:hover:not(:disabled),
+.loadout .primary:hover:not(:disabled),
+.results .primary:hover:not(:disabled) {
+  background: #7040d8;
+  color: white;
+}
+.secondary,
+.hub .secondary {
+  background: #fcfaff;
+  color: #593d8a;
+  border: 1px solid #a98adf;
+}
+.primary > svg,
+.back > svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+.hub .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #71618d;
+  padding: 0.35rem 0.1rem;
+  min-height: 2.75rem;
+}
+.comingSoon {
+  width: min(38rem, calc(100vw - 2rem));
+  padding: clamp(1.25rem, 2vw, 2.5rem);
+  text-align: center;
+  background: #fcfaff;
+  color: #29214d;
+  border-color: #d4c4f3;
+}
+.comingSoon > div:first-child {
+  justify-items: center;
+  text-align: center;
+}
+.comingSoon h2 {
+  font-size: clamp(1.3rem, 1rem + 0.7vw, 2rem);
+}
+.comingSoon p {
+  color: #766290;
+  line-height: 1.9;
+  margin: 1rem 0 1.5rem;
+}
+.comingSoon::backdrop {
+  background: #3f315978;
+}
+.robotNotice {
+  position: relative;
+  margin: auto;
+  width: 9rem;
+}
+.robotNotice img {
+  width: 100%;
+  height: auto;
+}
+.robotNotice svg {
+  position: absolute;
+  right: 0;
+  bottom: 1rem;
+  width: 2rem;
+  height: 2rem;
+  color: #9163d4;
+}
+.totalStars {
+  white-space: nowrap;
+  font-size: 1rem;
+}
+.modeTabs {
+  display: flex;
+  width: min(100%, 28rem);
+  margin: 0 0 1rem;
+  border: 1px solid #c7b9e8;
+  border-radius: 2rem;
+  padding: 0.2rem;
+  background: #f8f4ff;
+}
+.hub .modeTabs button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #65518c;
+  border-radius: 2rem;
+  min-height: 2.8rem;
+}
+.hub .modeTabs button[aria-pressed="true"] {
+  background: #8346e9;
+  color: white;
+}
+.mapLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(18rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.mapList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.hub .mapCard {
+  min-width: 0;
+  padding: 0.5rem 0.5rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  align-items: center;
+  background: #fcfaff;
+  border: 1px solid #d0c6eb;
+  border-radius: 1rem;
+  color: #34265e;
+}
+.hub .mapCard[data-selected="true"] {
+  border-color: #8750df;
+  background: #f4edff;
+}
+.hub .mapCard:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.mapCard strong {
+  font-size: clamp(1rem, 0.8rem + 0.45vw, 1.45rem);
+}
+.mapCard small {
+  color: #7d7098;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.mapPreview {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+}
+.mapDetail {
+  min-width: 0;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: #fbf8ffda;
+  border: 1px solid #d0c6eb;
+  border-radius: 1rem;
+}
+.mapDetail h3 {
+  margin: 0;
+  font-size: clamp(1.3rem, 1rem + 0.6vw, 2rem);
+}
+.mapDetail > .mapPreview {
+  aspect-ratio: 2.4/1;
+}
+.mapDetail > p {
+  margin: 0.15rem 0;
+  font-size: 0.85rem;
+  color: #75638f;
+  line-height: 1.6;
+}
+.mapDetail > small {
+  color: #847196;
+}
+.mapFootnote {
+  grid-column: 1/-1;
+  padding: 0.8rem;
+  border-radius: 0.75rem;
+  background: #eae3fa;
+  font-size: 0.8rem;
+}
+.stars {
+  display: inline-flex;
+  gap: 0.1em;
+  font-size: 1.7rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.stars > span {
+  color: #d4cce2;
+  -webkit-text-stroke: 1px #a89bbd;
+}
+.stars > span[data-filled="true"] {
+  color: #ffcf5d;
+  -webkit-text-stroke: 1px #b77d2b;
+}
+.starsLarge {
+  font-size: clamp(3rem, 2rem + 3vw, 5.4rem);
+  justify-content: center;
+}
+.timeTargets {
+  display: grid;
+  margin: 0;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #e2d9f2;
+  border-radius: 0.75rem;
+  background: #fffaff;
+  gap: 0.2rem;
+}
+.timeTargets > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+.timeTargets dt {
+  margin: 0;
+}
+.timeTargets dd {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #5c4a7d;
+  font-weight: 700;
+}
+.timeTargets .stars {
+  font-size: 1.3rem;
+}
+.bestTime {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.bestTime strong {
+  color: #7538d3;
+}
+.message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.8rem;
+  background: #fff0f5;
+  color: #963958;
+}
+.atlasArt {
+  display: block;
+  aspect-ratio: 1/1;
+  background-size: 300% 200%;
+  background-repeat: no-repeat;
+  width: 100%;
+}
+/* 준비 화면은 캐릭터별 성능 차이가 없다는 점과 독립적인 무기 선택을 명확하게 표시한다. */
+.loadout {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 2fr);
+  gap: 1rem;
+  padding: clamp(0.8rem, 1.3vw, 1.7rem);
+  color: #30224e;
+}
+.characterPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d6caee;
+  background: #fbf7ff;
+  border-radius: 1rem;
+  padding: 1rem;
+  min-width: 0;
+}
+.characterPreview img {
+  width: min(100%, 18rem);
+  height: auto;
+  object-fit: contain;
+}
+.characterPreview strong {
+  font-size: 1.6rem;
+}
+.loadoutOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+.loadoutOptions h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+.loadoutOptions p {
+  margin: 0.2rem 0 0.7rem;
+  font-size: 0.75rem;
+  color: #7e6d98;
+  line-height: 1.5;
+}
+.characterGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.characterGrid > button {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  background: #fcf9ff;
+  border: 1px solid #ded2ef;
+  border-radius: 0.75rem;
+  color: #45315f;
+}
+.characterGrid > button[aria-pressed="true"] {
+  border-color: #8c57dd;
+  background: #ece0ff;
+}
+.characterGrid img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1/1;
+  object-fit: contain;
+}
+.characterGrid span {
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+.loadoutFooter {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.loadoutFooter > p {
+  color: #857496;
+  font-size: 0.8rem;
+}
+.loadoutFooter > div {
+  display: flex;
+  gap: 0.5rem;
+}
+.mapSummary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: #eee7fa;
+  border-radius: 0.75rem;
+  flex-wrap: wrap;
+}
+.mapSummary strong {
+  color: #443267;
+}
+.mapSummary span {
+  font-size: 0.8rem;
+  color: #78638b;
+}
+/* 결과는 종료 사유와 기록 저장 상태를 함께 보여 주고 다음 맵 이동을 자동으로 강제하지 않는다. */
+.results {
+  position: relative;
+  z-index: 15;
+  min-height: min(var(--arena-available-height, 40rem), 45rem);
+  overflow: auto;
+  padding: clamp(1rem, 2vw, 2rem);
+  background: linear-gradient(125deg, #f2effffd, #e9f3fffd);
+  color: #2c2051;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.results h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 1rem + 1vw, 2.8rem);
+}
+.resultGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.8fr) minmax(16rem, 1.2fr) minmax(
+      12rem,
+      0.9fr
+    );
+  gap: 1rem;
+  align-items: stretch;
+}
+.victoryArt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.victoryArt img {
+  width: min(100%, 19rem);
+  height: auto;
+  filter: drop-shadow(0 1rem 0.5rem #9580b326);
+}
+.resultRecord,
+.nextMapCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  padding: 1rem;
+  border: 1px solid #d0c1eb;
+  border-radius: 1rem;
+  background: #fefbffbd;
+  min-width: 0;
+}
+.resultRecord > strong {
+  font-size: clamp(2rem, 1rem + 2.7vw, 4rem);
+  font-variant-numeric: tabular-nums;
+  color: #382054;
+}
+.resultRecord p {
+  margin: 0;
+  color: #7c6794;
+  text-align: center;
+  line-height: 1.6;
+}
+.resultRecord small {
+  color: #856c9d;
+}
+.splitTimes {
+  display: flex;
+  gap: 0.4rem;
+  width: 100%;
+}
+.splitTimes > div {
+  flex: 1;
+  padding: 0.6rem 0.25rem;
+  background: #eee8f8;
+  border-radius: 0.6rem;
+  text-align: center;
+}
+.splitTimes small,
+.splitTimes b {
+  display: block;
+  font-size: 0.7rem;
+}
+.splitTimes b {
+  margin-top: 0.4rem;
+  color: #5f4083;
+  font-size: 0.9rem;
+}
+.nextMapCard > .mapPreview {
+  max-height: 13rem;
+  width: 100%;
+}
+.nextMapCard strong {
+  font-size: 1.2rem;
+}
+.resultsFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.resultsFooter > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.resultsFooter > p {
+  color: #817096;
+  font-size: 0.8rem;
+}
+@media (max-width: 1000px) {
+  .mapLayout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(15rem, 1fr);
+  }
+  .mapList {
+    gap: 0.5rem;
+  }
+  .loadout {
+    grid-template-columns: minmax(9rem, 0.6fr) minmax(0, 2fr);
+  }
+  .resultGrid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+  .victoryArt {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .modeGrid,
+  .mapLayout,
+  .loadout {
+    grid-template-columns: 1fr;
+  }
+  .modeCard > img {
+    max-height: 15rem;
+  }
+  .heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .totalStars {
+    font-size: 0.85rem;
+  }
+  .mapList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .mapCard strong {
+    font-size: 0.9rem;
+  }
+  .mapCard small {
+    font-size: 0.65rem;
+  }
+  .mapDetail > .mapPreview {
+    display: none;
+  }
+  /* 좁은 화면에서는 미리보기·설명·별 기준을 별도 행으로 배치해 가로 넘침을 막는다. */
+  .characterPreview {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: 0.6rem;
+    text-align: center;
+  }
+  .characterPreview > strong {
+    grid-column: 2;
+    font-size: 1.2rem;
+  }
+  .characterPreview > img {
+    grid-column: 1;
+    grid-row: 1/3;
+  }
+  .characterPreview > span {
+    grid-column: 2;
+    font-size: 0.85rem;
+  }
+  .characterPreview > .timeTargets {
+    grid-column: 1/-1;
+  }
+  .characterPreview img {
+    width: 7rem;
+  }
+  .characterGrid {
+    gap: 0.3rem;
+  }
+  .characterGrid > button {
+    padding: 0.3rem;
+  }
+  .characterGrid span {
+    font-size: 0.65rem;
+  }
+  .loadoutFooter {
+    justify-content: center;
+  }
+  .results {
+    position: relative;
+    min-height: 100%;
+  }
+  .resultGrid {
+    grid-template-columns: 1fr;
+  }
+  .nextMapCard > .mapPreview {
+    max-height: 9rem;
+  }
+  .resultsFooter {
+    justify-content: center;
+  }
+}
+@media (max-width: 420px) {
+  .mapList {
+    grid-template-columns: 1fr;
+  }
+  .mapCard > .mapPreview {
+    aspect-ratio: 2.5/1;
+    max-height: 8rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modeCard,
+  .mapCard {
+    transition: none;
+  }
+}

@@ -36,10 +36,11 @@ export const invitationGames = {
     destination: (room: string | number) => `/games/memory/rooms/${room}`,
   },
   shooting: {
-    name: "슈팅 서바이벌",
+    // 공통 초대도 완주형 스테이지 모드의 이름·목표를 사용한다.
+    name: "슈팅 스테이지 도전",
     icon: "target",
-    message: "함께 슈팅 서바이벌을 플레이하자고 초대했어요.",
-    rules: "온라인 2인 협동 · 무기 선택 후 함께 출격",
+    message: "함께 슈팅 맵을 공략하자고 초대했어요.",
+    rules: "온라인 2인 협동 · 10스테이지 완주와 별 도전",
     destination: (room: string | number) =>
       `/games/shooting?room=${encodeURIComponent(room)}`,
   },

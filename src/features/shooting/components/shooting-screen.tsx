@@ -2,15 +2,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RoomDialog } from "@/components/ui/game-dialog";
-import { ShootingLobby } from "./shooting-lobby";
+import { StageHub, type HubPage } from "./stage-hub";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { Mode } from "@playground/shooting-shared";
+import {
+  STAGE_MAPS,
+  type Mode,
+  type StageMapId,
+} from "@playground/shooting-shared";
+import type { ShootingProgress } from "../contracts";
 import { Icon } from "@/components/ui/icon";
 import {
   useAuthSession,
   revalidateAuthSession,
 } from "@/features/auth/client/session-store";
-import { useGameDetails } from "@/features/games/components/game-catalog-provider";
 import { ShootingRuntime } from "../client/runtime";
 import { Battlefield, preloadBattlefield } from "./battlefield";
 import { BattleHud } from "./battle-hud";
@@ -27,10 +31,10 @@ export function ShootingScreen({ roomCode }: { roomCode?: string }) {
     return (
       <section className={styles.status} role="status">
         <span className={styles.eyebrow}>SHOOTING SURVIVAL</span>
-        <h1>슈팅 서바이벌</h1>
+        <h1>슈팅게임</h1>
         <p>
           {auth.status === "anonymous"
-            ? "로그인하고 끝없는 전장에 도전하세요."
+            ? "로그인하고 맵을 공략해 별을 모아보세요."
             : auth.status === "error"
               ? auth.message
               : "로그인 상태를 확인하고 있어요."}
@@ -71,12 +75,14 @@ function ShootingGame({
     runtime.getView,
   );
   const [mode, setMode] = useState<Mode>("SINGLE");
+  const [hubPage, setHubPage] = useState<HubPage>("modes");
+  const [mapId, setMapId] = useState<StageMapId>("CAVE");
+  const [progress, setProgress] = useState<ShootingProgress>();
   const [rankingOpen, setRankingOpen] = useState(false);
   const [rankingMode, setRankingMode] = useState<Mode>("SINGLE");
   const [help, setHelp] = useState(false);
   const [sound, setSound] = useState(true);
   const arena = useRef<HTMLElement>(null);
-  const details = useGameDetails();
   const state = view.state,
     player = state?.players[view.id];
   const connected = ["connecting", "connected", "reconnecting"].includes(
@@ -106,17 +112,26 @@ function ShootingGame({
   useEffect(() => {
     // 초대 링크·공통 팝업 수락 모두 같은 인증된 참가 흐름으로 들어온다. Strict Mode의 폐기된 효과는 접속하지 않는다.
     // URL을 소비한 뒤 같은 방의 새 초대를 다시 수락해도 한 번 더 처리할 수 있게 한다.
-    if (!roomCode) { attemptedRoom.current = undefined; return; }
+    if (!roomCode) {
+      attemptedRoom.current = undefined;
+      return;
+    }
     if (attemptedRoom.current === roomCode) return;
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
       attemptedRoom.current = roomCode;
       setMode("COOP");
+      setHubPage("maps");
       router.replace("/games/shooting", { scroll: false });
       // 초대 수락과 링크는 바로 입장한다. 다른 방의 연결·사용권 반환은 runtime이 순서대로 처리한다.
       const current = runtime.getView();
-      if (current.code !== roomCode || !["connecting", "connected", "reconnecting"].includes(current.connection))
+      if (
+        current.code !== roomCode ||
+        !["connecting", "connected", "reconnecting"].includes(
+          current.connection,
+        )
+      )
         void runtime.connect(sessionId, "COOP", roomCode, { entry: "code" });
     });
     return () => {
@@ -158,8 +173,12 @@ function ShootingGame({
     <>
       <div className={styles.titleRow}>
         <div>
-          <span className={styles.eyebrow}>AIM. SURVIVE. GO FURTHER.</span>
-          <h1>{details.game?.name ?? "슈팅 서바이벌"}</h1>
+          <span className={styles.eyebrow}>PLAYGROUND · STAGE CHALLENGE</span>
+          <h1>
+            {connected && state
+              ? `${STAGE_MAPS[state.mapId].name} · ${state.mode === "SINGLE" ? "1인 도전" : "2인 협동"}`
+              : "슈팅게임"}
+          </h1>
         </div>
         <div className={styles.topActions}>
           <button
@@ -210,25 +229,37 @@ function ShootingGame({
       <section
         ref={arena}
         className={styles.arena}
-        aria-label="슈팅 서바이벌 전장"
+        aria-label="슈팅 스테이지 전장"
         data-active={connected}
-        data-lobby={!connected || state?.phase === "lobby"}
+        data-lobby={
+          !connected || state?.phase === "lobby" || state?.phase === "over"
+        }
       >
         {/* 전투 전에는 렌더러를 실행하지 않아 대기실 뒤로 전장이 비치거나 GPU를 사용하지 않게 한다. */}
-        {connected && state && state.phase !== "lobby" && (
-          <Battlefield runtime={runtime} />
-        )}
-        {connected && state && state.phase !== "lobby" && player && (
-          <BattleHud
-            runtime={runtime}
-            state={state}
-            player={player}
-            latency={view.latency}
-          />
-        )}
+        {connected &&
+          state &&
+          state.phase !== "lobby" &&
+          state.phase !== "over" && <Battlefield runtime={runtime} />}
+        {connected &&
+          state &&
+          state.phase !== "lobby" &&
+          state.phase !== "over" &&
+          player && (
+            <BattleHud
+              runtime={runtime}
+              state={state}
+              player={player}
+              latency={view.latency}
+            />
+          )}
         {!connected && (
-          <ShootingLobby
+          <StageHub
             sessionId={sessionId}
+            page={hubPage}
+            setPage={setHubPage}
+            mapId={mapId}
+            setMapId={setMapId}
+            onProgress={setProgress}
             mode={mode}
             setMode={setMode}
             message={view.message}
@@ -251,6 +282,13 @@ function ShootingGame({
             player={player}
             code={view.code}
             sessionId={sessionId}
+            before={progress}
+            recordState={view.recordState}
+            exit={() => {
+              setMapId(state.mapId);
+              setHubPage("maps");
+              void runtime.disconnect();
+            }}
           />
         )}
         {view.connection === "reconnecting" && (
@@ -298,7 +336,7 @@ function ShootingGame({
       </section>
       {rankingOpen && (
         <RoomDialog
-          title="슈팅 서바이벌 랭킹"
+          title="맵별 슈팅 기록"
           className={styles.rankDialog}
           onClose={() => setRankingOpen(false)}
         >
@@ -317,9 +355,10 @@ function ShootingGame({
             </button>
           </div>
           <Rankings
-            key={rankingMode}
+            key={`${rankingMode}:${state?.mapId ?? mapId}`}
             sessionId={sessionId}
             mode={rankingMode}
+            mapId={state?.mapId ?? mapId}
           />
         </RoomDialog>
       )}

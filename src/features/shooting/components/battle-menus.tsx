@@ -1,7 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  formatTime,
   BALANCE,
   WEAPON_UPGRADES,
   canUpgrade,
@@ -11,12 +10,19 @@ import {
   type GameSnapshot,
   type PlayerView,
   type WeaponId,
+  type ShootingCharacterId,
+  type StageMapId,
 } from "@playground/shooting-shared";
 import type { ShootingRuntime } from "../client/runtime";
 import { BattleDialog } from "./battle-dialog";
 import { ShootingWaitingRoom } from "./shooting-waiting-room";
 import { UpgradeIcon } from "./upgrade-icon";
 import { WeaponArtwork } from "./weapon-artwork";
+import { CharacterChoices, StageLoadout } from "./stage-loadout";
+import { StageResults } from "./stage-results";
+import type { ShootingProgress } from "../contracts";
+import type { RuntimeView } from "../client/runtime";
+import { warmStageArt } from "../client/stage-assets";
 import styles from "./shooting.module.css";
 
 export function BattleMenus({
@@ -25,15 +31,57 @@ export function BattleMenus({
   player,
   code,
   sessionId,
+  before,
+  recordState,
+  exit,
 }: {
   runtime: ShootingRuntime;
   state: GameSnapshot;
   player: PlayerView;
   code: string;
   sessionId: string;
+  before?: ShootingProgress;
+  recordState?: RuntimeView["recordState"];
+  exit(): void;
 }) {
   const [weapon, setWeapon] = useState<WeaponId>("rifle");
+  const [character, setCharacter] = useState<ShootingCharacterId>(
+    player.character,
+  );
   const [leave, setLeave] = useState(false);
+  const [art, setArt] = useState<{ mapId: StageMapId; ready: boolean }>();
+  const [artAttempt, setArtAttempt] = useState(0);
+  useEffect(() => {
+    if (state.phase !== "lobby") return;
+    let cancelled = false;
+    void warmStageArt(state.mapId)
+      .then(() => {
+        if (!cancelled) setArt({ mapId: state.mapId, ready: true });
+      })
+      .catch(() => {
+        if (!cancelled) setArt({ mapId: state.mapId, ready: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [state.phase, state.mapId, artAttempt]);
+  const artReady = art?.mapId === state.mapId && art.ready;
+  if (state.phase === "lobby" && art?.mapId === state.mapId && !art.ready)
+    return (
+      <BattleDialog title="전장 이미지를 불러오지 못했어요">
+        <p>연결을 확인한 뒤 다시 시도해 주세요.</p>
+        <button
+          className={styles.primary}
+          onClick={() => {
+            setArt(undefined);
+            setArtAttempt((value) => value + 1);
+          }}
+        >
+          다시 불러오기
+        </button>
+        <button onClick={exit}>맵 선택</button>
+      </BattleDialog>
+    );
   if (leave)
     return (
       <BattleDialog title="도전을 종료할까요?">
@@ -41,7 +89,7 @@ export function BattleMenus({
           현재까지 완료한 스테이지를 기록합니다. 이어하기는 없어요.
           {state.mode === "COOP" && " 팀원은 2인 난이도로 계속 진행해요."}
         </p>
-        <button className={styles.danger} onClick={() => runtime.disconnect()}>
+        <button className={styles.danger} onClick={exit}>
           나가기
         </button>
         <button onClick={() => setLeave(false)}>돌아가기</button>
@@ -108,8 +156,14 @@ export function BattleMenus({
         player={player}
         sessionId={sessionId}
         code={code}
-        ready={() => runtime.action({ type: "ready", weapon })}
+        canStart={!!artReady}
+        ready={() => runtime.action({ type: "ready", weapon, character })}
       >
+        <CharacterChoices
+          value={character}
+          change={setCharacter}
+          disabled={player.ready}
+        />
         <WeaponChoices
           weapon={weapon}
           setWeapon={setWeapon}
@@ -119,24 +173,20 @@ export function BattleMenus({
     );
   if (state.phase === "lobby")
     return (
-      <BattleDialog title="시작 무기를 선택하세요" eyebrow="SOLO SURVIVAL">
-        <p className={styles.dialogSub}>
-          선택한 총은 이번 도전이 끝날 때까지 유지됩니다.
-        </p>
+      <StageLoadout
+        state={state}
+        character={character}
+        changeCharacter={setCharacter}
+        start={() => runtime.action({ type: "ready", weapon, character })}
+        leave={exit}
+        canStart={!!artReady}
+      >
         <WeaponChoices
           weapon={weapon}
           setWeapon={setWeapon}
           disabled={player.ready}
         />
-        <button
-          className={styles.primary}
-          disabled={player.ready}
-          onClick={() => runtime.action({ type: "ready", weapon })}
-        >
-          준비 완료 · 출격
-        </button>
-        <button onClick={() => runtime.disconnect()}>나가기</button>
-      </BattleDialog>
+      </StageLoadout>
     );
   if (state.phase === "upgrade")
     return (
@@ -149,8 +199,8 @@ export function BattleMenus({
       >
         {/* 기본 능력은 자동 성장하며 현재 총 전용 강화 세 개만 선택한다. */}
         <p className={styles.dialogSub}>
-          레벨당 공격력 +{BALANCE.growth.damage * 100}% · 체력 +{BALANCE.growth.health}{" "}
-          · 방어력 +{BALANCE.growth.armor} 자동 성장
+          레벨당 공격력 +{BALANCE.growth.damage * 100}% · 체력 +
+          {BALANCE.growth.health} · 방어력 +{BALANCE.growth.armor} 자동 성장
           <br />
           {WEAPONS[player.weapon].name} 강화 하나를 선택하세요. 시간 초과 시
           가능한 강화 중 하나가 선택됩니다.
@@ -199,29 +249,15 @@ export function BattleMenus({
     );
   if (state.phase === "over")
     return (
-      <BattleDialog title="이번 도전이 끝났어요" eyebrow="RUN COMPLETE">
-        <div className={styles.result}>
-          <small>최고 완료 스테이지</small>
-          <strong>{state.clearedStage.toString().padStart(2, "0")}</strong>
-          <span>
-            {formatTime(state.clearMillis)}
-            <small> 누적 전투 시간</small>
-          </span>
-        </div>
-        <p>
-          실패한 스테이지의 시간은 기록에서 제외돼요.
-          <br />
-          스테이지가 높을수록, 같은 스테이지에서는 빠를수록 높은 순위입니다.
-        </p>
-        <button
-          className={styles.primary}
-          disabled={player.vote}
-          onClick={() => runtime.action({ type: "replay" })}
-        >
-          {player.vote ? "팀원의 다시하기를 기다리고 있어요" : "다시하기"}
-        </button>
-        <button onClick={() => void runtime.disconnect()}>나가기</button>
-      </BattleDialog>
+      <StageResults
+        state={state}
+        player={player}
+        runtime={runtime}
+        sessionId={sessionId}
+        before={before}
+        recordState={recordState}
+        leave={exit}
+      />
     );
   return null;
 }

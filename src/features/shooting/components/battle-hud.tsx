@@ -1,7 +1,10 @@
 "use client";
 import { useRef, useState, type PointerEvent } from "react";
+import Image from "next/image";
 import {
   formatTime,
+  STAGE_MAPS,
+  characterImage,
   WEAPON_UPGRADES,
   playerStats,
   UPGRADES,
@@ -34,6 +37,12 @@ export function BattleHud({
       <div className={styles.hudTop}>
         <div className={styles.vitals}>
           <div>
+            <Image
+              src={characterImage(player.character)}
+              width={30}
+              height={30}
+              alt=""
+            />
             <i className={styles.onlineDot} />
             <b>{player.nickname}</b>
             <span>
@@ -46,6 +55,12 @@ export function BattleHud({
           </div>
           {ally && (
             <div className={styles.ally}>
+              <Image
+                src={characterImage(ally.character)}
+                width={24}
+                height={24}
+                alt=""
+              />
               <span>02 · {ally.nickname}</span>
               <span>
                 {!ally.connected
@@ -64,11 +79,9 @@ export function BattleHud({
           </div>
         </div>
         <div className={styles.stage}>
-          <small>
-            {state.mode === "COOP" ? "ONLINE CO-OP" : "SOLO SURVIVAL"}
-          </small>
+          <small>{state.mode === "COOP" ? "2인 협동" : "1인 도전"}</small>
           <strong>
-            STAGE <b>{String(state.stage).padStart(2, "0")}</b>
+            <b>{String(state.stage).padStart(2, "0")}</b> / 10
           </strong>
           <span>
             {state.phase === "loot"
@@ -78,6 +91,9 @@ export function BattleHud({
           </span>
         </div>
         <div className={styles.hudActions}>
+          <span className={styles.timerTarget}>
+            ★★★ {formatTime(STAGE_MAPS[state.mapId].times[state.mode][0])} 이내
+          </span>
           <span className={styles.latency}>{latency} ms</span>
           <button
             title="공유 일시정지 (Esc)"
@@ -103,6 +119,9 @@ export function BattleHud({
         <div className={styles.boss}>
           <div>
             <b>{state.bossName}</b>
+            {boss.exposed > 0 && (
+              <small>약점 노출 {boss.exposed.toFixed(1)}초</small>
+            )}
             <span>{Math.ceil((100 * boss.hp) / boss.maxHp)}%</span>
           </div>
           <div>
@@ -275,6 +294,10 @@ function TouchStick({
     setPosition({ x: 0, y: 0 });
     onChange(0, 0);
   };
+  // 같은 스틱 위에서 끝난 다른 손가락이 현재 조작을 취소하지 않게 포인터를 확인한다.
+  const release = (event: PointerEvent<HTMLDivElement>) => {
+    if (pointer.current === event.pointerId) end();
+  };
   // 포인터 캡처로 스틱 바깥까지 끌어도 방향을 유지하며 멀티터치의 다른 손가락은 무시한다.
   return (
     <div
@@ -289,9 +312,9 @@ function TouchStick({
       onPointerMove={(event) => {
         if (pointer.current === event.pointerId) update(event);
       }}
-      onPointerUp={end}
-      onPointerCancel={end}
-      onLostPointerCapture={end}
+      onPointerUp={release}
+      onPointerCancel={release}
+      onLostPointerCapture={release}
     >
       <i style={{ transform: `translate(${position.x}px, ${position.y}px)` }} />
       <span>{label}</span>

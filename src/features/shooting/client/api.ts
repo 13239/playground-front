@@ -6,11 +6,13 @@ import {
   isOverview,
   isTicket,
   isShootingRooms,
+  isProgress,
+  type ShootingProgress,
   type ShootingRooms,
   type ShootingOverview,
   type ShootingTicket,
 } from "../contracts";
-import type { Mode } from "@playground/shooting-shared";
+import type { Mode, StageMapId } from "@playground/shooting-shared";
 
 /** 목록 갱신도 기존 로그인 세션과 취소 신호를 공유하며 이전 계정 응답을 거절한다. */
 export async function readShootingRooms(
@@ -19,10 +21,11 @@ export async function readShootingRooms(
   search: string,
   friendsOnly: boolean,
   signal?: AbortSignal,
+  mapId: StageMapId = "CAVE",
 ): Promise<ShootingRooms> {
   const response = await requestAuthenticatedApi(
     "/api/shooting/rooms",
-    { sessionId, page, search, friendsOnly },
+    { sessionId, page, search, friendsOnly, mapId },
     signal,
   );
   const value: unknown = await response.json();
@@ -37,11 +40,12 @@ export async function issueTicket(
   mode: Mode,
   signal?: AbortSignal,
   invitedRoomCode?: string,
+  mapId: StageMapId = "CAVE",
 ): Promise<ShootingTicket> {
   const response = await requestAuthenticatedApi(
     "/api/shooting/ticket",
     // 비밀번호 예외는 브라우저의 접속 옵션 대신 인증된 일회용 티켓에 기록한다.
-    { sessionId, mode, ...(invitedRoomCode && { invitedRoomCode }) },
+    { sessionId, mode, mapId, ...(invitedRoomCode && { invitedRoomCode }) },
     signal,
   );
   const value: unknown = await response.json();
@@ -54,15 +58,31 @@ export async function readRankings(
   mode: Mode,
   page = 1,
   signal?: AbortSignal,
+  mapId: StageMapId = "CAVE",
 ): Promise<ShootingOverview> {
   const response = await requestAuthenticatedApi(
     "/api/shooting/overview",
-    { sessionId, mode, page },
+    { sessionId, mode, mapId, page },
     signal,
   );
   const value: unknown = await response.json();
   if (!isOverview(value) || value.sessionId !== sessionId)
     throw new AuthRequestError("게임 순위를 확인하지 못했습니다.", 502);
+  return value;
+}
+
+export async function readProgress(
+  sessionId: string,
+  signal?: AbortSignal,
+): Promise<ShootingProgress> {
+  const response = await requestAuthenticatedApi(
+    "/api/shooting/progress",
+    { sessionId },
+    signal,
+  );
+  const value: unknown = await response.json();
+  if (!isProgress(value) || value.sessionId !== sessionId)
+    throw new AuthRequestError("별과 맵 진행을 확인하지 못했어요.", 502);
   return value;
 }
 

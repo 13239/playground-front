@@ -1,9 +1,17 @@
 "use client";
 import { useState, type ReactNode } from "react";
-import type { GameSnapshot, PlayerView } from "@playground/shooting-shared";
+import Image from "next/image";
+import {
+  STAGE_MAPS,
+  STAGE_MAP_IDS,
+  characterImage,
+  isStageMap,
+  mapUnlocked,
+  type GameSnapshot,
+  type PlayerView,
+} from "@playground/shooting-shared";
 import { Icon } from "@/components/ui/icon";
-import { ProfileAvatar } from "@/features/profile/components/profile-avatar";
-import { isProfileAvatarId } from "@/features/profile/catalog";
+import { Select } from "@/components/ui/select";
 import { GameInviteDialog } from "@/features/game-invitations/game-invite-dialog";
 import type { ShootingRuntime } from "../client/runtime";
 import styles from "./room-setup.module.css";
@@ -17,6 +25,7 @@ export function ShootingWaitingRoom({
   code,
   children,
   ready,
+  canStart,
 }: {
   runtime: ShootingRuntime;
   state: GameSnapshot;
@@ -25,6 +34,7 @@ export function ShootingWaitingRoom({
   code: string;
   children: ReactNode;
   ready: () => void;
+  canStart: boolean;
 }) {
   const [invite, setInvite] = useState(false);
   const [copied, setCopied] = useState("");
@@ -56,7 +66,7 @@ export function ShootingWaitingRoom({
               비밀방
             </span>
           )}
-          <small>온라인 2인 협동 · 슈팅 서바이벌 · {members.length} / 2</small>
+          <small>온라인 2인 협동 · 스테이지 도전 · {members.length} / 2</small>
         </div>
         <div className={styles.headerActions}>
           <div className={styles.code}>
@@ -69,6 +79,26 @@ export function ShootingWaitingRoom({
           <button onClick={() => void runtime.disconnect()}>나가기</button>
         </div>
       </header>
+      <div className={styles.mapSelection}>
+        <Select
+          label="출격할 맵"
+          value={state.mapId}
+          disabled={!hosting}
+          options={STAGE_MAP_IDS.map((id) => ({
+            value: id,
+            label: STAGE_MAPS[id].name,
+            disabled: !members.every((member) =>
+              mapUnlocked(member.unlockedMaps, id),
+            ),
+          }))}
+          onValueChange={(value) => {
+            if (isStageMap(value))
+              runtime.action({ type: "map", mapId: value });
+          }}
+        />
+        <small>10스테이지 · 두 사람 모두 해금한 맵만 출격</small>
+        {state.notice && <p role="status">{state.notice}</p>}
+      </div>
       <div className={styles.playerSlots}>
         {members.map((member) => (
           <section
@@ -77,11 +107,12 @@ export function ShootingWaitingRoom({
             data-self={member.id === player.id}
           >
             <span className={styles.playerAvatar}>
-              {isProfileAvatarId(member.avatar) ? (
-                <ProfileAvatar avatarId={member.avatar} size={92} />
-              ) : (
-                <Icon name="user" />
-              )}
+              <Image
+                src={characterImage(member.character)}
+                alt=""
+                width={110}
+                height={110}
+              />
             </span>
             <strong>{member.nickname}</strong>
             {member.id === state.hostId && (
@@ -100,7 +131,7 @@ export function ShootingWaitingRoom({
           <section className={`${styles.playerCard} ${styles.emptySlot}`}>
             <Icon name="userPlus" />
             <strong>친구를 기다리고 있어요</strong>
-            <small>함께 더 높은 스테이지에 도전하세요.</small>
+            <small>함께 맵을 공략하고 별 3개에 도전하세요.</small>
             {hosting && (
               <button
                 className={styles.primary}
@@ -119,16 +150,20 @@ export function ShootingWaitingRoom({
       </div>
       <section className={styles.loadout}>
         {/* 출격 후 무기 변경이 없음을 선택 시점에 안내한다. */}
-        <h3>시작 무기 · 도전 종료까지 유지</h3>
+        <h3>캐릭터와 시작 무기 · 도전 종료까지 유지</h3>
         {children}
       </section>
       <div className={styles.waitingFooter}>
         <button
           className={styles.primary}
-          disabled={player.ready}
+          disabled={player.ready || !canStart}
           onClick={ready}
         >
-          {player.ready ? "함께 시작할 준비 완료" : "준비 완료"}
+          {player.ready
+            ? "함께 시작할 준비 완료"
+            : canStart
+              ? "준비 완료"
+              : "전장 불러오는 중…"}
         </button>
       </div>
       <p className={styles.footnote} role="status">

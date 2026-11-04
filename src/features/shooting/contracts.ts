@@ -1,4 +1,8 @@
-import type { Mode } from "@playground/shooting-shared";
+import {
+  isStageMap,
+  type Mode,
+  type StageMapId,
+} from "@playground/shooting-shared";
 import {
   isProfileAvatarId,
   type ProfileAvatarId,
@@ -13,6 +17,7 @@ export interface ShootingTicket {
   sessionId: string;
 }
 export interface RankingRow {
+  stars: number;
   rank: number;
   nickname: string;
   teammate?: string;
@@ -21,6 +26,7 @@ export interface RankingRow {
   self: boolean;
 }
 export interface ShootingOverview {
+  mapId: StageMapId;
   mode: Mode;
   page: number;
   totalPages: number;
@@ -29,8 +35,49 @@ export interface ShootingOverview {
   rankings: RankingRow[];
   sessionId: string;
 }
+export interface MapProgress {
+  mapId: StageMapId;
+  unlocked: boolean;
+  stars: number;
+  singleStars: number;
+  coopStars: number;
+  singleMillis: number;
+  coopMillis: number;
+}
+export interface ShootingProgress {
+  totalStars: number;
+  unlockedMaps: number;
+  maps: MapProgress[];
+  sessionId: string;
+}
+/** 서버가 확정한 최고 별만 받아 맵 해금·향후 무기 해금에 같은 값을 사용한다. */
+export function isProgress(value: unknown): value is ShootingProgress {
+  return (
+    object(value) &&
+    integer(value.totalStars) &&
+    value.totalStars <= 9 &&
+    integer(value.unlockedMaps, 1) &&
+    value.unlockedMaps <= 7 &&
+    Array.isArray(value.maps) &&
+    value.maps.length === 3 &&
+    new Set(value.maps.map((row) => (object(row) ? row.mapId : ""))).size ===
+      3 &&
+    value.maps.every(
+      (row) =>
+        object(row) &&
+        isStageMap(row.mapId) &&
+        typeof row.unlocked === "boolean" &&
+        [row.stars, row.singleStars, row.coopStars].every(
+          (stars) => integer(stars) && stars <= 3,
+        ) &&
+        integer(row.singleMillis) &&
+        integer(row.coopMillis),
+    )
+  );
+}
 /** 공개 방 목록은 초대용 방 번호와 표시 정보만 포함하고 계정·세션 내부 값은 포함하지 않는다. */
 export interface ShootingRoomSummary {
+  mapId: StageMapId;
   privateRoom: boolean;
   id: string;
   title: string;
@@ -58,6 +105,7 @@ export function isShootingRooms(value: unknown): value is ShootingRooms {
     value.items.every(
       (row) =>
         object(row) &&
+        isStageMap(row.mapId) &&
         typeof row.id === "string" &&
         /^[A-Z2-9]{8}$/.test(row.id) &&
         typeof row.title === "string" &&
@@ -68,7 +116,8 @@ export function isShootingRooms(value: unknown): value is ShootingRooms {
         [...row.nickname].length <= 50 &&
         isProfileAvatarId(row.avatar) &&
         typeof row.friend === "boolean" &&
-        row.players === 1 && typeof row.privateRoom === "boolean",
+        row.players === 1 &&
+        typeof row.privateRoom === "boolean",
     )
   );
 }
@@ -92,10 +141,13 @@ export function isTicket(value: unknown): value is ShootingTicket {
 export function isOverview(value: unknown): value is ShootingOverview {
   return (
     object(value) &&
+    // 맵·별·유한 스테이지도 응답 경계에서 확인해 이전 규칙의 기록이 섞이지 않게 한다.
+    isStageMap(value.mapId) &&
     ["SINGLE", "COOP"].includes(String(value.mode)) &&
     integer(value.page, 1) &&
     integer(value.totalPages, 1) &&
     integer(value.bestStage) &&
+    value.bestStage <= 10 &&
     integer(value.bestMillis) &&
     Array.isArray(value.rankings) &&
     value.rankings.length <= 10 &&
@@ -106,6 +158,9 @@ export function isOverview(value: unknown): value is ShootingOverview {
         typeof row.nickname === "string" &&
         row.nickname.length <= 100 &&
         integer(row.stage, 1) &&
+        row.stage <= 10 &&
+        integer(row.stars) &&
+        row.stars <= 3 &&
         integer(row.combatMillis) &&
         typeof row.self === "boolean" &&
         (row.teammate == null || typeof row.teammate === "string"),

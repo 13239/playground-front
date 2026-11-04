@@ -8,6 +8,22 @@
   padding: clamp(1rem, 1.6vw, 2rem);
   min-height: min(var(--arena-available-height, 40rem), 48rem);
 }
+
+/* 기존 방·초대 기능의 배치를 유지하고 새 스테이지 메뉴와 색·캐릭터 크기를 맞춘다. */
+.mapSelection {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  width: min(100%, 70rem);
+  margin-inline: auto;
+}
+.mapSelection > div {
+  min-width: 12rem;
+}
+.mapSelection small {
+  color: #8e749f;
+}
 .waiting {
   display: flex;
   flex-direction: column;
@@ -459,5 +475,137 @@
   .playerCard + .playerCard {
     border-left: 0;
     border-top: 1px solid #35465d;
+  }
+}
+
+/* 준비·방 생성·비밀번호 창도 승인한 프로필 캐릭터 UI와 같은 색으로 통일한다. */
+.waiting,
+.creation {
+  color: #44305e;
+  background: linear-gradient(135deg, #f8f2ff, #edf4ff);
+  border-radius: 1rem;
+  min-height: 0;
+}
+.waitingTitle small,
+.playerCard small,
+.notReady,
+.code,
+.footnote {
+  color: #957aa4;
+}
+.playerSlots {
+  border-color: #d7c8e9;
+}
+.playerCard + .playerCard {
+  border-color: #d7c8e9;
+}
+.playerAvatar {
+  width: clamp(5rem, 7vw, 8rem);
+  height: clamp(5rem, 7vw, 8rem);
+  background: transparent;
+  border-radius: 0;
+}
+.code code {
+  color: #6a4589;
+}
+.ready {
+  color: #3c9476;
+}
+.waiting .loadout > section {
+  margin-bottom: 0.8rem;
+}
+.waiting .loadout h3 {
+  color: #6a4b88;
+}
+.createForm,
+.joinForm {
+  color: #513569;
+  background: #fbf7ff;
+}
+.field input,
+.passwordFrame {
+  background: #fffaff;
+  color: #64457d;
+  border-color: #d6c4e7;
+}
+.privacy > button {
+  background: #fbf7ff;
+  color: #806391;
+  border-color: #d7c5e7;
+}
+.createArtwork {
+  background: linear-gradient(135deg, #e7d8ff, #d5e8ff);
+  color: #563378;
+}
+.createArtwork p,
+.createArtwork small {
+  color: #9575a9;
+}
+/* FHD 준비 화면은 참가자·캐릭터·무기·출격을 함께 보여 주고 좁은 창에서는 자연스럽게 스크롤한다. */
+.waiting {
+  gap: 0.8rem;
+}
+.waiting .playerSlots {
+  padding-block: 0.65rem;
+}
+.waiting .playerCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.3rem 0.8rem;
+  text-align: left;
+  justify-content: stretch;
+}
+.waiting .playerAvatar {
+  grid-row: 1/4;
+  width: clamp(3.5rem, 5vw, 5rem);
+  height: clamp(3.5rem, 5vw, 5rem);
+}
+.waiting .playerCard > strong {
+  grid-column: 2;
+}
+.waiting .playerCard > small,
+.waiting .playerCard > .ready,
+.waiting .playerCard > .notReady {
+  grid-column: 2/-1;
+}
+.waiting .hostBadge {
+  grid-column: 3;
+  grid-row: 1;
+}
+.waiting .emptySlot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.waiting .loadout > section p {
+  margin: 0.25rem 0 0.5rem;
+  color: #7e6d98;
+  font-size: 0.8rem;
+}
+.waiting .loadout img {
+  width: clamp(3rem, 5vw, 5rem);
+}
+.waiting .loadout > section button {
+  padding: 0.4rem;
+}
+.waiting .loadout > div button {
+  padding: 0.65rem;
+}
+.waiting .loadout > div button > svg {
+  height: clamp(2.5rem, 3vw, 3.5rem) !important;
+}
+@media (max-width: 40rem) {
+  .waiting .playerCard {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.35rem;
+  }
+  .waiting .playerAvatar {
+    width: 3rem;
+    height: 3rem;
+  }
+  .waiting .hostBadge {
+    grid-row: auto;
+    grid-column: 2;
+    width: max-content;
   }
 }

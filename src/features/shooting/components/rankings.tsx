@@ -1,6 +1,11 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { formatTime, type Mode } from "@playground/shooting-shared";
+import {
+  STAGE_MAPS,
+  formatTime,
+  type Mode,
+  type StageMapId,
+} from "@playground/shooting-shared";
 import { Icon } from "@/components/ui/icon";
 import { NumberedPagination } from "@/features/admin/components/numbered-pagination";
 import { readRankings } from "../client/api";
@@ -10,17 +15,19 @@ import styles from "./shooting.module.css";
 export function Rankings({
   sessionId,
   mode,
+  mapId = "CAVE",
 }: {
   sessionId: string;
   mode: Mode;
+  mapId?: StageMapId;
 }) {
   const [data, setData] = useState<ShootingOverview>();
   const [page, setPage] = useState(1),
     [attempt, setAttempt] = useState(0);
   const [error, setError] = useState("");
   const load = useCallback(
-    (signal: AbortSignal) => readRankings(sessionId, mode, page, signal),
-    [sessionId, mode, page],
+    (signal: AbortSignal) => readRankings(sessionId, mode, page, signal, mapId),
+    [sessionId, mode, page, mapId],
   );
   useEffect(() => {
     const controller = new AbortController();
@@ -43,7 +50,8 @@ export function Rankings({
       <div>
         <h2>
           <Icon name="trophy" />
-          {mode === "SINGLE" ? "1인" : "2인 협동"} TOP 100
+          {STAGE_MAPS[mapId].name} · {mode === "SINGLE" ? "1인" : "2인 협동"}{" "}
+          TOP 100
         </h2>
         <small>완료 스테이지 ↓ · 누적 전투 시간 ↑</small>
       </div>
