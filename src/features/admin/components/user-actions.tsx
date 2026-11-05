@@ -22,13 +22,15 @@ export function UserActions({ user, saved }: { user: AdminUser; saved: () => voi
   const mutation = useAdminMutation();
   const id = useId();
   const [role, setRole] = useState<SelectOption>({ value: user.roleCode, label: user.roleName, description: user.roleCode });
-  const [status, setStatus] = useState<EditableStatus>(user.status === "INACTIVE" ? "INACTIVE" : "ACTIVE");
+  // 탈퇴 회원도 현재 상태를 먼저 표시하고 관리자가 활성·비활성을 선택한 뒤에만 변경한다.
+  const [status, setStatus] = useState<EditableStatus>(user.status === "PENDING" ? "ACTIVE" : user.status);
   const [pending, setPending] = useState<PendingAction>();
   // DB 롤백 후 Redis 차단만 남은 활성 계정도 기존 재활성화 처리로 복구할 수 있게 재적용을 허용한다.
   const reapplyingActive = user.status === "ACTIVE" && status === "ACTIVE";
   // ROOT는 일반 권한 배정이나 계정 상태 변경으로 만들거나 해제할 수 없다.
   const protectedUser = user.roleCode === ROOT_ROLE_CODE;
-  const canAssignRole = can("USER_ROLE_UPDATE") && !protectedUser && !user.deleted && user.status !== "WITHDRAWN";
+  const withdrawnUser = user.status === "WITHDRAWN";
+  const canAssignRole = can("USER_ROLE_UPDATE") && !protectedUser && !user.deleted && !withdrawnUser;
   const roleOptions = useUserRoleOptions(canAssignRole);
   const roleErrorId = `${id}-role-error`;
   const roleDisabled = mutation.busy || roleOptions.loading || !!roleOptions.error;
@@ -40,11 +42,10 @@ export function UserActions({ user, saved }: { user: AdminUser; saved: () => voi
   // 권한 이름이 바뀌어도 콤보박스·현재 값·변경 예고가 같은 최신 표시 이름을 사용한다.
   const currentRoleName = roleOptions.items.find(item => item.code === user.roleCode)?.name ?? user.roleName;
   const nextRoleName = choices.find(option => option.value === role.value)?.label ?? role.label;
-  // 삭제와 탈퇴를 구분하며 두 경우 모두 일반 계정 관리로 상태를 복구하지 않는다.
+  // 삭제된 회원은 변경하지 않으며 탈퇴 회원에게는 활성·비활성으로의 상태 변경만 제공한다.
   if (user.deleted) return <p className={common.empty}>삭제된 회원은 변경할 수 없어요.</p>;
-  if (user.status === "WITHDRAWN") return <p className={common.empty}>탈퇴한 회원은 변경할 수 없어요.</p>;
   return <div className={styles.root} aria-busy={mutation.busy}>
-    <div className={styles.heading}><h3>계정 관리</h3><p>회원의 권한, 계정 상태, 로그인 세션을 관리합니다.</p></div>
+    <div className={styles.heading}><h3>계정 관리</h3><p>{withdrawnUser ? "탈퇴한 회원을 활성 또는 비활성 상태로 변경합니다." : "회원의 권한, 계정 상태, 로그인 세션을 관리합니다."}</p></div>
     {canAssignRole && <section className={styles.card} aria-labelledby={`${id}-role-title`}>
       <div className={styles.cardHeader}><span className={styles.cardIcon}><Icon name="shield" /></span><div>
         <h4 id={`${id}-role-title`}>권한 배정</h4><span className={styles.currentBadge}>현재 권한 · {currentRoleName}</span>
@@ -80,10 +81,10 @@ export function UserActions({ user, saved }: { user: AdminUser; saved: () => voi
         if (mutation.busy || status === user.status && !reapplyingActive) return;
         const form = new FormData(event.currentTarget);
         const withdrawing = status === "WITHDRAWN", deactivating = status === "INACTIVE";
-        // 탈퇴는 삭제 시각을 쓰지 않는 상태 변경이며 기존 확인·사유·버전 검증을 그대로 사용한다.
+        // 탈퇴와 복구 모두 삭제 시각을 쓰지 않는 상태 변경이며 기존 확인·사유·버전 검증을 그대로 사용한다.
         setPending({
           title: withdrawing ? "회원을 탈퇴 상태로 변경할까요?" : deactivating ? "계정을 비활성화할까요?" : reapplyingActive ? "활성 상태를 다시 적용할까요?" : "계정을 활성화할까요?",
-          message: withdrawing ? `${user.username} 회원의 기존 로그인을 종료하고 탈퇴 상태로 변경해요. 이 화면에서는 탈퇴를 복구할 수 없어요.`
+          message: withdrawing ? `${user.username} 회원의 기존 로그인을 종료하고 탈퇴 상태로 변경해요. 이후 관리자에서 활성 또는 비활성으로 변경할 수 있어요.`
             : deactivating ? `${user.username} 회원의 기존 로그인이 종료되고 새 로그인이 차단돼요.`
               : `${user.username} 회원의 새 로그인을 허용해요. 종료된 세션은 복원되지 않아요.`,
           path: `users/${user.id}/status`, method: "PUT", body: { status, expectedVersion: user.managementVersion, reason: formText(form, "reason") },
@@ -99,7 +100,7 @@ export function UserActions({ user, saved }: { user: AdminUser; saved: () => voi
         </fieldset>
         <ChangePreview label="상태" current={USER_STATUS_LABELS[user.status]} next={USER_STATUS_LABELS[status]} active={user.status === "ACTIVE"} />
         <div className={styles.statusHelp} role="status"><p>{reapplyingActive ? "활성 상태를 다시 적용하면 남아 있는 로그인 차단을 해제할 수 있습니다." : "상태 변경 버튼을 누르면 적용됩니다."}</p>
-          <p className={styles.hint}>{status === "WITHDRAWN" ? "탈퇴하면 모든 기기에서 로그아웃되며, 이 화면에서는 복구할 수 없습니다."
+          <p className={styles.hint}>{status === "WITHDRAWN" ? "탈퇴하면 모든 기기에서 로그아웃됩니다. 관리자에서 활성 또는 비활성으로 변경할 수 있습니다."
             : status === "INACTIVE" ? "비활성화하면 모든 기기에서 로그아웃되고 새 로그인이 차단됩니다."
               : "활성화하면 새 로그인을 허용합니다. 종료된 로그인은 복원되지 않습니다."}</p>
         </div>
@@ -107,7 +108,8 @@ export function UserActions({ user, saved }: { user: AdminUser; saved: () => voi
         <div className={styles.submitRow}><button type="submit" className={common.primary} disabled={mutation.busy || status === user.status && !reapplyingActive}>{reapplyingActive ? "활성 상태 재적용" : "상태 변경"}</button></div>
       </form>
     </section>}
-    {can("USER_SESSION_REVOKE") && (!protectedUser || context.roleCode === ROOT_ROLE_CODE) && <section className={styles.card} aria-labelledby={`${id}-logout-title`}>
+    {/* 탈퇴 상태에서는 상태 변경만 제공하고 기존 권한 배정·세션 관리 제한을 유지한다. */}
+    {!withdrawnUser && can("USER_SESSION_REVOKE") && (!protectedUser || context.roleCode === ROOT_ROLE_CODE) && <section className={styles.card} aria-labelledby={`${id}-logout-title`}>
       <div className={styles.cardHeader}><span className={`${styles.cardIcon} ${styles.logoutIcon}`}><Icon name="exit" /></span><div>
         <h4 id={`${id}-logout-title`}>강제 로그아웃</h4><p>모든 기기에서 로그아웃되며, 계정 상태는 유지됩니다.</p>
       </div></div>

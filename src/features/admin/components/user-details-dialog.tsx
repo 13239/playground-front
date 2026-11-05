@@ -63,10 +63,12 @@ function UserDetail({ details, reload }: { details: UserDetails; reload: () => v
   const { can, context } = useAdminScope();
   const [tab, setTab] = useState<(typeof USER_DETAIL_TABS)[number]["id"]>("information");
   const user = details.user;
-  // 배정·상태 변경은 ROOT와 탈퇴·삭제 계정을 보호하고 본인의 명시적인 세션 종료만 허용한다.
+  // 탈퇴 회원도 상태 변경 권한이 있으면 관리 탭을 표시하되 권한 배정·세션 종료와 ROOT·삭제 계정 보호는 유지한다.
   const protectedUser = user.roleCode === ROOT_ROLE_CODE;
-  const manageable = !user.deleted && user.status !== "WITHDRAWN" && ((!protectedUser && (can("USER_ROLE_UPDATE") || can("USER_STATUS_UPDATE")))
-    || can("USER_SESSION_REVOKE") && (!protectedUser || context.roleCode === ROOT_ROLE_CODE));
+  const withdrawnUser = user.status === "WITHDRAWN";
+  const manageable = !user.deleted && (!protectedUser && can("USER_STATUS_UPDATE")
+    || !withdrawnUser && (!protectedUser && can("USER_ROLE_UPDATE")
+      || can("USER_SESSION_REVOKE") && (!protectedUser || context.roleCode === ROOT_ROLE_CODE)));
   // 실행 가능한 작업이 없는 조회 전용 사용자에게 빈 계정 관리 탭을 표시하지 않는다.
   const tabs = USER_DETAIL_TABS.filter(item => item.id !== "management" || manageable);
   const current = tab === "management" && !manageable ? "information" : tab;
