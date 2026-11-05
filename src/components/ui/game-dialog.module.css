@@ -1,4 +1,4 @@
-/* 게임 초대·랭킹·기존 방 관리가 같은 네이티브 모달·최소 터치 영역·1px 포커스를 사용한다. */
+/* 게임 초대·랭킹·기존 방 관리가 같은 네이티브 모달·최소 터치 영역·1px 포커스를 사용한다. 색상 토큰이 없으면 기존 밝은 테마를 유지한다. */
 .dialog {
   position: fixed;
   inset: 0;
@@ -8,10 +8,10 @@
   margin: auto;
   padding: 1.7em;
   overflow: auto;
-  border: 1px solid #e8dfff;
+  border: 1px solid var(--game-dialog-border, #e8dfff);
   border-radius: 1.5em;
-  color: #57517c;
-  background: #fdfbff;
+  color: var(--game-dialog-text, #57517c);
+  background: var(--game-dialog-background, #fdfbff);
   box-shadow: 0 20px 100px #38225138;
   font-family: var(--font-noto-sans-kr), sans-serif;
   font-size: var(--app-font-size, 1rem);
@@ -21,7 +21,7 @@
   outline: none;
 }
 .dialog::backdrop {
-  background: #34325470;
+  background: var(--game-dialog-backdrop, #34325470);
   backdrop-filter: blur(4px);
 }
 .dialog button {
@@ -51,7 +51,7 @@
   margin: 0;
   font-size: 1.4em;
   font-weight: 850;
-  color: #30205f;
+  color: var(--game-dialog-heading, #30205f);
 }
 .iconButton {
   display: grid;
@@ -60,10 +60,10 @@
   width: 2.75rem;
   height: 2.75rem;
   padding: 0.5rem;
-  border: 1px solid #ded4f5;
+  border: 1px solid var(--game-dialog-border, #ded4f5);
   border-radius: 0.75rem;
-  color: #8069a5;
-  background: #fff;
+  color: var(--control-muted, #8069a5);
+  background: var(--game-dialog-background, #fff);
   cursor: pointer;
 }
 .iconButton:disabled {

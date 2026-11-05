@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RoomDialog } from "@/components/ui/game-dialog";
+import { ShootingRoomDialog } from "./shooting-room-dialog";
 import { StageHub, type HubPage } from "./stage-hub";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
@@ -307,7 +307,7 @@ function ShootingGame({
         )}
       </section>
       {rankingOpen && (
-        <RoomDialog
+        <ShootingRoomDialog
           title="맵별 슈팅 기록"
           className={styles.rankDialog}
           onClose={() => setRankingOpen(false)}
@@ -332,7 +332,7 @@ function ShootingGame({
             mode={rankingMode}
             mapId={state?.mapId ?? mapId}
           />
-        </RoomDialog>
+        </ShootingRoomDialog>
       )}
     </>
   );

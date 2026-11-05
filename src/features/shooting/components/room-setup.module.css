@@ -1,10 +1,10 @@
-/* 승인된 B안 방 만들기·C안 대기실을 분리한다. 가독성·최소 터치 영역을 유지하고 좁은 화면은 재배치한다. */
+/* 방 만들기·대기실은 다크 시네마틱 테마를 공유한다. 가독성·최소 터치 영역을 유지하고 좁은 화면은 재배치한다. */
 .waiting,
 .creation {
   position: relative;
   z-index: 1;
-  color: #e6edf7;
-  background: #0c1520;
+  color: var(--shooting-text);
+  background: var(--shooting-panel);
   padding: clamp(1rem, 1.6vw, 2rem);
   min-height: min(var(--arena-available-height, 40rem), 48rem);
 }
@@ -21,8 +21,9 @@
 .mapSelection > div {
   min-width: 12rem;
 }
+.mapSelection > [data-ui-select] { flex: 0 1 22rem; min-width: min(12rem, 100%); }
 .mapSelection small {
-  color: #8e749f;
+  color: var(--shooting-muted);
 }
 .waiting {
   display: flex;
@@ -59,7 +60,7 @@
 .waitingTitle small {
   flex-basis: 100%;
   font-size: 0.8rem;
-  color: #a8b8ce;
+  color: var(--shooting-muted);
 }
 .privateBadge,
 .hostBadge {
@@ -68,10 +69,10 @@
   justify-content: center;
   gap: 0.35rem;
   padding: 0.25rem 0.55rem;
-  border: 1px solid #7553c477;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.6rem;
-  background: #6541aa33;
-  color: #c0a4ff;
+  background: var(--shooting-selected);
+  color: var(--shooting-muted);
   font-size: 0.75rem;
   white-space: nowrap;
 }
@@ -91,10 +92,10 @@
 }
 .code {
   font-size: 0.75rem;
-  color: #a8bbd2;
+  color: var(--shooting-muted);
 }
 .code code {
-  color: #d6e2f3;
+  color: var(--shooting-text);
   letter-spacing: 0.1em;
   font-size: 0.9rem;
 }
@@ -108,7 +109,7 @@
 .playerSlots {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-block: 1px solid #35465d;
+  border-block: 1px solid var(--shooting-border);
   padding-block: clamp(0.8rem, 1.3vw, 1.5rem);
 }
 .playerCard {
@@ -122,7 +123,7 @@
   text-align: center;
 }
 .playerCard + .playerCard {
-  border-left: 1px solid #35465d;
+  border-left: 1px solid var(--shooting-border);
 }
 .playerCard strong {
   font-size: 1.05rem;
@@ -130,7 +131,7 @@
 }
 .playerCard small,
 .notReady {
-  color: #a3b3cb;
+  color: var(--shooting-muted);
   font-size: 0.8rem;
 }
 .ready {
@@ -144,7 +145,7 @@
   place-items: center;
   border-radius: 50%;
   overflow: hidden;
-  background: #d9e4f6;
+  background: var(--shooting-panel);
 }
 .playerAvatar img {
   width: 100%;
@@ -158,7 +159,7 @@
 .emptySlot > svg {
   width: 2.5rem;
   height: 2.5rem;
-  color: #8ea8ce;
+  color: var(--shooting-muted);
 }
 .emptySlot button {
   display: flex;
@@ -189,8 +190,8 @@
   justify-content: center;
 }
 .waiting .loadout button[aria-pressed="true"] {
-  border-color: #a078ff;
-  background: #60409433;
+  border-color: var(--shooting-accent);
+  background: var(--shooting-selected);
 }
 .waiting .loadout button[aria-pressed="true"]::after {
   content: "✓";
@@ -202,8 +203,8 @@
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 50%;
-  color: #fff;
-  background: #9368ef;
+  color: var(--shooting-text);
+  background: var(--shooting-selected);
   font-size: 0.85rem;
 }
 .waitingFooter > .primary {
@@ -211,7 +212,7 @@
 }
 .footnote {
   margin-block: 0;
-  color: #92a5be;
+  color: var(--shooting-muted);
   line-height: 1.6;
   font-size: 0.8rem;
   text-align: center;
@@ -224,15 +225,15 @@
   justify-content: center;
   gap: 0.6rem;
   min-height: 3rem;
-  background: linear-gradient(110deg, #9b7dff, #7042ed);
-  border-color: #ad92ff;
-  color: #fff;
+  background: var(--shooting-primary);
+  border-color: var(--shooting-border);
+  color: var(--shooting-text);
   font-weight: 750;
 }
 .waiting .primary:hover:not(:disabled),
 .creation .primary:hover:not(:disabled),
 .joinForm .primary:hover:not(:disabled) {
-  background: linear-gradient(110deg, #ad94ff, #8056f4);
+  background: var(--shooting-primary-hover);
 }
 .joinForm {
   display: flex;
@@ -241,7 +242,7 @@
   text-align: left;
 }
 .joinForm p {
-  color: #a8b8ce;
+  color: var(--shooting-muted);
   font-size: 0.85rem;
   line-height: 1.6;
 }
@@ -255,15 +256,17 @@
 /* 소개 이미지는 장식이다. 실제 제목·폼은 HTML로 제공해 확대와 키보드 조작을 지원한다. */
 .createArtwork {
   position: relative;
+  isolation: isolate;
   overflow: hidden;
   min-height: 24rem;
-  border: 1px solid #3b506a;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.8rem;
-  background:
-    linear-gradient(0deg, #0c1520 1%, transparent 58%),
-    url("/images/shooting/room-arena.webp") center / cover;
+  background: var(--shooting-background);
 }
+.createArtwork > [role="img"] { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; }
+.createArtwork::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, #0b0c19 0%, #0b0c194d 65%, transparent); pointer-events: none; }
 .createArtwork > div {
+  z-index: 1;
   position: absolute;
   inset: auto 1rem 1.2rem;
 }
@@ -273,7 +276,7 @@
 }
 .createArtwork p,
 .createArtwork small {
-  color: #a9bed9;
+  color: var(--shooting-muted);
   font-size: 0.85rem;
   line-height: 1.6;
 }
@@ -290,7 +293,7 @@
 }
 .createForm header p {
   margin: 0;
-  color: #a8b8ce;
+  color: var(--shooting-muted);
   font-size: 0.85rem;
   line-height: 1.6;
 }
@@ -308,16 +311,16 @@
   min-width: 0;
   min-height: 3rem;
   padding: 0.7rem 0.85rem;
-  border: 1px solid #46607d;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.6rem;
-  background: #1b2b3e;
-  color: #edf3fc;
+  background: var(--shooting-elevated);
+  color: var(--shooting-text);
   font: inherit;
   font-weight: 400;
 }
 .field > small {
   align-self: end;
-  color: #9eb0c8;
+  color: var(--shooting-muted);
   font-size: 0.75rem;
   font-weight: 400;
 }
@@ -344,12 +347,12 @@
   padding: 0.9rem;
 }
 .privacy > button[aria-pressed="true"] {
-  border-color: #ab84ff;
-  background: #59438a55;
+  border-color: var(--shooting-accent);
+  background: var(--shooting-selected);
 }
 .creation .privacy > button[aria-pressed="true"]:hover:not(:disabled) {
-  border-color: #bb9fff;
-  background: #67509c66;
+  border-color: var(--shooting-accent);
+  background: var(--shooting-selected);
 }
 .privacy span {
   display: flex;
@@ -359,7 +362,7 @@
   min-width: 0;
 }
 .privacy small {
-  color: #a8b8ce;
+  color: var(--shooting-muted);
   font-size: 0.75rem;
   line-height: 1.5;
 }
@@ -367,9 +370,9 @@
   display: flex;
   align-items: center;
   overflow: hidden;
-  border: 1px solid #46607d;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.6rem;
-  background: #1b2b3e;
+  background: var(--shooting-panel);
 }
 .passwordFrame input {
   flex: 1;
@@ -386,10 +389,10 @@
   align-items: center;
   gap: 0.7rem;
   padding: 0.8rem;
-  border: 1px solid #354a62;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.6rem;
-  color: #9db1ca;
-  background: #1b2b3e;
+  color: var(--shooting-muted);
+  background: var(--shooting-panel);
 }
 .capacity svg {
   width: 1.4rem;
@@ -474,15 +477,15 @@
   }
   .playerCard + .playerCard {
     border-left: 0;
-    border-top: 1px solid #35465d;
+    border-top: 1px solid var(--shooting-border);
   }
 }
 
-/* 준비·방 생성·비밀번호 창도 승인한 프로필 캐릭터 UI와 같은 색으로 통일한다. */
+/* 준비·방 생성·비밀번호 창도 승인된 다크 시네마틱 색상 토큰으로 통일한다. */
 .waiting,
 .creation {
-  color: #44305e;
-  background: linear-gradient(135deg, #f8f2ff, #edf4ff);
+  color: var(--shooting-text);
+  background: var(--shooting-panel);
   border-radius: 1rem;
   min-height: 0;
 }
@@ -491,13 +494,13 @@
 .notReady,
 .code,
 .footnote {
-  color: #957aa4;
+  color: var(--shooting-muted);
 }
 .playerSlots {
-  border-color: #d7c8e9;
+  border-color: var(--shooting-border);
 }
 .playerCard + .playerCard {
-  border-color: #d7c8e9;
+  border-color: var(--shooting-border);
 }
 .playerAvatar {
   width: clamp(5rem, 7vw, 8rem);
@@ -506,7 +509,7 @@
   border-radius: 0;
 }
 .code code {
-  color: #6a4589;
+  color: var(--shooting-muted);
 }
 .ready {
   color: #3c9476;
@@ -515,31 +518,31 @@
   margin-bottom: 0.8rem;
 }
 .waiting .loadout h3 {
-  color: #6a4b88;
+  color: var(--shooting-muted);
 }
 .createForm,
 .joinForm {
-  color: #513569;
-  background: #fbf7ff;
+  color: var(--shooting-text);
+  background: transparent;
 }
 .field input,
 .passwordFrame {
-  background: #fffaff;
-  color: #64457d;
-  border-color: #d6c4e7;
+  background: var(--shooting-elevated);
+  color: var(--shooting-muted);
+  border-color: var(--shooting-border);
 }
 .privacy > button {
-  background: #fbf7ff;
-  color: #806391;
-  border-color: #d7c5e7;
+  background: var(--shooting-elevated);
+  color: var(--shooting-muted);
+  border-color: var(--shooting-border);
 }
 .createArtwork {
-  background: linear-gradient(135deg, #e7d8ff, #d5e8ff);
-  color: #563378;
+  background: var(--shooting-background);
+  color: var(--shooting-text);
 }
 .createArtwork p,
 .createArtwork small {
-  color: #9575a9;
+  color: var(--shooting-muted);
 }
 /* FHD 준비 화면은 참가자·캐릭터·무기·출격을 함께 보여 주고 좁은 창에서는 자연스럽게 스크롤한다. */
 .waiting {
@@ -554,6 +557,7 @@
   gap: 0.3rem 0.8rem;
   text-align: left;
   justify-content: stretch;
+  align-content: center;
 }
 .waiting .playerAvatar {
   grid-row: 1/4;
@@ -573,13 +577,18 @@
   grid-row: 1;
 }
 .waiting .emptySlot {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .5rem;
 }
+/* 참가자 영역의 장식 아이콘보다 초대·링크 버튼을 같은 행에 두어 FHD에서도 준비 버튼이 화면 안에 남도록 한다. */
+.waiting .emptySlot > svg { display: none; }
+.waiting .emptySlot > strong,
+.waiting .emptySlot > small { grid-column: 1 / -1; text-align: center; }
+.waiting .emptySlot button { width: 100%; min-width: 0; padding-inline: .4rem; font-size: .8rem; }
 .waiting .loadout > section p {
   margin: 0.25rem 0 0.5rem;
-  color: #7e6d98;
+  color: var(--shooting-muted);
   font-size: 0.8rem;
 }
 .waiting .loadout img {

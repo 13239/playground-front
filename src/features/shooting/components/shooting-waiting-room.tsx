@@ -15,6 +15,7 @@ import { Select } from "@/components/ui/select";
 import { GameInviteDialog } from "@/features/game-invitations/game-invite-dialog";
 import type { ShootingRuntime } from "../client/runtime";
 import styles from "./room-setup.module.css";
+import theme from "./shooting-theme.module.css";
 
 /** 대기실에서만 초대·링크·무기를 표시한다. 전투 시작 즉시 메뉴 전체가 사라진다. */
 export function ShootingWaitingRoom({
@@ -56,7 +57,7 @@ export function ShootingWaitingRoom({
   }
   return (
     <div className={styles.waiting}>
-      {/* 승인된 C안: 방 제목과 비밀방 라벨을 같은 줄에 두고 방 코드는 나가기 바로 왼쪽에 둔다. */}
+      {/* 방 제목과 비밀방 라벨을 같은 줄에 두고 방 코드는 나가기 바로 왼쪽에 두는 기존 배치를 유지한다. */}
       <header className={styles.waitingHeader}>
         <div className={styles.waitingTitle}>
           <h2>{state.title || "함께 살아남아요"}</h2>
@@ -171,6 +172,7 @@ export function ShootingWaitingRoom({
       </p>
       {invite && hosting && members.length === 1 && (
         <GameInviteDialog
+          className={theme.dialog}
           game="shooting"
           roomId={code}
           sessionId={sessionId}

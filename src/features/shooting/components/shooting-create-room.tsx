@@ -1,16 +1,20 @@
 "use client";
 import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
+import type { StageMapId } from "@playground/shooting-shared";
+import { MapCover } from "./stage-art";
 import type { RoomOptions } from "../client/runtime";
 import styles from "./room-setup.module.css";
 
-/** 승인된 B안의 소개·폼 분할 화면이다. 비밀번호는 제출하는 순간에만 게임 서버로 보낸다. */
+/** 다크 시네마틱 소개·폼 분할 화면에서 선택한 맵을 보여 준다. 비밀번호는 제출하는 순간에만 게임 서버로 보낸다. */
 export function ShootingCreateRoom({
   create,
   cancel,
+  mapId = "CAVE",
 }: {
   create(settings: RoomOptions): void;
   cancel(): void;
+  mapId?: StageMapId;
 }) {
   const [title, setTitle] = useState("함께 살아남아요");
   const [privateRoom, setPrivate] = useState(false);
@@ -28,6 +32,7 @@ export function ShootingCreateRoom({
   return (
     <div className={styles.creation}>
       <aside className={styles.createArtwork}>
+        <MapCover mapId={mapId} />
         <div>
           {/* 맵 완주·별 목표를 방 생성 안내에도 동일하게 제공한다. */}
           <h2>슈팅게임 · 모험 모드</h2>

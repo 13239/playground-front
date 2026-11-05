@@ -5,11 +5,12 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  min-height: min(var(--arena-available-height, 40rem), 48rem);
+  /* 바깥 맵 선택 버튼·허브 여백을 제외해 협동 목록이 전장 높이를 중복 소비하지 않게 한다. */
+  min-height: min(max(22rem, calc(var(--arena-available-height, 40rem) - 5rem)), 43rem);
   padding: clamp(1rem, 1.8vw, 2rem);
   background:
-    radial-gradient(ellipse at 25% 0, #24364b77, transparent 65%), #0c1520;
-  color: #e6edf7;
+    var(--shooting-panel);
+  color: var(--shooting-text);
 }
 .modeTabs {
   display: grid;
@@ -38,14 +39,14 @@
   border-radius: 0 0.7rem 0.7rem 0;
 }
 .lobby .modeTabs button[aria-pressed="true"] {
-  background: linear-gradient(120deg, #9999ff, #7165f0);
-  color: #fff;
-  border-color: #aea9ff;
+  background: var(--shooting-panel);
+  color: var(--shooting-text);
+  border-color: var(--shooting-accent);
 }
 .tagline {
   margin: 0;
   text-align: center;
-  color: #a5b7cd;
+  color: var(--shooting-muted);
   font-size: 0.85rem;
 }
 .content {
@@ -66,13 +67,14 @@
   overflow: hidden;
   aspect-ratio: 16/10;
   max-height: 15rem;
-  border: 1px solid #36445a;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.75rem;
-  background: #111d2b;
+  background: var(--shooting-panel);
 }
 .cover svg {
   display: block;
 }
+.cover > [role="img"] { height: 100%; }
 .introduction h2 {
   margin: 0.2rem 0 0;
   font-size: clamp(1.35rem, 1rem + 0.5vw, 1.8rem);
@@ -80,7 +82,7 @@
 }
 .introduction p {
   margin: 0;
-  color: #a0b2c8;
+  color: var(--shooting-muted);
   line-height: 1.7;
   font-size: 0.85rem;
 }
@@ -95,15 +97,15 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.7rem 0.8rem;
-  background: #1e2c3c77;
-  border: 1px solid #344259;
+  background: var(--shooting-panel);
+  border: 1px solid var(--shooting-border);
   border-radius: 0.65rem;
   font-size: 0.8rem;
 }
 .facts svg {
   width: 1.25rem;
   height: 1.25rem;
-  color: #9dccff;
+  color: var(--shooting-muted);
 }
 .browser {
   min-width: 0;
@@ -111,9 +113,9 @@
   flex-direction: column;
   gap: 0.6rem;
   padding: clamp(0.75rem, 0.8vw, 1rem);
-  border: 1px solid #29384a;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.8rem;
-  background: #0c1623aa;
+  background: var(--shooting-panel);
 }
 .heading {
   display: flex;
@@ -133,7 +135,7 @@
   font-size: 1.25rem;
 }
 .heading small {
-  color: #a8b8ce;
+  color: var(--shooting-muted);
   font-size: 0.75rem;
 }
 .lobby .primary {
@@ -142,14 +144,14 @@
   justify-content: center;
   gap: 0.5rem;
   min-height: 2.8rem;
-  background: linear-gradient(120deg, #9985ff, #714cf3);
-  border-color: #a08af8;
-  color: #fff;
+  background: var(--shooting-primary);
+  border-color: var(--shooting-border);
+  color: var(--shooting-text);
   font-weight: 750;
 }
 .lobby .primary:hover:not(:disabled) {
-  background: #8668ec;
-  border-color: #b4a2ff;
+  background: var(--shooting-primary-hover);
+  border-color: var(--shooting-accent);
 }
 .searchRow {
   display: flex;
@@ -165,22 +167,22 @@
   min-width: 2.75rem;
 }
 .searchRow [data-focus-frame] {
-  background: #1a283a;
-  border-color: #465b74;
+  background: var(--shooting-panel);
+  border-color: var(--shooting-border);
 }
 .searchRow input {
-  color: #deebf9 !important;
+  color: var(--shooting-text) !important;
   background: transparent !important;
 }
 .searchRow input::placeholder {
-  color: #92a4bb;
+  color: var(--shooting-muted);
 }
 .searchRow [data-ui-search] button {
   border: 0;
   min-height: 0;
   padding: 0.4rem !important;
   background: transparent;
-  color: #9db6d4;
+  color: var(--shooting-muted);
 }
 .filters {
   display: flex;
@@ -193,9 +195,9 @@
   font-size: 0.8rem;
 }
 .lobby .filters button[aria-pressed="true"] {
-  background: #b0d6ff;
-  color: #10233b;
-  border-color: #b0d6ff;
+  background: var(--shooting-selected);
+  color: var(--shooting-text);
+  border-color: var(--shooting-accent);
 }
 .rooms {
   display: flex;
@@ -212,9 +214,9 @@
   gap: 0.8rem;
   min-height: 4rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #344258;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.7rem;
-  background: #1b2839a8;
+  background: var(--shooting-panel);
 }
 .avatar {
   display: grid;
@@ -223,7 +225,7 @@
   height: 2.8rem;
   border-radius: 50%;
   overflow: hidden;
-  background: #eef1ff;
+  background: var(--shooting-panel);
 }
 .avatar img {
   width: 100%;
@@ -242,14 +244,14 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #95a7bd;
+  color: var(--shooting-muted);
   font-size: 0.75rem;
   margin-top: 0.2rem;
 }
 .identity b {
   padding: 0.15rem 0.4rem;
-  color: #ccb7ff;
-  background: #54427d66;
+  color: var(--shooting-muted);
+  background: var(--shooting-panel);
   border-radius: 0.4rem;
   font-size: 0.7rem;
   font-weight: 500;
@@ -274,7 +276,7 @@
   gap: 0.4rem;
   white-space: nowrap;
   font-size: 0.8rem;
-  color: #b1c4dd;
+  color: var(--shooting-muted);
 }
 .count svg {
   width: 1rem;
@@ -284,14 +286,14 @@
   min-width: 4.7rem;
   min-height: 2.75rem;
   padding: 0.45rem 0.8rem;
-  background: #a8d4ff;
-  color: #10243b;
-  border-color: #bee0ff;
+  background: var(--shooting-panel);
+  color: var(--shooting-text);
+  border-color: var(--shooting-border);
   font-weight: 750;
 }
 .footnote {
   margin: 0.2rem 0 0;
-  color: #92a5be;
+  color: var(--shooting-muted);
   line-height: 1.6;
   font-size: 0.75rem;
   text-align: center;
@@ -332,7 +334,7 @@
   display: inline-flex;
   margin-left: 0.5rem;
   vertical-align: middle;
-  color: #bba4ff;
+  color: var(--shooting-muted);
 }
 .roomLock svg {
   width: 1rem;
@@ -347,7 +349,7 @@
   gap: 0.7rem;
   min-height: 12rem;
   padding: 1.5rem;
-  color: #a9bbd1;
+  color: var(--shooting-muted);
   text-align: center;
   line-height: 1.7;
 }
@@ -374,7 +376,7 @@
   display: flex;
   gap: 0.4rem;
   padding: 0.25rem;
-  border: 1px solid #42546b;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.6rem;
 }
 .codeForm input {
@@ -382,7 +384,7 @@
   flex: 1;
   width: 100%;
   padding: 0.4rem;
-  color: #e6edf7;
+  color: var(--shooting-text);
   border: 0;
   background: transparent;
 }
@@ -528,40 +530,40 @@
   }
 }
 
-/* 방 검색·초대 기능은 유지하며 모드 선택 화면과 같은 밝은 파스텔 표면을 사용한다. */
+/* 방 검색·초대 기능은 유지하며 모드 선택 화면과 같은 다크 시네마틱 표면을 사용한다. */
 .lobby {
-  color: #3b2a59;
-  background: linear-gradient(135deg, #f8f2ff, #edf4ff);
+  color: var(--shooting-text);
+  background: var(--shooting-panel);
   border-radius: 1rem;
 }
 .tagline,
 .introduction p,
 .heading small {
-  color: #90779f;
+  color: var(--shooting-muted);
 }
 .facts span,
 .browser {
-  background: #fdf9ffbd;
-  border-color: #d8c9e9;
+  background: var(--shooting-panel);
+  border-color: var(--shooting-border);
 }
 .browser,
 .room {
-  color: #54376d;
+  color: var(--shooting-text);
 }
 .cover {
-  border-color: #d4c1e6;
-  background: #e9dff7;
+  border-color: var(--shooting-border);
+  background: var(--shooting-panel);
 }
 .browser .room {
-  background: #fbf7ff;
-  border-color: #d9c7ec;
+  background: var(--shooting-panel);
+  border-color: var(--shooting-border);
 }
 .browser .room:hover {
-  background: #eee4fb;
+  background: var(--shooting-hover);
 }
 .codeForm input {
-  background: #fffaff;
-  color: #65497d;
+  background: var(--shooting-elevated);
+  color: var(--shooting-muted);
 }
 .content {
   grid-template-columns: minmax(13rem, 0.7fr) minmax(0, 2fr);

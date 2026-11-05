@@ -26,12 +26,15 @@ export function GameInviteDialog({
   pageId = "",
   sessionId,
   onClose,
+  className,
 }: {
   game: InvitationGame;
   roomId: number | string;
   pageId?: string;
   sessionId: string;
   onClose: () => void;
+  // 호출한 게임이 포털 모달에 자체 테마를 전달해도 공통 초대·권한·전송 처리는 유지한다.
+  className?: string;
 }) {
   const social = useSocial();
   const store = useSocialStore();
@@ -136,7 +139,7 @@ export function GameInviteDialog({
       title="친구 초대"
       onClose={onClose}
       busy={!!sending}
-      className={styles.dialog}
+      className={`${styles.dialog} ${className ?? ""}`}
     >
       <div ref={bindOwner}>
         <p className={styles.hint}>

@@ -1,14 +1,63 @@
-/* 스테이지의 모든 메뉴는 사이트의 파스텔·보라색 체계를 공유하며 실제 가용 폭에서 재배치한다. */
+/* 스테이지의 모든 메뉴는 승인된 다크 시네마틱 테마를 공유하며 실제 가용 폭에서 재배치한다. */
 .hub {
   padding: clamp(0.8rem, 0.85vw, 1.3rem);
-  color: #252050;
+  color: var(--shooting-text);
   container-type: inline-size;
 }
 /* 첫 진입에서만 모드를 고르고 이후에는 같은 게임 프레임의 콘텐츠만 전환한다. */
-.hub:has(.modeGrid) > .heading {
-  justify-content: center;
-  text-align: center;
-  padding-block: clamp(0.5rem, 1.8vh, 1.5rem);
+.modeSelection {
+  /* 모드 카드가 바깥 게임 프레임의 남는 높이를 나누어 가져 하단에 빈 영역이 남지 않게 한다. */
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0;
+}
+.modeHero {
+  flex-shrink: 0;
+  position: relative;
+  isolation: isolate;
+  min-height: 17rem;
+  height: clamp(17rem, 33svh, 27rem);
+  overflow: hidden;
+  border-radius: inherit;
+}
+.modeHero > img {
+  object-fit: cover;
+  object-position: center 43%;
+}
+.modeHero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, var(--shooting-panel), transparent 80%),
+    linear-gradient(90deg, #0b0c19b8, transparent 80%);
+  pointer-events: none;
+}
+.modeHeroContent {
+  position: absolute;
+  z-index: 1;
+  inset: auto 2rem 1.4rem;
+}
+.eyebrow {
+  color: var(--shooting-accent);
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  font-weight: 750;
+}
+.modeHeroContent h2 {
+  margin: 0.5rem 0 0.4rem;
+  font-size: clamp(2rem, 1.3rem + 1.5vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+}
+.modeHeroContent p {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1rem, 0.8rem + 0.4vw, 1.4rem);
+}
+.modeHeroContent small {
+  color: var(--shooting-muted);
+  font-size: 0.85rem;
 }
 .heading {
   display: flex;
@@ -25,33 +74,49 @@
 .heading p,
 .mapFootnote {
   margin: 0.4rem 0;
-  color: #77709c;
+  color: var(--shooting-muted);
   line-height: 1.6;
 }
 .modeGrid {
   display: grid;
+  flex: 1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem;
+  padding: 0 clamp(0.8rem, 1.4vw, 1.6rem) clamp(0.8rem, 1.4vw, 1.6rem);
 }
 .hub .modeCard {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1.2rem;
-  border: 1px solid #cfc4ef;
+  gap: 0.65rem;
+  padding: 0.95rem;
+  border: 1px solid var(--shooting-border);
   border-radius: 1.25rem;
-  background: #fdfbffcc;
-  color: #282052;
+  background: var(--shooting-panel);
+  color: var(--shooting-text);
   text-align: left;
   min-width: 0;
 }
-.modeCard > img {
+.modeCard > img,
+.modeCard > .mapCover {
   display: block;
   width: 100%;
-  height: auto;
+  height: clamp(6rem, 13svh, 11rem);
   aspect-ratio: 16/9;
   object-fit: cover;
+  /* 카드 높이가 늘어난 부분은 그림이 채우며 설명과 시작 버튼은 카드 하단에 유지한다. */
+  flex-grow: 1;
   border-radius: 1rem;
+}
+.unavailableMode .cardHeading strong {
+  color: var(--shooting-muted);
+}
+.unavailableMode > img {
+  filter: grayscale(0.85) brightness(0.65);
+}
+.unavailableMode .secondary {
+  color: var(--shooting-muted);
+  background: var(--shooting-elevated);
+  border-color: var(--shooting-border);
 }
 .cardHeading {
   display: flex;
@@ -61,19 +126,20 @@
   flex-wrap: wrap;
 }
 .cardHeading strong {
-  font-size: clamp(1.4rem, 1rem + 0.8vw, 2.3rem);
+  font-size: clamp(1.25rem, 1rem + 0.6vw, 1.9rem);
   letter-spacing: -0.04em;
 }
 .cardHeading small,
 .totalStars {
   padding: 0.5rem 0.9rem;
   border-radius: 2rem;
-  background: #e8e0fc;
-  color: #5b438e;
+  background: var(--shooting-selected);
+  color: var(--shooting-muted);
   font-weight: 700;
 }
 .modeCard > span:not(.cardHeading) {
-  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.6;
 }
 .primary,
 .secondary,
@@ -94,22 +160,22 @@
 .hub .primary,
 .loadout .primary,
 .results .primary {
-  background: linear-gradient(120deg, #923cf5, #6930e4);
-  color: #fff;
-  border: 1px solid #8252eb;
+  background: var(--shooting-primary);
+  color: var(--shooting-text);
+  border: 1px solid var(--shooting-border);
 }
 .primary:hover:not(:disabled),
 .hub .primary:hover:not(:disabled),
 .loadout .primary:hover:not(:disabled),
 .results .primary:hover:not(:disabled) {
-  background: #7040d8;
+  background: var(--shooting-primary-hover);
   color: white;
 }
 .secondary,
 .hub .secondary {
-  background: #fcfaff;
-  color: #593d8a;
-  border: 1px solid #a98adf;
+  background: var(--shooting-panel);
+  color: var(--shooting-muted);
+  border: 1px solid var(--shooting-border);
 }
 .primary > svg,
 .back > svg {
@@ -122,7 +188,7 @@
   gap: 0.4rem;
   background: transparent;
   border: 1px solid transparent;
-  color: #71618d;
+  color: var(--shooting-muted);
   padding: 0.35rem 0.1rem;
   min-height: 2.75rem;
 }
@@ -130,9 +196,9 @@
   width: min(38rem, calc(100vw - 2rem));
   padding: clamp(1.25rem, 2vw, 2.5rem);
   text-align: center;
-  background: #fcfaff;
-  color: #29214d;
-  border-color: #d4c4f3;
+  background: var(--shooting-panel);
+  color: var(--shooting-text);
+  border-color: var(--shooting-border);
 }
 .comingSoon > div:first-child {
   justify-items: center;
@@ -142,12 +208,12 @@
   font-size: clamp(1.3rem, 1rem + 0.7vw, 2rem);
 }
 .comingSoon p {
-  color: #766290;
+  color: var(--shooting-muted);
   line-height: 1.9;
   margin: 1rem 0 1.5rem;
 }
 .comingSoon::backdrop {
-  background: #3f315978;
+  background: var(--shooting-panel);
 }
 .robotNotice {
   position: relative;
@@ -164,7 +230,7 @@
   bottom: 1rem;
   width: 2rem;
   height: 2rem;
-  color: #9163d4;
+  color: var(--shooting-accent);
 }
 .totalStars {
   white-space: nowrap;
@@ -174,28 +240,74 @@
   display: flex;
   width: min(100%, 28rem);
   margin: 0 0 1rem;
-  border: 1px solid #c7b9e8;
+  border: 1px solid var(--shooting-border);
   border-radius: 2rem;
   padding: 0.2rem;
-  background: #f8f4ff;
+  background: var(--shooting-panel);
 }
 .hub .modeTabs button {
   flex: 1;
   border: 0;
   background: transparent;
-  color: #65518c;
+  color: var(--shooting-muted);
   border-radius: 2rem;
   min-height: 2.8rem;
 }
 .hub .modeTabs button[aria-pressed="true"] {
-  background: #8346e9;
+  background: var(--shooting-selected);
   color: white;
 }
 .mapLayout {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(19rem, 1fr);
+  grid-template-columns: minmax(0, 1.7fr) minmax(21rem, 1fr);
   gap: 1rem;
   align-items: stretch;
+}
+/* 지형 삽화 위의 제목·미리보기는 HTML로 두어 선택한 맵을 바로 확인하고 키보드로 조작할 수 있게 한다. */
+.selectedMap {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 17rem;
+  overflow: hidden;
+  border: 1px solid var(--shooting-border);
+  border-radius: 1rem;
+}
+.selectedMap > .mapCover,
+.selectedMap > .mapPreview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+.selectedMap::after {
+  content: "";
+  position: absolute;
+  inset: 35% 0 0;
+  background: linear-gradient(transparent, #0b0c19ed);
+  pointer-events: none;
+}
+.selectedMapCaption {
+  position: absolute;
+  z-index: 1;
+  inset: auto 1.25rem 1rem;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.selectedMapCaption > div {
+  min-width: 0;
+}
+.selectedMapCaption h3 {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.6rem, 1.1rem + 1vw, 2.6rem);
+  letter-spacing: -0.045em;
+}
+.selectedMapCaption small {
+  color: #ded9ee;
+  font-size: 0.85rem;
 }
 /* 상단 제목·복귀는 한 행에 모아 실제 뷰포트 높이를 맵 카드와 출격 동작에 배분한다. */
 .mapHeading {
@@ -209,14 +321,15 @@
 .mapHeading h2 {
   font-size: clamp(1.4rem, 1rem + 0.8vw, 2rem);
   margin: 0;
+  line-height: 1.2;
 }
 .mapHeading p {
   font-size: 0.85rem;
   margin: 0.25rem 0 0;
 }
 .hub .mapHeading > .back {
-  border: 1px solid #d3c3ed;
-  background: #fcf9ff;
+  border: 1px solid var(--shooting-border);
+  background: var(--shooting-panel);
   padding: 0.5rem 0.8rem;
   border-radius: 0.8rem;
 }
@@ -227,11 +340,9 @@
 }
 /* 표시량은 6개로 제한해 30개 이상의 목록도 같은 밀도를 유지한다. */
 .mapLibrary {
+  grid-column: 1 / -1;
   min-width: 0;
-  padding: 0.7rem;
-  border: 1px solid #d7ccef;
-  border-radius: 1.2rem;
-  background: #ffffff80;
+  padding: 0;
 }
 .libraryToolbar {
   display: flex;
@@ -254,8 +365,8 @@
 .libraryToolbar h3 small {
   border-radius: 2rem;
   padding: 0.2rem 0.55rem;
-  background: #e8defa;
-  color: #7653a6;
+  background: var(--shooting-panel);
+  color: var(--shooting-muted);
 }
 .libraryToolbar > [data-ui-search] {
   flex: 1 1 12rem;
@@ -270,14 +381,14 @@
 .hub .mapFilters button {
   min-height: 2.75rem;
   padding: 0.45rem 0.7rem;
-  background: #fcfaff;
-  color: #655083;
-  border: 1px solid #d3c3ed;
+  background: var(--shooting-elevated);
+  color: var(--shooting-muted);
+  border: 1px solid var(--shooting-border);
 }
 .hub .mapFilters button[aria-pressed="true"] {
-  background: #8650df;
-  border-color: #8650df;
-  color: #fff;
+  background: var(--shooting-selected);
+  border-color: var(--shooting-accent);
+  color: var(--shooting-text);
 }
 .libraryFooter {
   display: flex;
@@ -289,7 +400,7 @@
 }
 .libraryFooter > small {
   font-size: 0.8rem;
-  color: #7b6890;
+  color: var(--shooting-muted);
   font-variant-numeric: tabular-nums;
 }
 .emptyMaps {
@@ -297,7 +408,7 @@
   margin: 0;
   padding: 3rem 1rem;
   text-align: center;
-  color: #79678d;
+  color: var(--shooting-muted);
 }
 .playModeLabel {
   margin: 0.3rem 0 0;
@@ -315,6 +426,7 @@
   gap: 0.45rem;
   border-radius: 0.65rem;
   padding: 0.5rem;
+  min-height: 2.5rem;
 }
 .mapDetail .primary {
   margin-top: auto;
@@ -324,7 +436,7 @@
 }
 .mapList {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.75rem;
 }
 .hub .mapCard {
@@ -334,21 +446,21 @@
   flex-direction: column;
   gap: 0.4rem;
   align-items: stretch;
-  background: #fcfaff;
-  border: 1px solid #d0c6eb;
+  background: var(--shooting-panel);
+  border: 1px solid var(--shooting-border);
   border-radius: 1rem;
-  color: #34265e;
+  color: var(--shooting-text);
 }
 .hub .mapCard[data-selected="true"] {
-  border-color: #8750df;
-  background: #f4edff;
+  border-color: var(--shooting-accent);
+  background: var(--shooting-selected);
 }
 .hub .mapCard:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 .mapCard strong {
-  font-size: clamp(1rem, 0.8rem + 0.45vw, 1.45rem);
+  font-size: clamp(0.9rem, 0.75rem + 0.25vw, 1.15rem);
   padding-inline: 0.35rem;
   text-align: left;
 }
@@ -364,19 +476,17 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 2rem;
-  background: #ece4f9;
+  padding: 0.15rem 0;
 }
 .mapCardMeta small svg {
   width: 0.8rem;
   height: 0.8rem;
 }
 .mapCardMeta .stars {
-  font-size: clamp(1.05rem, 0.8rem + 0.35vw, 1.4rem);
+  font-size: 1rem;
 }
 .mapCard small {
-  color: #7d7098;
+  color: var(--shooting-muted);
   font-size: 0.75rem;
   line-height: 1.5;
 }
@@ -391,19 +501,21 @@
 .mapCover {
   display: block;
   position: relative;
+  container-type: size;
   width: 100%;
   aspect-ratio: 16/9;
   overflow: hidden;
   border-radius: 0.75rem;
-  background: #e5daf7;
+  background: var(--shooting-panel);
 }
 .mapCoverSheet {
   position: absolute;
   top: 50%;
-  left: 0;
-  width: 100%;
+  left: 50%;
+  /* 세로 소개 카드도 정사각 원화 셀을 비율 그대로 채워 옆 맵 노출이나 빈 띠가 생기지 않게 한다. */
+  width: max(100cqw, 100cqh);
   aspect-ratio: 1;
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
   background-image: url("/images/shooting/stage-v3/map-covers.png");
   background-size: 300% 200%;
   background-repeat: no-repeat;
@@ -417,34 +529,35 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.4rem;
-  color: #847196;
+  color: var(--shooting-muted);
 }
 .detailMeta > small {
   font-size: 0.75rem;
 }
-.mapDetail .previewButton {
+.hub .previewButton {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   min-height: 2.75rem;
   padding: 0.4rem 0.5rem;
   font-size: 0.75rem;
-  background: transparent;
-  border-color: transparent;
-  color: #805caa;
+  background: #161528b8;
+  border-color: #77718b;
+  color: #f2f0ff;
+  flex-shrink: 0;
 }
-.mapDetail .previewButton svg {
+.previewButton svg {
   width: 1rem;
   height: 1rem;
 }
 .mapDetail {
   min-width: 0;
-  padding: 1rem;
+  padding: 0.85rem;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
-  background: #fbf8ffda;
-  border: 1px solid #d0c6eb;
+  gap: 0.55rem;
+  background: var(--shooting-panel);
+  border: 1px solid var(--shooting-border);
   border-radius: 1rem;
 }
 .mapDetail h3 {
@@ -457,17 +570,17 @@
 .mapDetail > p {
   margin: 0.15rem 0;
   font-size: 0.85rem;
-  color: #75638f;
+  color: var(--shooting-muted);
   line-height: 1.6;
 }
 .mapDetail > small {
-  color: #847196;
+  color: var(--shooting-muted);
 }
 .mapFootnote {
   grid-column: 1/-1;
-  padding: 0.5rem;
+  padding: 0.2rem 0;
   border-radius: 0.75rem;
-  background: #eae3fa;
+  background: transparent;
   font-size: 0.8rem;
   margin-bottom: 0;
 }
@@ -479,8 +592,8 @@
   white-space: nowrap;
 }
 .stars > span {
-  color: #d4cce2;
-  -webkit-text-stroke: 1px #a89bbd;
+  color: #625b7c;
+  -webkit-text-stroke: 1px #726b89;
 }
 .stars > span[data-filled="true"] {
   color: #ffcf5d;
@@ -497,14 +610,14 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border: 0;
   border-radius: 0.75rem;
-  background: #fffaff;
+  background: var(--shooting-panel);
   gap: 0.4rem;
 }
 .timeTargets > div {
   display: flex;
   flex-direction: column;
   padding: 0.5rem 0.25rem;
-  border: 1px solid #e2d9f2;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.75rem;
   align-items: center;
   justify-content: space-between;
@@ -516,11 +629,27 @@
 .timeTargets dd {
   margin: 0;
   font-size: 0.8rem;
-  color: #5c4a7d;
+  color: var(--shooting-muted);
   font-weight: 700;
 }
 .timeTargets .stars {
   font-size: 1.3rem;
+}
+/* 오른쪽 출격 설정에서는 목표 시간을 세 행으로 정렬하고 준비 화면의 가로 기준표는 유지한다. */
+.mapDetail .timeTargets {
+  grid-template-columns: 1fr;
+  background: transparent;
+}
+.mapDetail .timeTargets > div {
+  flex-direction: row;
+  min-height: 2.05rem;
+  padding: 0.2rem 0.75rem;
+  gap: 0.75rem;
+  background: var(--shooting-elevated);
+  border-radius: 0.5rem;
+}
+.mapDetail .timeTargets dd {
+  font-variant-numeric: tabular-nums;
 }
 .bestTime {
   display: flex;
@@ -529,7 +658,7 @@
   flex-wrap: wrap;
 }
 .bestTime strong {
-  color: #7538d3;
+  color: var(--shooting-accent);
 }
 .message {
   display: flex;
@@ -537,8 +666,8 @@
   justify-content: center;
   gap: 1rem;
   padding: 0.8rem;
-  background: #fff0f5;
-  color: #963958;
+  background: #49253a;
+  color: #ffb6c7;
 }
 .atlasArt {
   display: block;
@@ -553,15 +682,15 @@
   grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 2fr);
   gap: 1rem;
   padding: clamp(0.8rem, 1.3vw, 1.7rem);
-  color: #30224e;
+  color: var(--shooting-text);
 }
 .characterPreview {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid #d6caee;
-  background: #fbf7ff;
+  border: 1px solid var(--shooting-border);
+  background: var(--shooting-panel);
   border-radius: 1rem;
   padding: 1rem;
   min-width: 0;
@@ -587,7 +716,7 @@
 .loadoutOptions p {
   margin: 0.2rem 0 0.7rem;
   font-size: 0.75rem;
-  color: #7e6d98;
+  color: var(--shooting-muted);
   line-height: 1.5;
 }
 .characterGrid {
@@ -602,14 +731,14 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem;
-  background: #fcf9ff;
-  border: 1px solid #ded2ef;
+  background: var(--shooting-elevated);
+  border: 1px solid var(--shooting-border);
   border-radius: 0.75rem;
-  color: #45315f;
+  color: var(--shooting-text);
 }
 .characterGrid > button[aria-pressed="true"] {
-  border-color: #8c57dd;
-  background: #ece0ff;
+  border-color: var(--shooting-accent);
+  background: var(--shooting-selected);
 }
 .characterGrid img {
   width: 100%;
@@ -630,7 +759,7 @@
   flex-wrap: wrap;
 }
 .loadoutFooter > p {
-  color: #857496;
+  color: var(--shooting-muted);
   font-size: 0.8rem;
 }
 .loadoutFooter > div {
@@ -642,16 +771,16 @@
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 1rem;
-  background: #eee7fa;
+  background: var(--shooting-elevated);
   border-radius: 0.75rem;
   flex-wrap: wrap;
 }
 .mapSummary strong {
-  color: #443267;
+  color: var(--shooting-text);
 }
 .mapSummary span {
   font-size: 0.8rem;
-  color: #78638b;
+  color: var(--shooting-muted);
 }
 /* 결과는 종료 사유와 기록 저장 상태를 함께 보여 주고 다음 맵 이동을 자동으로 강제하지 않는다. */
 .results {
@@ -660,8 +789,8 @@
   min-height: min(var(--arena-available-height, 40rem), 45rem);
   overflow: auto;
   padding: clamp(1rem, 2vw, 2rem);
-  background: linear-gradient(125deg, #f2effffd, #e9f3fffd);
-  color: #2c2051;
+  background: var(--shooting-panel);
+  color: var(--shooting-text);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -699,24 +828,24 @@
   justify-content: center;
   gap: 0.7rem;
   padding: 1rem;
-  border: 1px solid #d0c1eb;
+  border: 1px solid var(--shooting-border);
   border-radius: 1rem;
-  background: #fefbffbd;
+  background: var(--shooting-panel);
   min-width: 0;
 }
 .resultRecord > strong {
   font-size: clamp(2rem, 1rem + 2.7vw, 4rem);
   font-variant-numeric: tabular-nums;
-  color: #382054;
+  color: var(--shooting-text);
 }
 .resultRecord p {
   margin: 0;
-  color: #7c6794;
+  color: var(--shooting-muted);
   text-align: center;
   line-height: 1.6;
 }
 .resultRecord small {
-  color: #856c9d;
+  color: var(--shooting-muted);
 }
 .splitTimes {
   display: flex;
@@ -726,7 +855,7 @@
 .splitTimes > div {
   flex: 1;
   padding: 0.6rem 0.25rem;
-  background: #eee8f8;
+  background: var(--shooting-elevated);
   border-radius: 0.6rem;
   text-align: center;
 }
@@ -737,7 +866,7 @@
 }
 .splitTimes b {
   margin-top: 0.4rem;
-  color: #5f4083;
+  color: var(--shooting-muted);
   font-size: 0.9rem;
 }
 .nextMapCard > .mapPreview {
@@ -760,15 +889,15 @@
   gap: 0.6rem;
 }
 .resultsFooter > p {
-  color: #817096;
+  color: var(--shooting-muted);
   font-size: 0.8rem;
 }
 @media (max-width: 1000px) {
   .mapLayout {
-    grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 1fr);
+    grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 1fr);
   }
   .mapList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.5rem;
   }
   .loadout {
@@ -782,6 +911,44 @@
   }
 }
 @media (max-width: 700px) {
+  .modeHero {
+    min-height: 18rem;
+    height: 44svh;
+    max-height: 26rem;
+  }
+  .modeHeroContent {
+    inset-inline: 1rem;
+    bottom: 1.2rem;
+  }
+  .modeHeroContent small {
+    display: block;
+    max-width: 22rem;
+    line-height: 1.6;
+  }
+  .modeGrid {
+    padding-top: 0.5rem;
+  }
+  .modeCard > img,
+  .modeCard > .mapCover {
+    height: auto;
+    aspect-ratio: 2.4 / 1;
+  }
+  .selectedMap {
+    min-height: 15rem;
+  }
+  .selectedMapCaption {
+    inset-inline: 0.8rem;
+    gap: 0.5rem;
+  }
+  .selectedMapCaption h3 {
+    font-size: 1.5rem;
+  }
+  .selectedMapCaption small {
+    font-size: 0.75rem;
+  }
+  .mapLibrary {
+    grid-row: 2;
+  }
   .modeGrid,
   .mapLayout,
   .loadout {
@@ -858,6 +1025,38 @@
   }
   .resultsFooter {
     justify-content: center;
+  }
+}
+/* 높이가 낮은 데스크톱은 글자를 줄이지 않고 장식 이미지와 여백부터 조절한다. */
+@media (min-width: 1001px) and (max-height: 1100px) {
+  .modeHero {
+    height: 27svh;
+    min-height: 13rem;
+  }
+  .modeCard > img,
+  .modeCard > .mapCover {
+    height: 6.25rem;
+  }
+  .mapCard > .mapCover {
+    aspect-ratio: 2.5 / 1;
+  }
+  .libraryToolbar {
+    margin-bottom: 0.5rem;
+  }
+  .libraryFooter {
+    margin-top: 0.5rem;
+  }
+}
+@media (min-width: 1001px) and (max-height: 900px) {
+  .mapCard > .mapCover {
+    aspect-ratio: 3.2 / 1;
+  }
+  .mapDetail {
+    gap: 0.4rem;
+    padding: 0.7rem;
+  }
+  .hub {
+    padding: 0.7rem;
   }
 }
 @media (max-width: 420px) {

@@ -1,0 +1,124 @@
+/* 슈팅 전용 색상은 페이지와 body로 이동하는 모달에만 적용한다. 공통 컨트롤은 기존 동작과 1px 포커스를 재사용한다. */
+.surface,
+.dialog {
+  --shooting-background: #0b0c19;
+  --shooting-panel: #141628;
+  --shooting-elevated: #1e2037;
+  --shooting-hover: #29283f;
+  --shooting-border: #34344f;
+  --shooting-text: #f2f0ff;
+  --shooting-muted: #b1acc8;
+  --shooting-accent: #c2a0ff;
+  --shooting-selected: #31244f;
+  --shooting-primary: linear-gradient(120deg, #a15cf1, #7439db);
+  --shooting-primary-hover: linear-gradient(120deg, #b272ff, #8650e8);
+  --shooting-overlay: #090b18e8;
+  --game-dialog-background: var(--shooting-panel);
+  --game-dialog-text: var(--shooting-muted);
+  --game-dialog-heading: var(--shooting-text);
+  --game-dialog-border: var(--shooting-border);
+  --game-dialog-primary: var(--shooting-primary);
+  --game-dialog-backdrop: #070916bc;
+  --control-surface: var(--shooting-elevated);
+  --control-text: var(--shooting-text);
+  --control-border: var(--shooting-border);
+  --control-muted: var(--shooting-muted);
+  --control-selected: var(--shooting-selected);
+  --control-accent: var(--shooting-accent);
+  color-scheme: dark;
+  color: var(--shooting-text);
+  scrollbar-color: #53506e var(--shooting-background);
+}
+.surface.surface {
+  --ink: var(--shooting-text);
+  --muted: var(--shooting-muted);
+  --purple: var(--shooting-accent);
+  background:
+    radial-gradient(ellipse at 35% 0, #27203f 0, transparent 60%),
+    var(--shooting-background);
+}
+.surface.surface::before {
+  background: none;
+}
+/* 문서 높이가 바뀌거나 모바일 주소창이 접혀도 슈팅 페이지 아래에 공통 밝은 배경이 드러나지 않게 한다. */
+:global(body):has(.surface) {
+  background: #0b0c19;
+}
+/* 사이트 탐색·계정 기능은 유지하며 슈팅 페이지 안의 헤더·푸터 표면만 다크 톤에 연결한다. */
+.surface.surface > header,
+.surface.surface > footer {
+  color: var(--shooting-muted);
+  background: #0e1020;
+  border-color: var(--shooting-border);
+  box-shadow: none;
+}
+.surface > header a {
+  color: var(--shooting-text);
+}
+/* 공통 브랜드 링크의 고정 보라색보다 글자 자체의 색을 지정해 어두운 헤더에서도 이름을 읽을 수 있게 한다. */
+.surface > header a > span:last-child {
+  color: var(--shooting-text);
+}
+.surface > header button {
+  color: var(--shooting-text);
+  background: var(--shooting-elevated);
+  border-color: var(--shooting-border);
+}
+/* 공통 번호 페이징은 슈팅 영역에서만 색을 맞추며 다른 관리자·게임 화면에는 전파하지 않는다. */
+.surface nav[aria-label] > button,
+.dialog nav[aria-label] > button {
+  color: var(--shooting-muted);
+  background: var(--shooting-elevated);
+  border-color: var(--shooting-border);
+}
+.surface nav[aria-label] > button[aria-current="page"],
+.dialog nav[aria-label] > button[aria-current="page"] {
+  color: var(--shooting-text);
+  background: var(--shooting-selected);
+  border-color: var(--shooting-accent);
+}
+/* 포털은 페이지의 상속 범위 밖이므로 같은 토큰을 명시적으로 전달한다. 모달의 폭·포커스·닫기는 공통 컴포넌트가 관리한다. */
+.dialog.dialog {
+  color: var(--shooting-text);
+  background: var(--shooting-panel);
+  border-color: var(--shooting-border);
+  box-shadow: 0 1.5rem 5rem #0008;
+}
+.dialog::backdrop {
+  background: #070916bc;
+}
+.dialog > div:first-child h2 {
+  color: var(--shooting-text);
+}
+.dialog p,
+.dialog small {
+  color: var(--shooting-muted);
+}
+.dialog button {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--shooting-border);
+  border-radius: 0.65rem;
+  color: var(--shooting-text);
+  background: var(--shooting-elevated);
+  cursor: pointer;
+}
+.dialog button:hover:not(:disabled) {
+  background: var(--shooting-hover);
+}
+.dialog button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.dialog button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--shooting-selected);
+  border-color: var(--shooting-accent);
+}
+.dialog [role="alert"] {
+  color: #ffb6c7;
+  background: #49253a;
+}
+.dialog [role="status"] {
+  color: var(--shooting-muted);
+}

@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { RoomDialog } from "@/components/ui/game-dialog";
+import { ShootingRoomDialog } from "./shooting-room-dialog";
 import { Icon } from "@/components/ui/icon";
 import { SearchInput } from "@/components/ui/search-input";
 import { NumberedPagination } from "@/features/admin/components/numbered-pagination";
@@ -34,11 +34,21 @@ export function ModeSelection({ enter }: { enter(): void }) {
     );
   };
   return (
-    <div className={styles.hub}>
-      <header className={styles.heading}>
-        <div>
-          <h2>오늘은 어떤 모드로 즐길까요?</h2>
-          <p>혼자서도, 친구와 함께해도 즐거운 슈팅 모험</p>
+    <div className={`${styles.hub} ${styles.modeSelection}`} data-mode-selection>
+      {/* 표지 원화는 장식으로 한 번만 크게 표시하고 제목·모드 선택은 실제 HTML로 제공한다. */}
+      <header className={styles.modeHero}>
+        <Image
+          src="/images/shooting/stage-v3/stage-cover.png"
+          alt=""
+          fill
+          sizes="(max-width: 700px) 100vw, 75vw"
+          preload
+        />
+        <div className={styles.modeHeroContent}>
+          <span className={styles.eyebrow}>PLAY YOUR ADVENTURE</span>
+          <h2>모드 선택</h2>
+          <p>오늘은 어떤 모드로 즐길까요?</p>
+          <small>혼자서도, 친구와 함께해도 즐거운 슈팅 모험</small>
         </div>
       </header>
       <div className={styles.modeGrid}>
@@ -47,13 +57,7 @@ export function ModeSelection({ enter }: { enter(): void }) {
             <strong>모험 모드</strong>
             <small>1인 · 2인 협동</small>
           </span>
-          <Image
-            src="/images/shooting/stage-v3/stage-cover.png"
-            alt="함께 수정 동굴에 도전하는 로봇과 햄스터"
-            width={1672}
-            height={941}
-            sizes="(max-width: 700px) 100vw, 48vw"
-          />
+          <MapCover mapId="CAVE" />
           <span>맵을 탐험하고, 10개의 스테이지를 돌파하세요.</span>
           <span className={styles.primary}>
             모험 시작 <Icon name="arrowRight" />
@@ -62,7 +66,7 @@ export function ModeSelection({ enter }: { enter(): void }) {
         <button
           ref={pvpButton}
           data-hover-frame
-          className={styles.modeCard}
+          className={`${styles.modeCard} ${styles.unavailableMode}`}
           onClick={() => setComingSoon(true)}
         >
           <span className={styles.cardHeading}>
@@ -81,7 +85,7 @@ export function ModeSelection({ enter }: { enter(): void }) {
         </button>
       </div>
       {comingSoon && (
-        <RoomDialog
+        <ShootingRoomDialog
           title="PVP 모드는 준비 중이에요"
           className={styles.comingSoon}
           onClose={closeComingSoon}
@@ -105,7 +109,7 @@ export function ModeSelection({ enter }: { enter(): void }) {
           <button className={styles.primary} onClick={closeComingSoon}>
             확인
           </button>
-        </RoomDialog>
+        </ShootingRoomDialog>
       )}
     </div>
   );
@@ -196,6 +200,64 @@ export function StageMapSelect({
         </strong>
       </header>
       <div className={styles.mapLayout}>
+        {/* 선택한 맵의 전경과 출격 설정을 먼저 보여 주고 맵 목록은 아래의 필름 스트립으로 모은다. */}
+        <section className={styles.selectedMap} aria-label="선택한 맵">
+          <MapCover mapId={mapId} />
+          <div className={styles.selectedMapCaption}>
+            <div>
+              <h3>{map.name}</h3>
+              <small>10 스테이지 · 보스 2회</small>
+            </div>
+            <button
+              className={styles.previewButton}
+              onClick={() => setPreviewOpen(true)}
+            >
+              <Icon name="eye" /> 지형 보기
+            </button>
+          </div>
+        </section>
+        <aside
+          className={styles.mapDetail}
+          aria-label={`${map.name} 출격 설정`}
+        >
+          <p>{map.description}</p>
+          <TimeTargets mapId={mapId} mode={mode} />
+          <h4 className={styles.playModeLabel}>플레이 방식</h4>
+          <div className={styles.modeTabs}>
+            {(["SINGLE", "COOP"] as const).map((value) => (
+              <button
+                key={value}
+                aria-pressed={mode === value}
+                onClick={() => setMode(value)}
+              >
+                <Icon name={value === "SINGLE" ? "user" : "users"} />
+                {value === "SINGLE" ? "1인 도전" : "2인 협동"}
+              </button>
+            ))}
+          </div>
+          <p className={styles.bestTime}>
+            고난도 최고 기록{" "}
+            <strong>{best ? formatTime(best) : "첫 도전을 기다려요"}</strong>
+          </p>
+          <button
+            className={styles.primary}
+            disabled={!record?.unlocked}
+            onClick={prepare}
+          >
+            {record?.unlocked
+              ? mode === "SINGLE"
+                ? "모험 시작"
+                : "협동 방 찾기"
+              : "이전 맵 클리어 후 해금"}
+            <Icon name="arrowRight" />
+          </button>
+          {!record?.unlocked && map.order > 0 && (
+            <p className={styles.unlockHint}>
+              {STAGE_MAPS[STAGE_MAP_IDS[map.order - 1]].name}을 클리어하면
+              열려요.
+            </p>
+          )}
+        </aside>
         <section className={styles.mapLibrary} aria-label="모험 맵 목록">
           <div className={styles.libraryToolbar}>
             <h3>
@@ -212,11 +274,13 @@ export function StageMapSelect({
               onSearch={() => setPage(1)}
             />
             <div className={styles.mapFilters} aria-label="맵 상태 필터">
-              {([
-                ["all", "전체"],
-                ["open", "도전 가능"],
-                ["cleared", "클리어"],
-              ] as const).map(([value, label]) => (
+              {(
+                [
+                  ["all", "전체"],
+                  ["open", "도전 가능"],
+                  ["cleared", "클리어"],
+                ] as const
+              ).map(([value, label]) => (
                 <button
                   key={value}
                   aria-pressed={filter === value}
@@ -238,7 +302,9 @@ export function StageMapSelect({
                 ? "잠김"
                 : mapId === id
                   ? "선택됨"
-                  : saved.stars ? "클리어" : "도전 가능";
+                  : saved.stars
+                    ? "클리어"
+                    : "도전 가능";
               return (
                 <button
                   key={id}
@@ -277,70 +343,24 @@ export function StageMapSelect({
             />
             <small aria-live="polite">
               {filtered.length ? (currentPage - 1) * pageSize + 1 : 0}–
-              {Math.min(currentPage * pageSize, filtered.length)} / {filtered.length}
+              {Math.min(currentPage * pageSize, filtered.length)} /{" "}
+              {filtered.length}
             </small>
           </div>
           <p className={styles.mapFootnote}>
             각 맵의 1인·2인 최고 별 중 높은 기록을 반영해요.
           </p>
         </section>
-        <aside className={styles.mapDetail}>
-          <h3>{map.name}</h3>
-          <MapCover mapId={mapId} />
-          <div className={styles.detailMeta}>
-            <small>10 스테이지 · 보스 2회</small>
-            <button
-              className={styles.previewButton}
-              onClick={() => setPreviewOpen(true)}
-            >
-              <Icon name="eye" />지형 보기
-            </button>
-          </div>
-          <p>{map.description}</p>
-          <TimeTargets mapId={mapId} mode={mode} />
-          <h4 className={styles.playModeLabel}>플레이 방식</h4>
-          <div className={styles.modeTabs}>
-            {(["SINGLE", "COOP"] as const).map((value) => (
-              <button
-                key={value}
-                aria-pressed={mode === value}
-                onClick={() => setMode(value)}
-              >
-                <Icon name={value === "SINGLE" ? "user" : "users"} />
-                {value === "SINGLE" ? "1인 도전" : "2인 협동"}
-              </button>
-            ))}
-          </div>
-          <p className={styles.bestTime}>
-            고난도 최고 기록{" "}
-            <strong>{best ? formatTime(best) : "첫 도전을 기다려요"}</strong>
-          </p>
-          <button
-            className={styles.primary}
-            disabled={!record?.unlocked}
-            onClick={prepare}
-          >
-            {record?.unlocked
-              ? mode === "SINGLE" ? "모험 시작" : "협동 방 찾기"
-              : "이전 맵 클리어 후 해금"}
-            <Icon name="arrowRight" />
-          </button>
-          {!record?.unlocked && map.order > 0 && (
-            <p className={styles.unlockHint}>
-              {STAGE_MAPS[STAGE_MAP_IDS[map.order - 1]].name}을 클리어하면 열려요.
-            </p>
-          )}
-        </aside>
       </div>
       {previewOpen && (
-        <RoomDialog
+        <ShootingRoomDialog
           title={`${map.name} 지형`}
           onClose={() => setPreviewOpen(false)}
         >
           {/* 전경 삽화와 실제 충돌 지형을 구분해 안내하고 동일한 공유 배치를 미리 볼 수 있게 한다. */}
           <MapPreview mapId={mapId} />
           <p>{map.description}</p>
-        </RoomDialog>
+        </ShootingRoomDialog>
       )}
     </div>
   );

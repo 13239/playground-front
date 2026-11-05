@@ -5,8 +5,9 @@ import { SiteFooter } from "@/app/_components/lobby/site-footer";
 import { TetrisDialog } from "@/features/tetris/components/tetris-dialog";
 import lobby from "@/app/_components/lobby/lobby.module.css";
 import styles from "./shooting.module.css";
+import theme from "./shooting-theme.module.css";
 
-/** 공통 계정·메뉴를 유지하며 전투 영역만 실제 뷰포트에 맞춘다. */
+/** 공통 계정·메뉴를 유지하며 슈팅 전체에 다크 테마와 실제 뷰포트 크기 기준을 적용한다. */
 export function ShootingShell({
   children,
   account,
@@ -20,7 +21,7 @@ export function ShootingShell({
   }>();
   return (
     <div
-      className={`app-page ${lobby.screen} ${styles.screen}`}
+      className={`app-page ${lobby.screen} ${styles.screen} ${theme.surface}`}
       data-page-width="game"
     >
       <a className={lobby.skipLink} href="#shooting-main">

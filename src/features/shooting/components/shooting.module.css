@@ -1,14 +1,14 @@
 /* 사이트 공통 폭 토큰을 따르며 HUD·대화상자·터치 조작에는 각각 별도의 최소·최대 크기를 적용한다. */
 .screen {
   min-height: 100svh;
-  background: var(--background, #f6f7fb);
+  background: var(--background, var(--shooting-panel));
 }
 .main {
   width: 100%;
   max-width: var(--layout-max-game);
   padding: var(--layout-panel-padding) var(--layout-gutter);
   margin-inline: auto;
-  color: #172133;
+  color: var(--shooting-text);
 }
 .titleRow {
   display: flex;
@@ -17,10 +17,10 @@
   gap: 1rem;
   margin-bottom: 1.1rem;
   padding: 0.75rem 1rem;
-  border: 1px solid #d2c4ed;
+  border: 1px solid var(--shooting-border);
   border-radius: 1.1rem;
-  background: #fffcffb8;
-  box-shadow: 0 0.3rem 1rem #a58bce10;
+  background: var(--shooting-panel);
+  box-shadow: 0 .3rem 1.25rem #0003;
 }
 .titleRow h1 {
   font-size: clamp(1.3rem, 1.15rem + 0.7vw, 2.1rem);
@@ -35,33 +35,33 @@
   min-width: 0;
 }
 .titleRow > div:first-child > .eyebrow {
-  color: #8958bd;
+  color: var(--shooting-accent);
 }
 .eyebrow {
   font-size: clamp(0.65rem, 0.58rem + 0.15vw, 0.85rem);
   letter-spacing: 0.17em;
   font-weight: 800;
-  color: #9da9c2;
+  color: var(--shooting-muted);
 }
 .titleRow .eyebrow {
-  color: #78718c;
+  color: var(--shooting-muted);
 }
 .topActions {
   display: flex;
   gap: 0.5rem;
 }
-.topActions button,
-.topActions a {
+.titleRow .topActions button,
+.titleRow .topActions a {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   min-height: 42px;
   padding: 0.6rem 0.9rem;
-  border: 1px solid #dee1ea;
+  border: 1px solid var(--shooting-border);
   border-radius: 9px;
-  color: #626780;
-  background: white;
+  color: var(--shooting-muted);
+  background: var(--shooting-elevated);
   font: inherit;
   text-decoration: none;
   font-size: 0.8rem;
@@ -81,10 +81,10 @@
   );
   min-height: 360px;
   border-radius: 16px;
-  background: #0a111b;
-  border: 1px solid #2b3646;
+  background: var(--shooting-panel);
+  border: 1px solid var(--shooting-border);
   box-shadow: 0 12px 32px #111c3218;
-  color: #e6edf7;
+  color: var(--shooting-text);
 }
 .arena[data-active="true"] {
   height: min(
@@ -110,7 +110,7 @@
   touch-action: none;
 }
 .canvas:focus-visible {
-  outline: 1px solid #9673e4;
+  outline: 1px solid var(--shooting-accent);
   outline-offset: var(--control-focus-offset);
 }
 .arena button,
@@ -120,9 +120,9 @@
 }
 .arena button {
   cursor: pointer;
-  color: #d9e5f4;
-  background: #202d3f;
-  border: 1px solid #3c4960;
+  color: var(--shooting-text);
+  background: var(--shooting-elevated);
+  border: 1px solid var(--shooting-border);
   border-radius: 8px;
   min-height: 42px;
   padding: 0.65rem 1rem;
@@ -131,8 +131,8 @@
     border-color 0.15s;
 }
 .arena button:hover:not(:disabled) {
-  background: #30435b;
-  border-color: #7b9bb7;
+  background: var(--shooting-hover);
+  border-color: var(--shooting-accent);
 }
 .arena button:disabled {
   opacity: 0.45;
@@ -141,7 +141,7 @@
 .arena button:focus-visible,
 .arena input:focus-visible,
 .arena select:focus-visible {
-  outline: 1px solid #ad8aef;
+  outline: 1px solid var(--shooting-accent);
   outline-offset: var(--control-focus-offset);
 }
 .arena button svg {
@@ -154,9 +154,9 @@
   align-items: center;
   justify-content: center;
   gap: 0.7rem;
-  background: #9ccfff;
-  color: #101b2a;
-  border: 1px solid #b1dbff;
+  background: var(--shooting-primary);
+  color: var(--shooting-text);
+  border: 1px solid var(--shooting-border);
   font-weight: 800;
   min-height: 48px;
   border-radius: 8px;
@@ -164,8 +164,8 @@
   padding: 0.85rem 1.4rem;
 }
 .arena .primary:hover:not(:disabled) {
-  background: #c2e5ff;
-  border-color: #e0f3ff;
+  background: var(--shooting-primary-hover);
+  border-color: var(--shooting-accent);
 }
 .arena .danger {
   border-color: #8c515e;
@@ -174,7 +174,7 @@
 .arena .quiet {
   background: transparent;
   border-color: transparent;
-  color: #9daec7;
+  color: var(--shooting-muted);
 }
 .status {
   text-align: center;
@@ -184,7 +184,7 @@
   font-size: 2rem;
 }
 .status p {
-  color: #667085;
+  color: var(--shooting-muted);
 }
 .status .primary {
   width: max-content;
@@ -198,7 +198,7 @@
   align-items: center;
   justify-content: center;
   padding: clamp(0.75rem, 2vw, 2.5rem);
-  background: #060d18a8;
+  background: var(--shooting-panel);
   backdrop-filter: blur(6px);
 }
 .dialog {
@@ -211,14 +211,14 @@
   overflow: auto;
   overscroll-behavior: contain;
   padding: clamp(1.15rem, 1.9vw, 2.5rem);
-  border: 1px solid #46576e;
+  border: 1px solid var(--shooting-border);
   border-radius: 16px;
-  background: linear-gradient(140deg, #202e41f5, #101b2afc);
+  background: var(--shooting-panel);
   box-shadow: 0 25px 80px #0008;
   outline: none;
   text-align: center;
   scrollbar-width: thin;
-  scrollbar-color: #586784 #152032;
+  scrollbar-color: var(--shooting-muted) var(--shooting-text);
 }
 .dialogWide {
   width: min(100%, 1040px);
@@ -242,17 +242,17 @@
   font-size: clamp(1.25rem, 1rem + 0.8vw, 2rem);
   letter-spacing: -0.045em;
   margin: 0;
-  color: #f2f6ff;
+  color: var(--shooting-text);
 }
 .dialog p {
-  color: #adbdd2;
+  color: var(--shooting-muted);
   font-size: clamp(0.82rem, 0.77rem + 0.2vw, 1rem);
   line-height: 1.75;
   margin: 0.2rem 0 0.5rem;
 }
 .dialog > small {
   font-size: 0.72rem;
-  color: #8293af;
+  color: var(--shooting-muted);
 }
 .dialog .intro {
   margin: 0.5rem 0 0.8rem;
@@ -283,9 +283,9 @@
   gap: 0.6rem;
 }
 .modeTabs button[aria-pressed="true"] {
-  background: #354862;
-  border-color: #98b8e4;
-  color: #e1f1ff;
+  background: var(--shooting-selected);
+  border-color: var(--shooting-accent);
+  color: var(--shooting-text);
 }
 .ruleChips {
   display: flex;
@@ -296,10 +296,10 @@
 }
 .ruleChips span {
   font-size: 0.68rem;
-  border: 1px solid #3b485c;
+  border: 1px solid var(--shooting-border);
   border-radius: 20px;
   padding: 0.3rem 0.65rem;
-  color: #a4b7ce;
+  color: var(--shooting-muted);
 }
 .join {
   display: flex;
@@ -308,10 +308,10 @@
 .join input {
   min-width: 0;
   flex: 1;
-  background: #0d1725;
-  border: 1px solid #41506a;
+  background: var(--shooting-elevated);
+  border: 1px solid var(--shooting-border);
   border-radius: 8px;
-  color: #e4f0ff;
+  color: var(--shooting-text);
   padding: 0.75rem;
   text-align: center;
   letter-spacing: 0.1em;
@@ -343,9 +343,9 @@
 .vitals {
   width: clamp(180px, 18vw, 350px);
   padding: 0.65rem 0.85rem;
-  border: 1px solid #7b9ab32b;
+  border: 1px solid var(--shooting-border);
   border-radius: 9px;
-  background: #101b2be6;
+  background: var(--shooting-elevated);
   box-shadow: 0 3px 15px #0002;
   font-size: clamp(0.72rem, 0.65rem + 0.15vw, 1rem);
 }
@@ -364,7 +364,7 @@
   white-space: nowrap;
 }
 .vitals small {
-  color: #8596ae;
+  color: var(--shooting-muted);
   font-size: 0.85em;
 }
 .vitals em {
@@ -382,13 +382,13 @@
   box-shadow: 0 0 9px #6bdbb150;
 }
 .waitDot {
-  background: #6f7b8d;
+  background: var(--shooting-panel);
   box-shadow: none;
 }
 .healthTrack {
   height: 6px;
   margin-top: 0.6rem;
-  background: #2b3748;
+  background: var(--shooting-panel);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -412,17 +412,17 @@
   gap: 0.6rem;
   margin-top: 0.6rem;
   font-size: 0.75em;
-  color: #b6c7e2;
+  color: var(--shooting-muted);
 }
 .xpRow > div {
   flex: 1;
   height: 3px;
-  background: #2b3748;
+  background: var(--shooting-panel);
 }
 .xpRow i {
   display: block;
   height: 100%;
-  background: #aa8ff0;
+  background: var(--shooting-panel);
 }
 .stage {
   text-align: center;
@@ -434,17 +434,17 @@
 }
 .stage > small {
   font-size: 0.6rem;
-  color: #8c9bb5;
+  color: var(--shooting-muted);
   letter-spacing: 0.17em;
 }
 .stage strong {
   font-size: clamp(0.8rem, 0.7rem + 0.3vw, 1.3rem);
   letter-spacing: 0.13em;
-  color: #b0bed2;
+  color: var(--shooting-muted);
   font-weight: 500;
 }
 .stage strong b {
-  color: #fff;
+  color: var(--shooting-text);
   font-size: 1.65em;
   letter-spacing: 0.02em;
 }
@@ -456,12 +456,12 @@
   font:
     500 clamp(0.6rem, 0.54rem + 0.15vw, 0.8rem)/1.6 ui-monospace,
     monospace;
-  color: #9db0c9;
+  color: var(--shooting-muted);
 }
 .stage i {
   width: 3px;
   height: 3px;
-  background: #758ba2;
+  background: var(--shooting-elevated);
 }
 .hudActions {
   display: flex;
@@ -474,13 +474,13 @@
   width: 40px;
   min-height: 40px;
   padding: 0.5rem;
-  background: #152133d9;
+  background: var(--shooting-elevated);
 }
 .latency {
   font:
     0.65rem ui-monospace,
     monospace;
-  color: #8492a6;
+  color: var(--shooting-muted);
   margin-right: 0.4rem;
 }
 .buildStrip {
@@ -500,23 +500,23 @@
   align-items: center;
   gap: 6px;
   padding: 4px 7px;
-  background: #0c1626cc;
-  border: 1px solid #7588a126;
+  background: var(--shooting-panel);
+  border: 1px solid var(--shooting-border);
   border-radius: 5px;
   width: max-content;
   font-size: 0.65rem;
-  color: #a8bbd2;
+  color: var(--shooting-muted);
 }
 .buildStrip svg {
   width: 12px;
   height: 12px;
-  color: #b7a3e7;
+  color: var(--shooting-muted);
 }
 .buildStrip small {
   font-size: inherit;
 }
 .buildStrip b {
-  color: #d4e7f9;
+  color: var(--shooting-text);
   min-width: 10px;
 }
 .hudBottom {
@@ -536,13 +536,13 @@
   gap: 0.8rem;
   align-items: center;
   padding: 0.7rem 1rem;
-  background: #101a29db;
-  border: 1px solid #71819c33;
+  background: var(--shooting-elevated);
+  border: 1px solid var(--shooting-border);
   border-radius: 8px;
 }
 .weaponInfo > span {
   font-size: 2rem;
-  color: #b6d8f4;
+  color: var(--shooting-muted);
   line-height: 1;
 }
 .weaponInfo > div {
@@ -553,7 +553,7 @@
 }
 .weaponInfo small {
   font-size: 0.65rem;
-  color: #889eb8;
+  color: var(--shooting-muted);
 }
 .skillBar {
   display: flex;
@@ -570,8 +570,8 @@
   flex-direction: column;
   gap: 6px;
   padding: 9px 3px 7px;
-  border-color: #50647e;
-  background: #142134ed;
+  border-color: var(--shooting-border);
+  background: var(--shooting-elevated);
   box-shadow: 0 4px 15px #0003;
   font-size: clamp(0.62rem, 0.56rem + 0.12vw, 0.82rem);
 }
@@ -582,15 +582,15 @@
   font:
     500 0.55rem ui-monospace,
     monospace;
-  color: #90a4bf;
+  color: var(--shooting-muted);
 }
 .skillButton svg {
-  color: #adcee9;
+  color: var(--shooting-muted);
   margin-top: 6px;
 }
 .keyHint {
   font-size: 0.65rem;
-  color: #879ab5;
+  color: var(--shooting-muted);
   padding-bottom: 0.6rem;
 }
 .clearBanner {
@@ -616,7 +616,7 @@
 }
 .clearBanner small {
   font-size: 0.8rem;
-  color: #b5cfde;
+  color: var(--shooting-muted);
 }
 .boss {
   position: absolute;
@@ -625,7 +625,7 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 4;
-  background: #121b2bd9;
+  background: var(--shooting-panel);
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid #d1986d33;
@@ -648,7 +648,7 @@
 }
 /* 바닥 아이템과 사용 버튼은 같은 방패·하트 및 하늘색·빨간색으로 연결한다. */
 .skillButton[data-item="invul"] > svg {
-  color: #7dd3fc;
+  color: var(--shooting-accent);
 }
 .skillButton[data-item="revive"] > svg {
   color: #ff6678;
@@ -662,8 +662,8 @@
   flex-direction: column;
   gap: 0.4rem;
   text-align: center;
-  background: #1d1c2de0;
-  border: 1px solid #765b5e;
+  background: var(--shooting-panel);
+  border: 1px solid var(--shooting-border);
   border-radius: 10px;
   padding: 1rem;
   color: #efbdad;
@@ -673,14 +673,14 @@
 }
 .deathNotice span {
   font-size: 0.75rem;
-  color: #b6bdcc;
+  color: var(--shooting-muted);
 }
 .notice {
   position: absolute;
   bottom: 120px;
   right: 15px;
   z-index: 35;
-  background: #243144;
+  background: var(--shooting-panel);
   padding: 0.7rem;
   border-radius: 6px;
   max-width: 70%;
@@ -690,7 +690,7 @@
   position: absolute;
   inset: 0;
   z-index: 30;
-  background: #101b2c;
+  background: var(--shooting-panel);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -708,13 +708,13 @@
   justify-content: space-between;
   gap: 0.7rem;
   padding: 0.6rem 1rem;
-  background: #0d1828;
-  border: 1px dashed #4d627e;
+  background: var(--shooting-panel);
+  border: 1px dashed var(--shooting-border);
   border-radius: 8px;
 }
 .roomCode > small {
   font-size: 0.7rem;
-  color: #a8b9cc;
+  color: var(--shooting-muted);
 }
 .roomCode button {
   display: flex;
@@ -747,9 +747,9 @@
   height: clamp(3rem, 4vw, 5rem) !important;
 }
 .weaponChoices button[aria-pressed="true"] {
-  /* 선택 상태도 밝은 표면을 유지해 보라색 이름·설명을 읽을 수 있게 한다. */
-  background: #ece0ff;
-  border-color: #9867d9;
+  /* 선택 상태는 어두운 보라색 표면과 밝은 이름·설명으로 구분한다. */
+  background: var(--shooting-selected);
+  border-color: var(--shooting-accent);
 }
 .weaponChoices b {
   font-size: 0.85rem;
@@ -757,7 +757,7 @@
 .weaponChoices small {
   font-size: 0.75rem;
   line-height: 1.5;
-  color: #79628e;
+  color: var(--shooting-muted);
 }
 .playerVotes {
   display: flex;
@@ -775,7 +775,7 @@
 .playerVotes b {
   margin-left: auto;
   font-size: 0.65rem;
-  color: #93a5bf;
+  color: var(--shooting-muted);
   font-weight: 500;
 }
 .upgradeGrid {
@@ -789,32 +789,32 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  background: #1c2b3d;
+  background: var(--shooting-panel);
 }
 .upgrade > div {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   width: 100%;
-  color: #9aaeca;
+  color: var(--shooting-muted);
   font-size: 0.75rem;
 }
 .upgrade > div svg {
   width: 18px;
   height: 18px;
-  color: #b29ae7;
+  color: var(--shooting-muted);
 }
 .upgrade > div b {
   margin-left: auto;
   white-space: nowrap;
-  color: #90cbdc;
+  color: var(--shooting-accent);
   font-size: 0.75rem;
 }
 .upgrade > strong {
   font-size: 1.05rem;
 }
 .upgrade > small {
-  color: #94a7c1;
+  color: var(--shooting-muted);
   font-size: 0.85rem;
   line-height: 1.55;
   min-height: 2em;
@@ -822,14 +822,14 @@
 /* 장착 슬롯 선택 UI를 제거하고 총별 세 카드의 배치 폭만 게임 패널 안에서 제한한다.
    총 전용 강화는 실제 전후 수치를 읽기 쉽게 표시하고 작은 화면에서는 세로로 재배치한다. */
 .upgradeValue {
-  color: #a9d9ff;
+  color: var(--shooting-muted);
   font-size: clamp(0.85rem, 1vw, 1.1rem);
   font-style: normal;
   font-weight: 700;
 }
 .waiting {
   padding: 3rem;
-  color: #b0c8e2;
+  color: var(--shooting-muted);
 }
 .result {
   display: flex;
@@ -840,14 +840,14 @@
 }
 .result > small {
   font-size: 0.75rem;
-  color: #96acc5;
+  color: var(--shooting-muted);
 }
 .result > strong {
   font:
     700 clamp(4rem, 5vw, 6rem)/1 ui-monospace,
     monospace;
   letter-spacing: -0.08em;
-  color: #bddeff;
+  color: var(--shooting-text);
 }
 .result > span {
   font:
@@ -856,7 +856,7 @@
 }
 .result > span > small {
   font: 400 0.65rem system-ui;
-  color: #90a3bd;
+  color: var(--shooting-muted);
 }
 .helpGrid {
   display: grid;
@@ -867,14 +867,14 @@
   font-size: 0.8rem;
 }
 .helpGrid span {
-  color: #8fa5c1;
+  color: var(--shooting-muted);
 }
 .rankings {
   margin: 2rem 0 1rem;
   padding: clamp(1rem, 2vw, 2rem);
-  border: 1px solid #e1e4ee;
+  border: 1px solid var(--shooting-border);
   border-radius: 14px;
-  background: white;
+  background: var(--shooting-panel);
 }
 .rankings > div:first-child {
   display: flex;
@@ -897,7 +897,7 @@
 }
 .rankings small {
   font-size: 0.7rem;
-  color: #8c90a4;
+  color: var(--shooting-muted);
 }
 .rankTable {
   overflow-x: auto;
@@ -913,26 +913,26 @@
 .rankTable th {
   text-align: left;
   font-size: 0.65rem;
-  color: #9a9bad;
+  color: var(--shooting-muted);
   font-weight: 500;
-  border-bottom: 1px solid #e9ebf2;
+  border-bottom: 1px solid var(--shooting-border);
   padding: 0.7rem 0.5rem;
 }
 .rankTable td {
   padding: 0.9rem 0.5rem;
-  border-bottom: 1px solid #f0f1f7;
+  border-bottom: 1px solid var(--shooting-border);
 }
 .rankTable td:first-child {
   font-family: ui-monospace, monospace;
-  color: #a19aaf;
+  color: var(--shooting-muted);
 }
 .rankTable td:nth-last-child(-n + 2) {
   font-family: ui-monospace, monospace;
   font-weight: 600;
-  color: #687f98;
+  color: var(--shooting-muted);
 }
 .rankTable [data-self="true"] {
-  background: #f5f0fd;
+  background: var(--shooting-panel);
 }
 .pagination {
   display: flex;
@@ -941,13 +941,13 @@
   gap: 1rem;
   margin-top: 1rem;
   font-size: 0.75rem;
-  color: #858595;
+  color: var(--shooting-muted);
 }
 .rankings button {
-  border: 1px solid #dedee8;
+  border: 1px solid var(--shooting-border);
   border-radius: 6px;
-  background: white;
-  color: #77768c;
+  background: var(--shooting-elevated);
+  color: var(--shooting-muted);
   padding: 0.4rem 0.8rem;
   cursor: pointer;
 }
@@ -955,7 +955,7 @@
   opacity: 0.4;
 }
 .rankings button:focus-visible {
-  outline: 1px solid #9673e4;
+  outline: 1px solid var(--shooting-accent);
   outline-offset: var(--control-focus-offset);
 }
 /* 짧은 창에서는 읽을 수 있는 크기를 유지하고 대화상자 내부만 스크롤한다. */
@@ -1046,11 +1046,11 @@
   .topActions {
     gap: 0.35rem;
   }
-  .topActions button {
+  .titleRow .topActions button {
     font-size: 0;
     padding: 0.55rem;
   }
-  .topActions a {
+  .titleRow .topActions a {
     padding: 0.55rem;
   }
   .arena,
@@ -1227,9 +1227,9 @@
   .stick {
     width: clamp(90px, 13vw, 140px);
     aspect-ratio: 1;
-    border: 1px solid #9680b177;
+    border: 1px solid var(--shooting-border);
     border-radius: 50%;
-    background: #8067a51c;
+    background: var(--shooting-panel);
     pointer-events: auto;
     touch-action: none;
     user-select: none;
@@ -1241,8 +1241,8 @@
   .stick > i {
     width: 40%;
     aspect-ratio: 1;
-    background: #cbb3e64d;
-    border: 1px solid #a489c388;
+    background: var(--shooting-panel);
+    border: 1px solid var(--shooting-border);
     border-radius: 50%;
     pointer-events: none;
   }
@@ -1250,7 +1250,7 @@
     position: absolute;
     bottom: -22px;
     font-size: 0.75rem;
-    color: #6c5482;
+    color: var(--shooting-muted);
     pointer-events: none;
     white-space: nowrap;
   }
@@ -1330,6 +1330,12 @@
   }
 }
 
+/* 좁은 휴대폰에서는 제목과 조작을 두 행으로 분리해 네 버튼의 최소 터치 영역을 지킨다. */
+@media (max-width: 480px) {
+  .titleRow { flex-direction: column; align-items: stretch; gap: .65rem; }
+  .titleRow .topActions { justify-content: space-between; }
+  .titleRow .topActions button, .titleRow .topActions a { min-width: 2.75rem; min-height: 2.75rem; padding: .5rem; }
+}
 /* 방 탐색·대기실은 최소 크기 이후 내용 높이로 확장한다. 전투는 기존 뷰포트 높이를 그대로 사용한다. */
 .arena[data-lobby="true"] {
   height: auto;
@@ -1339,111 +1345,116 @@
 .arena[data-lobby="true"] > div:first-child {
   border-radius: inherit;
 }
+/* 모드 선택에만 세로 확장을 적용해 두 카드의 하단 여백을 바깥 테두리와 일정하게 맞춘다. */
+.arena[data-lobby="true"]:has(> [data-mode-selection]) {
+  display: flex;
+  flex-direction: column;
+}
 .rankDialog {
   width: min(58rem, calc(100vw - 2rem));
   max-height: calc(100dvh - 2rem);
 }
 
-/* 승인된 프로필 캐릭터 그림체와 같은 파스텔 메뉴·HUD를 사용한다. 실제 전투 공간은 HUD 아래로 분리한다. */
+/* 승인된 다크 시네마틱 메뉴·HUD 색상 토큰을 공유한다. 실제 전투 공간은 HUD 아래로 분리한다. */
 .screen {
   background: transparent;
 }
 .main {
-  color: #29214c;
+  color: var(--shooting-text);
 }
 .arena {
-  border-color: #c7b9e5;
-  background: #eae4f4;
-  color: #30234d;
+  border-color: var(--shooting-border);
+  background: var(--shooting-panel);
+  color: var(--shooting-text);
   box-shadow: 0 0.7rem 2rem #9f82ba16;
 }
 .arena[data-lobby="true"] {
-  border: 1px solid #d2c4ed;
-  background: linear-gradient(125deg, #fcf9ffcf, #edf5ffb0);
+  border: 1px solid var(--shooting-border);
+  background: var(--shooting-panel);
   box-shadow: 0 0.5rem 1.5rem #a58bce0c;
 }
 .canvas {
   inset: 8rem 0 5.5rem;
 }
 .arena button {
-  color: #594174;
-  background: #fbf8ff;
-  border-color: #cbbbe6;
+  color: var(--shooting-muted);
+  background: var(--shooting-elevated);
+  border-color: var(--shooting-border);
   border-radius: 0.7rem;
 }
 .arena button:hover:not(:disabled) {
-  background: #eee4fc;
-  border-color: #a17ccc;
+  background: var(--shooting-hover);
+  border-color: var(--shooting-accent);
 }
 .arena .primary,
 .primary {
   color: white;
-  background: linear-gradient(120deg, #953ff5, #7030df);
-  border-color: #9160d8;
+  background: var(--shooting-primary);
+  border-color: var(--shooting-border);
 }
 .arena .primary:hover:not(:disabled) {
-  background: #7941da;
+  background: var(--shooting-primary-hover);
   color: white;
 }
 .arena .quiet {
-  color: #7c6693;
+  color: var(--shooting-muted);
 }
 .arena .danger {
-  background: #fff0f4;
-  color: #a34466;
-  border-color: #e9b4c6;
+  background: #49253a;
+  color: #ffb6c7;
+  border-color: #8b4d66;
 }
 .overlay {
-  background: #5a497c66;
+  background: var(--shooting-panel);
   backdrop-filter: blur(3px);
 }
 .dialog {
-  background: linear-gradient(135deg, #fffcff, #f0eaff);
-  color: #33224e;
-  border-color: #cdbde8;
+  background: var(--shooting-panel);
+  color: var(--shooting-text);
+  border-color: var(--shooting-border);
   box-shadow: 0 1.5rem 4rem #59416b30;
-  scrollbar-color: #c1aedb #f7f1ff;
+  scrollbar-color: var(--shooting-muted) var(--shooting-text);
 }
 .dialog .eyebrow {
-  color: #8a67b3;
+  color: var(--shooting-muted);
 }
 .dialogSub,
 .dialog p {
-  color: #806790;
+  color: var(--shooting-muted);
 }
 .upgrade,
 .arena .upgrade {
-  background: #fffaff;
-  border-color: #d6c4eb;
-  color: #4d356a;
+  background: var(--shooting-panel);
+  border-color: var(--shooting-border);
+  color: var(--shooting-text);
 }
 .upgradeValue {
-  color: #8044cb;
+  color: var(--shooting-accent);
 }
 .vitals {
-  background: #fffaffed;
-  border-color: #cfc0e6;
+  background: var(--shooting-elevated);
+  border-color: var(--shooting-border);
   box-shadow: none;
-  color: #3d2a58;
+  color: var(--shooting-text);
   padding: 0.4rem 0.6rem;
 }
 .vitals small,
 .xpRow {
-  color: #8a729e;
+  color: var(--shooting-muted);
 }
 .vitals img {
   object-fit: contain;
   flex-shrink: 0;
 }
 .healthTrack {
-  background: #e1d7ef;
+  background: var(--shooting-panel);
   margin-top: 0.3rem;
 }
 .healthTrack > i {
   background: linear-gradient(90deg, #75cbb4, #a2e4b8);
 }
 .ally {
-  color: #7a529d;
+  color: var(--shooting-muted);
   gap: 0.35rem;
   align-items: center;
   margin-top: 0.3rem;
@@ -1452,22 +1463,22 @@
   margin-top: 0.3rem;
 }
 .xpRow > div {
-  background: #e6dcf1;
+  background: var(--shooting-panel);
 }
 .stage {
   text-shadow: none;
   padding: 0.35rem 0.7rem;
-  background: #f9f4ffd9;
-  border: 1px solid #d7c7e8;
+  background: var(--shooting-elevated);
+  border: 1px solid var(--shooting-border);
   border-radius: 0.7rem;
 }
 .stage strong,
 .stage strong b {
-  color: #54337b;
+  color: var(--shooting-text);
 }
 .stage > small,
 .stage > span {
-  color: #876798;
+  color: var(--shooting-muted);
 }
 .hudTop {
   top: 0.6rem;
@@ -1479,28 +1490,28 @@
   flex-wrap: wrap;
 }
 .hudActions button {
-  background: #f8f2ff;
+  background: var(--shooting-elevated);
 }
 .timerTarget {
   font-size: 0.7rem;
-  color: #875aa4;
+  color: var(--shooting-muted);
   padding: 0.35rem 0.5rem;
-  background: #f8f2ff;
+  background: var(--shooting-elevated);
   border-radius: 0.5rem;
   white-space: nowrap;
 }
 .latency {
-  color: #977eaa;
+  color: var(--shooting-muted);
 }
 .boss {
   top: 8.25rem;
   width: min(48%, 36rem);
-  background: #f8f0ffeb;
-  border-color: #c9b1de;
-  color: #624277;
+  background: var(--shooting-panel);
+  border-color: var(--shooting-border);
+  color: var(--shooting-muted);
 }
 .boss > div:last-child {
-  background: #dfd1ec;
+  background: var(--shooting-panel);
 }
 .boss small {
   color: #a66c22;
@@ -1509,12 +1520,12 @@
   top: 11.5rem;
 }
 .buildStrip > span {
-  background: #f9f3ffdf;
-  color: #71558c;
-  border-color: #d1bee4;
+  background: var(--shooting-panel);
+  color: var(--shooting-muted);
+  border-color: var(--shooting-border);
 }
 .buildStrip b {
-  color: #78549b;
+  color: var(--shooting-muted);
 }
 .hudBottom {
   bottom: 0.6rem;
@@ -1522,39 +1533,39 @@
   right: 0.7rem;
 }
 .weaponInfo {
-  background: #faf4ffed;
-  color: #624278;
-  border: 1px solid #dccbea;
+  background: var(--shooting-elevated);
+  color: var(--shooting-muted);
+  border: 1px solid var(--shooting-border);
   border-radius: 0.7rem;
   padding: 0.45rem 0.7rem;
 }
 .weaponInfo small,
 .keyHint {
-  color: #987eaa;
+  color: var(--shooting-muted);
 }
 .skillBar {
-  border-color: #d3c0e5;
-  background: #fbf5ffed;
+  border-color: var(--shooting-border);
+  background: var(--shooting-elevated);
   border-radius: 1rem;
 }
 .arena .skillButton {
-  background: #fbf5ffed;
-  color: #68447c;
-  border-color: #dac7eb;
+  background: var(--shooting-elevated);
+  color: var(--shooting-muted);
+  border-color: var(--shooting-border);
 }
 .skillButton kbd {
-  color: #a17cb4;
+  color: var(--shooting-muted);
 }
 .skillButton svg {
-  color: #9261bc;
+  color: var(--shooting-accent);
 }
 .clearBanner {
-  color: #fff7ff;
+  color: var(--shooting-text);
 }
 .deathNotice {
-  background: #fbf1ffed;
+  background: var(--shooting-panel);
   color: #82485f;
-  border-color: #d9b7d4;
+  border-color: var(--shooting-border);
 }
 @media (max-width: 700px) {
   /* 이전 모바일 절대 좌표를 해제해 상태·타이머가 두 열 안에 머물도록 한다. */
@@ -1649,7 +1660,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #302647;
+  color: var(--shooting-text);
 }
 
 /* 가로 휴대폰의 실제 전투 중에는 사이트 장식을 접고 전장·양쪽 스틱·전투 버튼에 높이를 우선 배분한다. */
@@ -1706,17 +1717,17 @@
 .rankingTabs button {
   flex: 1;
   min-height: 2.75rem;
-  border: 1px solid #dacaf8;
+  border: 1px solid var(--shooting-border);
   border-radius: 0.7rem;
-  background: #fff;
-  color: #6f55a1;
+  background: var(--shooting-elevated);
+  color: var(--shooting-muted);
   font: inherit;
   font-size: 0.85rem;
 }
 .rankingTabs button[aria-pressed="true"] {
-  background: #8c4dea;
-  border-color: #8c4dea;
-  color: #fff;
+  background: var(--shooting-selected);
+  border-color: var(--shooting-accent);
+  color: var(--shooting-text);
 }
 /* 전투 시안: 고정 진행도와 하단 동작 사이의 가용 영역에만 전장을 맞춘다.
    이전 HUD의 절대 좌표보다 명시적으로 우선하여 창 크기·터치 환경에서도 겹침을 막는다. */
@@ -1729,8 +1740,8 @@
   align-items: center;
   gap: 1rem;
   padding: 0.7rem 1rem;
-  border-bottom: 1px solid #cfc0e5;
-  background: #fbf7fff5;
+  border-bottom: 1px solid var(--shooting-border);
+  background: var(--shooting-panel);
 }
 .stageProgress > strong {
   display: flex;
@@ -1740,13 +1751,13 @@
   white-space: nowrap;
 }
 .stageProgress > strong > span {
-  color: #9279aa;
+  color: var(--shooting-muted);
   font-size: 0.7rem;
   font-weight: 500;
 }
 .stageProgress > b {
   font-size: 0.85rem;
-  color: #71508f;
+  color: var(--shooting-muted);
   white-space: nowrap;
 }
 .stageProgress ol {
@@ -1768,7 +1779,7 @@
   content: "";
   flex: 1;
   height: 0.2rem;
-  background: #ddd1ef;
+  background: var(--shooting-panel);
 }
 .stageProgress li:last-child {
   flex: 0 0 auto;
@@ -1780,10 +1791,10 @@
   width: clamp(1.5rem, 2vw, 2.1rem);
   height: clamp(1.5rem, 2vw, 2.1rem);
   flex-shrink: 0;
-  border: 1px solid #c9b6e7;
+  border: 1px solid var(--shooting-border);
   border-radius: 50%;
-  background: #fffaff;
-  color: #8c70a8;
+  background: var(--shooting-panel);
+  color: var(--shooting-muted);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -1792,21 +1803,21 @@
   position: absolute;
   top: -0.7rem;
   font-size: 0.7rem;
-  color: #8d59c5;
+  color: var(--shooting-accent);
 }
 .stageProgress li[data-current="true"] > span {
-  background: #8b43e5;
-  color: #fff;
-  border-color: #a67de0;
-  box-shadow: 0 0 0 3px #e8d9fc;
+  background: var(--shooting-selected);
+  color: var(--shooting-text);
+  border-color: var(--shooting-accent);
+  box-shadow: 0 0 0 3px var(--shooting-selected);
 }
 .stageProgress li[data-cleared="true"] > span {
-  background: #aa75e8;
-  color: #fff;
-  border-color: #aa75e8;
+  background: var(--shooting-selected);
+  color: var(--shooting-text);
+  border-color: var(--shooting-border);
 }
 .stageProgress li[data-cleared="true"]::after {
-  background: #aa75e8;
+  background: var(--shooting-selected);
 }
 .arena[data-battle="true"] .canvas {
   inset: 4.2rem 0 5.2rem;
@@ -1857,13 +1868,13 @@
   right: 0;
   min-height: 5.2rem;
   padding: 0.5rem 0.8rem;
-  background: #faf6fff5;
-  border-top: 1px solid #d8c9eb;
+  background: var(--shooting-panel);
+  border-top: 1px solid var(--shooting-border);
   align-items: center;
 }
 .battleObjective {
   font-size: 0.75rem;
-  color: #83699c;
+  color: var(--shooting-muted);
   text-align: right;
 }
 /* 무적 아이템만 별도 배지로 표시해 짧은 피격 보호와 구분한다. 시간은 항상 소수점 한 자리와 s를 사용한다. */
@@ -1883,9 +1894,9 @@
 .activeShieldBadge > svg { width: 1rem; height: 1rem; }
 .missionBadge { display: none; }
 .battleObjective[data-urgent="true"], .missionBadge[data-urgent="true"] {
-  color: #a63049;
-  background: #fff0dc;
-  border: 1px solid #e4a47e;
+  color: #ffd09a;
+  background: #4c3028;
+  border: 1px solid #ad755a;
   border-radius: 0.5rem;
   padding: 0.4rem;
 }
@@ -1902,10 +1913,10 @@
     width: max-content;
     max-width: calc(100% - 1.5rem);
     padding: 0.4rem 0.6rem;
-    border: 1px solid #dcc9ee;
+    border: 1px solid var(--shooting-border);
     border-radius: 0.6rem;
-    background: #fcf6ffed;
-    color: #735084;
+    background: var(--shooting-selected);
+    color: var(--shooting-muted);
     font-size: 0.75rem;
     pointer-events: none;
   }
