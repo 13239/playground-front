@@ -4,7 +4,6 @@ import {
   STAGE_MAPS,
   STAGE_PALETTES,
   SHOOTING_CHARACTERS,
-  encounterFor,
   formatShieldTime,
   type GameSnapshot,
   type PlayerView,
@@ -12,6 +11,7 @@ import {
 import type { ShootingRuntime } from "../client/runtime";
 import { SpriteArt } from "./sprite-art";
 import { drawPickup } from "./pickup-art";
+import { drawMissionNodes } from "./mission-art";
 import { drawWeapon } from "./weapon-art";
 import { drawActiveShield, drawHostileProjectile, drawSupportDrone } from "./combat-visuals";
 import {
@@ -39,6 +39,7 @@ export function createArena(
     private art!: SpriteArt;
     private wallCount = -1;
     private labels = new Map<string, Phaser.GameObjects.Text>();
+    private missionLabels = new Map<string, Phaser.GameObjects.Text>();
     private protectionLabel!: Phaser.GameObjects.Text;
     private positions = new Map<string, { x: number; y: number }>();
     private stage = -1;
@@ -228,11 +229,7 @@ export function createArena(
       // 장치가 파괴되면 같은 틱의 서버 상태와 함께 이미지·충돌 벽도 사라진다.
       for (const device of Object.values(state.devices)) {
         if (device.hp <= 0 || device.kind === "pillar") continue;
-        const goal = encounterFor(state.stage).goal;
-        if (goal === "devices" || goal === "disrupt") {
-          this.danger.lineStyle(3, 0xffdc78, 0.85).strokeCircle(device.x, device.y, device.radius + 14);
-          this.danger.lineStyle(2, 0x372b43).strokeCircle(device.x, device.y, device.radius + 18);
-        }
+        // 기존 장치는 보조 효과를 유지한다. 필수 공략의 금색·푸른 표식은 missionNodes에만 표시한다.
         // 바닥 효과의 외곽은 서버 둔화 반경과 일치한다. 장치가 파괴되면 같은 패치에서 사라진다.
         if (device.kind === "sand-totem" || device.kind === "frost-core") {
           const frost = device.kind === "frost-core", radius = frost ? 165 : 145;
@@ -273,6 +270,36 @@ export function createArena(
           );
         }
       }
+      // 60개 임무가 같은 공개 상태를 렌더링하며 화면의 노드 조작으로 성공을 직접 제출하지 않는다.
+      const missionNodes = Object.values(state.missionNodes);
+      drawMissionNodes(this.danger, missionNodes, this.elapsed);
+      const missionIds = new Set(missionNodes.map(node => node.id));
+      for (const [id, label] of this.missionLabels) {
+        if (!missionIds.has(id)) { label.destroy(); this.missionLabels.delete(id); }
+      }
+      for (const node of missionNodes) {
+        let label = this.missionLabels.get(node.id);
+        if (!label) {
+          label = this.add.text(0, 0, "", {
+            fontFamily: "system-ui, sans-serif", fontSize: "15px", fontStyle: "bold",
+            color: "#fff0bf", backgroundColor: "#12213deb", padding: { x: 5, y: 3 },
+          }).setOrigin(0.5).setDepth(38);
+          this.missionLabels.set(node.id, label);
+        }
+        // 좁은 카메라 밖의 목표도 방향과 이름을 표시해 필수 공략을 찾지 못하는 상황을 막는다.
+        const bounds = camera.worldView, margin = 42 / zoom;
+        const offX = node.x < bounds.left + margin ? -1 : node.x > bounds.right - margin ? 1 : 0;
+        const offY = node.y < bounds.top + margin ? -1 : node.y > bounds.bottom - margin ? 1 : 0;
+        const arrow = offY < 0 ? offX < 0 ? "↖ " : offX > 0 ? "↗ " : "↑ "
+          : offY > 0 ? offX < 0 ? "↙ " : offX > 0 ? "↘ " : "↓ " : offX < 0 ? "← " : offX > 0 ? "→ " : "";
+        label.setText(`${arrow}${node.label}`).setScale(Math.max(1, 0.95 / zoom));
+        const half = label.displayWidth / 2 + 8 / zoom;
+        label.setPosition(
+          Phaser.Math.Clamp(node.x, bounds.left + half, bounds.right - half),
+          Phaser.Math.Clamp(node.y + node.radius + 24, bounds.top + 18 / zoom, bounds.bottom - 22 / zoom),
+        ).setVisible(node.status !== "hidden" &&
+            !(node.kind === "hearth" && missionNodes.some(n => n.kind === "cargo" && n.status === "active")));
+      }
       this.protectionLabel.setVisible(false);
       const seen = new Set<string>();
       for (const hazard of Object.values(state.hazards))
@@ -299,6 +326,11 @@ export function createArena(
           continue;
         }
         drawEnemyWarning(this.danger, enemy, x, y, this.elapsed);
+        if (enemy.boss && !state.objectiveComplete) {
+          // 잠긴 보스는 장갑 문양으로 표시하고 실제 피해 차단은 서버에서 수행한다.
+          this.danger.lineStyle(4, 0xdb9bff, 0.85).strokeCircle(x, y, r + 18);
+          this.danger.lineStyle(3, 0xe9c5ff).strokeRect(x - 9, y - r - 29, 18, 14);
+        }
         const roster = STAGE_MAPS[state.mapId].ordinary as readonly string[];
         const frame = enemy.boss
           ? state.stage === 5

@@ -35,19 +35,11 @@ export function BattleHud({
     (value) => value.id !== player.id && !value.departed,
   );
   const boss = Object.values(state.enemies).find((enemy) => enemy.boss);
-  const plan = encounterFor(state.stage);
-  const devicesLeft = Object.values(state.devices).filter(
-    (device) => device.kind !== "pillar" && device.hp > 0,
-  ).length;
-  const remaining = Math.max(0, plan.limit - (state.stageMillis ?? 0) / 1000);
-  // 제한시간과 장치 수는 실제 서버 상태를 사용하며 조작 안내 대신 현재 임무만 보여 준다.
-  let objective = "모든 적을 처치하세요";
-  if (plan.goal === "devices" || plan.goal === "disrupt") {
-    objective = devicesLeft
-      ? `장치 ${devicesLeft}개 제압${plan.limit ? ` · ${remaining.toFixed(1)}s` : ""}`
-      : "장치 제압 완료 · 남은 적 처치";
-  } else if (state.bossName) objective = `${state.bossName} 처치`;
-  else if (plan.goal === "crossfire") objective = "교차 포격 회피 · 남은 적 처치";
+  const plan = encounterFor(state.mapId, state.stage);
+  // 제한시간과 공략 진행은 실제 서버 상태를 사용하며 조작 안내 대신 현재 임무를 보여 준다.
+  const remaining = state.objectiveWindow;
+  const urgent = state.objectiveComplete && remaining > 0 && remaining < 4;
+  const objective = `${state.objectiveText}${remaining > 0 ? ` · ${remaining.toFixed(1)}s` : ""}`;
   return (
     <>
       {/* 진행도는 10개 노드로 고정하고 보스(5·10)와 현재·완료 상태를 색과 기호로 함께 구분한다. */}
@@ -152,7 +144,7 @@ export function BattleHud({
         <div className={styles.boss}>
           <div>
             <b>{state.bossName} · PHASE {boss.combatPhase ?? 1}</b>
-            {boss.exposed > 0 && (
+            {!state.objectiveComplete ? <small>공략 필요 · 방어 중</small> : boss.exposed > 0 && (
               <small>약점 노출 {boss.exposed.toFixed(1)}초</small>
             )}
             <span>{Math.ceil((100 * boss.hp) / boss.maxHp)}%</span>
@@ -238,11 +230,11 @@ export function BattleHud({
           )}
         </div>
         {/* 조작 설명은 상단 도움말 팝업으로 모으고 하단에는 전투 목표만 표시한다. */}
-        <span className={styles.battleObjective} data-urgent={plan.limit > 0 && devicesLeft > 0 && remaining < 10}>{objective}</span>
+        <span className={styles.battleObjective} data-urgent={urgent}>{objective}</span>
       </div>
       {/* 작은 화면에서도 목표가 숨겨지지 않게 전투 영역 안에 짧은 임무 배지를 별도로 제공한다. */}
-      <div className={styles.missionBadge} data-urgent={plan.limit > 0 && devicesLeft > 0 && remaining < 10}>
-        <Icon name="target" />{objective}
+      <div className={styles.missionBadge} data-urgent={urgent}>
+        <Icon name="target" /><div><strong>{objective}</strong><span>{state.objectiveHint}</span></div>
       </div>
       {!player.alive && state.phase === "combat" && !state.paused && (
         <div className={styles.deathNotice}>

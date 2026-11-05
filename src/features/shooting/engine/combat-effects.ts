@@ -22,6 +22,12 @@ export function drawEffect(
   const p = Math.max(0, Math.min(1, 1 - life / effect.duration)),
     fade = 1 - p;
   const { x, y, radius: r, kind } = effect;
+  // 반사·수분 성공은 실제 서버가 계산한 방향과 길이로 짧은 광선을 보여 준다.
+  if (kind === "mission-beam") {
+    g.lineStyle(9, 0x79edff, fade * 0.3).lineBetween(x, y, x + Math.cos(effect.value) * r, y + Math.sin(effect.value) * r);
+    g.lineStyle(3, 0xffefb7, fade).lineBetween(x, y, x + Math.cos(effect.value) * r, y + Math.sin(effect.value) * r);
+    return;
+  }
   // 무적 사용·위협 발사·보스 단계 전환은 피격 스파크와 구분되는 국소 효과로 표시한다.
   if (kind === "invul") {
     g.lineStyle(6 * fade + 1, 0x8cf4ff, fade).strokeCircle(x, y - 8, r * (0.6 + p));
@@ -243,11 +249,41 @@ export function drawHazard(
   hazard: HazardView,
   time: number,
 ): void {
-  if (hazard.warning <= 0) return;
+  if (hazard.warning <= 0) {
+    // 발동 순간에도 실제 광선·고리 경계를 잠깐 남겨 어떤 공격에 맞았는지 읽을 수 있게 한다.
+    const alpha = Math.min(0.75, hazard.life * 2);
+    if (hazard.shape === "line") {
+      g.save().translateCanvas(hazard.x, hazard.y).rotateCanvas(hazard.angle ?? 0);
+      g.fillStyle(0xffd2a3, alpha).fillRect(-(hazard.length ?? 0) / 2, -hazard.radius, hazard.length ?? 0, hazard.radius * 2);
+      g.restore();
+    } else if ((hazard.innerRadius ?? 0) > 0) {
+      const inner = hazard.innerRadius ?? 0;
+      g.lineStyle(hazard.radius - inner, 0xffbf93, alpha).strokeCircle(hazard.x, hazard.y, (hazard.radius + inner) / 2);
+    }
+    return;
+  }
   const { x, y, radius: r } = hazard,
     // 용암 예고 1.2초와 포격 예고 0.9초가 각자의 실제 판정 시간에 도달할 때만 가득 찬다.
-    progress = Math.max(0, Math.min(1, 1 - hazard.warning / (hazard.kind === "lava" ? 1.2 : hazard.kind === "crossfire" ? 1.1 : 0.9)));
+    progress = Math.max(0, Math.min(1, 1 - hazard.warning / (hazard.windup || (hazard.kind === "lava" ? 1.2 : hazard.kind === "crossfire" ? 1.1 : 0.9))));
   const alpha = 0.5 + Math.sin(time * 14) * 0.15;
+  // 직선·고리는 서버의 hazardContains와 동일한 경계로 그려 안쪽 안전 지대를 숨기지 않는다.
+  if (hazard.shape === "line") {
+    g.save().translateCanvas(x, y).rotateCanvas(hazard.angle ?? 0);
+    const length = hazard.length ?? 0;
+    g.fillStyle(0xff795d, 0.13 + progress * 0.15).fillRect(-length / 2, -r, length, r * 2);
+    g.lineStyle(4, 0x302139, 0.85).strokeRect(-length / 2, -r, length, r * 2);
+    g.lineStyle(2, 0xffcf8b, alpha).strokeRect(-length / 2, -r, length, r * 2);
+    g.lineStyle(2, 0xffc57d, 0.6).lineBetween(-length / 2, 0, -length / 2 + length * progress, 0);
+    g.restore();
+    return;
+  }
+  if ((hazard.innerRadius ?? 0) > 0) {
+    const inner = hazard.innerRadius ?? 0;
+    g.lineStyle(r - inner, 0xff795d, 0.16 + progress * 0.14).strokeCircle(x, y, (r + inner) / 2);
+    g.lineStyle(3, 0xffcc91, alpha).strokeCircle(x, y, r).strokeCircle(x, y, inner);
+    g.lineStyle(4, 0xffe5ac, 0.9).beginPath().arc(x, y, r + 6, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2).strokePath();
+    return;
+  }
   g.fillStyle(0xff6c45, 0.1 + progress * 0.13).fillCircle(x, y, r);
   g.lineStyle(5, 0x332135, 0.7).strokeCircle(x, y, r);
   g.lineStyle(2.5, 0xffba7b, alpha);
